@@ -1,0 +1,21 @@
+<p id="notice"><%= notice %></p>
+
+<h1><%= @event.title %></h1>
+
+<ul>
+  <li>
+    Share this URL with your guests:
+    <%= link_to event_url(@event), event_url(@event) %>
+  </li>
+
+  <li>
+    This is your super-secret admin URL:
+    <%= link_to event_admin_url(@event, @event.admin_token), event_admin_url(@event, @event.admin_token) %>
+  </li>
+</ul>
+
+<p>
+  <%= @event.date %>
+</p>
+
+<%= @event.body %>

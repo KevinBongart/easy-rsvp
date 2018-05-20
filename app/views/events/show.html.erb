@@ -1,0 +1,11 @@
+<p id="notice"><%= notice %></p>
+
+<h1><%= @event.title %></h1>
+
+<p>
+  <%= @event.date %>
+</p>
+
+<%= @event.body %>
+
+<%= link_to 'admin', event_admin_url(@event, @event.admin_token) %>
