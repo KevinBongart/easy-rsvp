@@ -1,21 +1,65 @@
-<p id="notice"><%= notice %></p>
+<h1>
+  <%= @event.title %>
 
-<h1><%= @event.title %></h1>
+  <small class='text-muted'>
+    //
+    <%= @event.date.to_formatted_s(:week_day_and_date) %>
+  </small>
+</h1>
+
+<p>
+  <%= link_to "Edit", edit_event_admin_path(@event, @event.admin_token), class: 'btn btn-primary' %>
+</p>
 
 <ul>
   <li>
-    Share this URL with your guests:
-    <%= link_to event_url(@event), event_url(@event) %>
+    Share this link with your guests:
+    <%= link_to event_url(@event), event_path(@event) %>
+    <%= content_tag :button,
+      'Copy',
+      type: :button,
+      class: ['btn', 'btn-sm', 'btn-outline-success', 'clipboard'],
+      data: { clipboard_text: event_url(@event) }
+    %>
+    </small>
   </li>
 
   <li>
-    This is your super-secret admin URL:
-    <%= link_to event_admin_url(@event, @event.admin_token), event_admin_url(@event, @event.admin_token) %>
+    This is your super-secret admin link:
+    <%= link_to event_admin_url(@event, @event.admin_token), event_admin_path(@event, @event.admin_token) %>.
+    Bookmark it or
+    <%= link_to 'click here to receive it by email', '#' %>.
   </li>
 </ul>
 
-<p>
-  <%= @event.date %>
-</p>
+<h2>Details</h2>
 
-<%= @event.body %>
+<% if @event.body.blank? %>
+  <p>
+    Where is this event taking place? What should the guests bring?
+    <%= link_to "Add some details", edit_event_admin_path(@event, @event.admin_token) %>.
+  </p>
+<% else %>
+  <div class='trix-content '><%= sanitize @event.body %></div>
+  <br>
+<% end %>
+
+<h2>RSVPs</h2>
+
+<ul>
+  <% Rsvp::RESPONSES.each do |response| %>
+    <% rsvps = @event.rsvps.where.not(id: nil).where(response: response) %>
+
+    <li>
+      <%= response.to_s.titleize %> (<%= rsvps.count %>)
+      <ul>
+        <% rsvps.each do |rsvp| %>
+          <li>
+            <%= rsvp.name %>
+          </li>
+        <% end %>
+      </ul>
+    </li>
+  <% end %>
+</ul>
+

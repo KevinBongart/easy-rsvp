@@ -5,6 +5,9 @@ class Event < ApplicationRecord
 
   before_create :set_admin_token
 
+  validates :title, presence: true
+  validates :date, presence: true
+
   def to_param
     "#{hashid}-#{title.parameterize}"
   end

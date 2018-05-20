@@ -1,38 +1,56 @@
-<p id="notice"><%= notice %></p>
+<h1>
+  <%= link_to @event.title, @event %>
 
-<h1><%= @event.title %></h1>
+  <small class='text-muted'>
+    //
+    <%= @event.date.to_formatted_s(:week_day_and_date) %>
+  </small>
 
-<p>
-  <%= @event.date %>
-</p>
+  <% if Rails.env.development? %>
+    <small><%= link_to 'admin', event_admin_path(@event, @event.admin_token) %></small>
+  <% end %>
 
-<%= @event.body %>
+</h1>
+
+<div class='trix-content '><%= sanitize @event.body %></div>
+
+<br>
 
 <h2>Who's coming?</h2>
 
-<%= form_for([@event, @rsvp]) do |f| %>
-  <%= f.label :name %>
-  <%= f.text_field :name %>
+<p>
+  <%= form_for [@event, @rsvp], html: { class: "form-inline #{'d-none' if @responded}" } do |f| %>
+    <%= f.label :name, "Your name:", class: "mr-2" %>
+    <%= f.text_field :name, class: 'form-control mr-2 mb-2 mb-md-0' %>
 
-  <% Rsvp::RESPONSES.each do |response| %>
-    <%= f.submit value: response.to_s.titleize %>
+    <% Rsvp::RESPONSES.each do |response| %>
+      <%= f.submit value: response.to_s.titleize, class: 'btn btn-primary mr-2' %>
+    <% end %>
   <% end %>
-<% end %>
+
+  <% if @responded %>
+    <span id='rsvp-again'><%= link_to 'RSVP again', '#' %></span>
+  <% end %>
+</p>
 
 <% Rsvp::RESPONSES.each do |response| %>
   <% rsvps = @event.rsvps.where.not(id: nil).where(response: response) %>
 
   <% if rsvps.any? %>
-    <h3><%= response.to_s.titleize %> (<%= rsvps.count %>)</h3>
+    <strong><%= response.to_s.titleize %></strong> (<%= rsvps.count %>)
 
     <ul>
       <% rsvps.each do |rsvp| %>
         <li>
-          <%= "#{rsvp.name} said #{rsvp.response}" %>
+          <%= rsvp.name %>
+
+          <% if rsvp.hashid.in? @user_rsvp_hashids %>
+            <small>
+              [<%= link_to 'x', event_rsvp_path(@event, rsvp), method: :delete %>]
+            </small>
+          <% end %>
         </li>
       <% end %>
     </ul>
   <% end %>
 <% end %>
-
-<small><%= link_to 'admin', event_admin_url(@event, @event.admin_token) %></small>

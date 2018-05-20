@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Events</title>
+    <title>Easy RSVP</title>
+
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
 
@@ -10,6 +11,20 @@
   </head>
 
   <body>
-    <%= yield %>
+    <div class='container'>
+      <nav class='navbar navbar-light mb-2'>
+        <%= link_to root_path, class: 'navbar-brand' do %>
+          <%= image_tag 'logo-small', id: 'logo' %>
+          Easy RSVP
+        <% end %>
+      </nav>
+
+      <%= render 'layouts/messages' %>
+      <%= yield %>
+    </div>
+
+    <%= javascript_tag do %>
+      new ClipboardJS('.clipboard');
+    <% end %>
   </body>
 </html>

@@ -5,11 +5,27 @@ class RsvpsController < ApplicationController
     response = Rsvp::RESPONSES.find { |r| r == params[:commit].downcase.to_sym }
     @rsvp = @event.rsvps.new(rsvp_params.merge(response: response))
 
-    if @event.save
+    if @rsvp.save
+      session[@event.hashid] ||= []
+      session[@event.hashid] << @rsvp.hashid
+
       redirect_to @event, notice: 'Thank you for responding!'
     else
-      redirect_to @event
+      redirect_to @event, alert: 'Please add your name to your RSVP'
     end
+  end
+
+  def destroy
+    @rsvp = @event.rsvps.find(params[:id])
+
+    event_session = session[@event.hashid]
+
+    if @rsvp.hashid.in?(event_session)
+      @rsvp.destroy
+      event_session -= [@rsvp.hashid]
+    end
+
+    redirect_to @event
   end
 
   private

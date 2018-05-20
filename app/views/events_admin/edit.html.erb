@@ -1,0 +1,18 @@
+<h1>Edit your event</h1>
+
+<%= simple_form_for @event, url: event_admin_path(@event, @event.admin_token) do |f| %>
+  <h2>Basics</h2>
+
+  <%= f.input :title, required: true %>
+  <%= f.input :date, as: :date, required: true %>
+
+  <h2>Description</h2>
+
+  <%= f.input :body, as: :hidden %>
+  <trix-editor input="event_body"></trix-editor>
+
+  <br>
+
+  <%= f.button :submit, class: 'btn-primary mr-2' %>
+  <%= link_to "Back", event_admin_path(@event, @event.admin_token), class: 'btn-link' %>
+<% end %>

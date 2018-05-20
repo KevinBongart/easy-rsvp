@@ -13,3 +13,15 @@
  *= require_tree .
  *= require_self
  */
+
+@import "bootstrap";
+@import "trix";
+
+.navbar {
+  padding-left: 0;
+
+  #logo {
+    max-height: 2rem;
+    vertical-align: bottom;
+  }
+}

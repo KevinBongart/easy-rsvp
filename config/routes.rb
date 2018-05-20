@@ -5,6 +5,8 @@ Rails.application.routes.draw do
       param: :admin_token,
       only: [:show, :edit, :update, :destroy]
 
-    resources :rsvps, only: [:create]
+    resources :rsvps, only: [:create, :destroy]
   end
+
+  root to: "events#new"
 end

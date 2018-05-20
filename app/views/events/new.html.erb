@@ -1,5 +1,26 @@
-<h1>New Event</h1>
+<h1 class="text-center">
+  Make it <i class="text-success">easy</i> for your guests to <i class="text-success">RSVP</i>
+</h1>
 
-<%= render 'form', event: @event %>
+<br>
 
-<%= link_to 'Back', events_path %>
+<%= simple_form_for @event do |f| %>
+  <%= f.input :title, required: false, label: 'What are you planning?', placeholder: @placeholders[:title] %>
+
+  <%= f.input :date,
+    required: false,
+    label: 'When is this happening?',
+    order: [:month, :day, :year],
+    start_year: Date.today.year
+  %>
+
+  <br>
+
+  <%= f.label :body, 'More details (optional):' %>
+  <%= f.input :body, as: :hidden %>
+  <trix-editor input="event_body" placeholder="<%= @placeholders[:body] %>"></trix-editor>
+
+  <br>
+
+  <%= f.button :submit, 'Create your event, for free!', class: 'btn-primary mr-2' %>
+<% end %>

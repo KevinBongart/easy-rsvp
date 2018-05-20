@@ -19,7 +19,7 @@ ActiveRecord::Schema.define(version: 2018_05_20_002943) do
 
   create_table "events", force: :cascade do |t|
     t.string "title", null: false
-    t.string "date"
+    t.date "date", null: false
     t.text "body"
     t.string "admin_token", null: false
     t.datetime "created_at", null: false

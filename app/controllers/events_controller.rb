@@ -3,17 +3,24 @@ class EventsController < ApplicationController
 
   def show
     @rsvp = @event.rsvps.new
+
+    @user_rsvp_hashids = session[@event.hashid] || []
+    @responded = @event.rsvps.where.not(id: nil).any? { |rsvp| rsvp.hashid.in? @user_rsvp_hashids }
   end
 
   def new
     @event = Event.new
+    @placeholders = {
+      title: 'BBQ party in our backyard 🏡🍔🍻',
+      body: "Hey everyone, summer is finally here so let's celebrate with some grilled food and cold beers! Our address: 1000 Hart Street in Brooklyn."
+    }
   end
 
   def create
     @event = Event.new(event_params)
 
     if @event.save
-      redirect_to @event, notice: 'Event was successfully created.'
+      redirect_to event_admin_path(@event, @event.admin_token), notice: "Here's your event!"
     else
       render :new
     end
