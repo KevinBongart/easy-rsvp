@@ -17,6 +17,10 @@
 @import "bootstrap";
 @import "trix";
 
+#main {
+  max-width: 960px;
+}
+
 .navbar {
   padding-left: 0;
 

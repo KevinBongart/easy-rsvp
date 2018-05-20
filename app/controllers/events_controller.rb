@@ -20,7 +20,7 @@ class EventsController < ApplicationController
     @event = Event.new(event_params)
 
     if @event.save
-      redirect_to event_admin_path(@event, @event.admin_token), notice: "Here's your event!"
+      redirect_to event_admin_path(@event, @event.admin_token)
     else
       render :new
     end

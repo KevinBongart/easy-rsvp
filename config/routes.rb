@@ -3,7 +3,10 @@ Rails.application.routes.draw do
     resources :admin,
       controller: :events_admin,
       param: :admin_token,
-      only: [:show, :edit, :update, :destroy]
+      only: [:show, :edit, :update, :destroy] do
+
+      resources :admin_email_requests, only: [:create]
+    end
 
     resources :rsvps, only: [:create, :destroy]
   end
