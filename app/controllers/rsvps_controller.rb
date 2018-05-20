@@ -8,7 +8,7 @@ class RsvpsController < ApplicationController
     if @event.save
       redirect_to @event, notice: 'Thank you for responding!'
     else
-      redirect_to @event, error: 'wasd'
+      redirect_to @event
     end
   end
 
