@@ -1,6 +1,8 @@
 class Event < ApplicationRecord
   include Hashid::Rails
 
+  has_many :rsvps
+
   before_create :set_admin_token
 
   def to_param

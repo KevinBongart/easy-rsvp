@@ -8,4 +8,32 @@
 
 <%= @event.body %>
 
-<%= link_to 'admin', event_admin_url(@event, @event.admin_token) %>
+<h2>Who's coming?</h2>
+
+<%= form_for([@event, @rsvp]) do |f| %>
+  <%= f.label :name %>
+  <%= f.text_field :name %>
+
+  <% Rsvp::RESPONSES.each do |response| %>
+    <%= f.submit value: response.to_s.titleize %>
+  <% end %>
+<% end %>
+
+<% Rsvp::RESPONSES.each do |response| %>
+  <% rsvps = @event.rsvps.where.not(id: nil).where(response: response) %>
+
+  <% if rsvps.any? %>
+    <h3><%= response.to_s.titleize %> (<%= rsvps.count %>)</h3>
+
+    <ul>
+      <% rsvps.each do |rsvp| %>
+        <li>
+          <%= "#{rsvp.name} said #{rsvp.response}" %>
+        </li>
+      <% end %>
+    </ul>
+  <% end %>
+<% end %>
+
+
+<small><%= link_to 'admin', event_admin_url(@event, @event.admin_token) %></small>

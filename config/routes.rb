@@ -4,5 +4,7 @@ Rails.application.routes.draw do
       controller: :events_admin,
       param: :admin_token,
       only: [:show, :edit, :update, :destroy]
+
+    resources :rsvps, only: [:create]
   end
 end
