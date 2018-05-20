@@ -19,7 +19,7 @@ require "sprockets/railtie"
 # you've limited to :test, :development, or :production.
 Bundler.require(*Rails.groups)
 
-module Events
+module EasyRSVP
   class Application < Rails::Application
     # Initialize configuration defaults for originally generated Rails version.
     config.load_defaults 5.2
@@ -31,8 +31,5 @@ module Events
 
     # Don't generate system test files.
     config.generators.system_tests = nil
-
-    config.assets.paths << Rails.root.join("vendor", "assets", "javascripts")
-    config.assets.paths << Rails.root.join("vendor", "assets", "stylesheets")
   end
 end

@@ -1,4 +1,4 @@
-# Events
+# Easy RSVP
 
 An accountless app to organize events and invite people.
 
