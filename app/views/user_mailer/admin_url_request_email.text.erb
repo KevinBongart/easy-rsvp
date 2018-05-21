@@ -1,0 +1,5 @@
+Hi,
+
+Your event "<%= @event.title %>" can be updated here: <%= event_admin_url(@event, @event.admin_token) %>. This is your super-secret admin link.
+
+Invite your guests by sending them this one: <%= event_url(@event) %>. Everyone with the link can RSVP, no account required.
