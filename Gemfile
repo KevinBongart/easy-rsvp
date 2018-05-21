@@ -5,6 +5,7 @@ ruby '2.5.1'
 
 gem 'rails'
 
+gem "aws-sdk-s3", require: false
 gem 'bootsnap', require: false
 gem 'bootstrap'
 gem 'coffee-rails'
@@ -22,6 +23,7 @@ gem 'uglifier'
 
 group :development, :test do
   gem 'byebug'
+  gem 'dotenv-rails'
 end
 
 group :development do
