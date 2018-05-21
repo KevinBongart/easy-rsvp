@@ -8,9 +8,9 @@ document.addEventListener("turbolinks:load", function() {
     var csrfToken = $('meta[name="csrf-token"]').attr('content');
     var file = attachment.file;
     var form = new FormData;
-    var endpoint = "/images";
+    var endpoint = "/image_uploads";
     form.append("Content-Type", file.type);
-    form.append("image[image]", file);
+    form.append("image_upload[image]", file);
 
     xhr = new XMLHttpRequest;
     xhr.open("POST", endpoint, true);

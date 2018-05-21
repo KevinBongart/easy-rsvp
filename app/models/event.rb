@@ -2,7 +2,6 @@ class Event < ApplicationRecord
   include Hashid::Rails
 
   has_many :rsvps
-  has_many_attached :images
 
   before_create :set_admin_token
 
