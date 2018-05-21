@@ -1,4 +1,4 @@
 class ApplicationMailer < ActionMailer::Base
-  default from: 'info@easy-rsvp.com'
+  default from: "Easy RSVP <info@easy-rsvp.com>"
   layout 'mailer'
 end
