@@ -26,6 +26,7 @@ end
 
 group :development do
   gem 'listen'
+  gem 'rails_real_favicon'
   gem 'spring'
   gem 'spring-watcher-listen'
   gem 'web-console'
