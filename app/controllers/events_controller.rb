@@ -1,5 +1,6 @@
 class EventsController < ApplicationController
   before_action :set_event, only: [:show]
+  before_action :set_placeholders, only: [:new]
 
   def show
     @rsvp = @event.rsvps.new
@@ -10,10 +11,6 @@ class EventsController < ApplicationController
 
   def new
     @event = Event.new
-    @placeholders = {
-      title: 'BBQ party in our backyard 🏡🍔🍻',
-      body: "Hey everyone, summer is finally here so let's celebrate with some grilled food and cold beers! Our address: 1000 Hart Street in Brooklyn."
-    }
   end
 
   def create
@@ -22,6 +19,7 @@ class EventsController < ApplicationController
     if @event.save
       redirect_to event_admin_path(@event, @event.admin_token)
     else
+      set_placeholders
       render :new
     end
   end
@@ -31,6 +29,13 @@ class EventsController < ApplicationController
   def set_event
     hashid = hashid_from_param(params[:id])
     @event = Event.find_by_hashid!(hashid)
+  end
+
+  def set_placeholders
+    @placeholders = {
+      title: 'BBQ party in our backyard 🏡🍔🍻',
+      body: "Hey everyone, summer is finally here so let's celebrate with some grilled food and cold beers! Our address: 1000 Hart Street in Brooklyn."
+    }
   end
 
   def event_params

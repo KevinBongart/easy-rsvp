@@ -11,5 +11,7 @@ Rails.application.routes.draw do
     resources :rsvps, only: [:create, :destroy]
   end
 
+  resources :images, only: [:create]
+
   root to: "events#new"
 end

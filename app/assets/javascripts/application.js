@@ -21,3 +21,4 @@
 
 //= require clipboard
 //= require trix
+//= require trix_attachments
