@@ -6,32 +6,34 @@ version: 2
 jobs:
   build:
     docker:
-      # specify the version you desire here
       - image: circleci/ruby:2.6.2-node-browsers
         environment:
           BUNDLER_VERSION: 2.0.1
           PGHOST: 127.0.0.1
           PGUSER: postgres
           RAILS_ENV: test
-
-      # Specify service dependencies here if necessary
-      # CircleCI maintains a library of pre-built images
-      # documented at https://circleci.com/docs/2.0/circleci-images/
       - image: circleci/postgres:10.5-alpine
         environment:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: ""
 
-
     working_directory: ~/repo
 
     steps:
+      - run:
+          name: configure bundler
+          command: |
+            sudo gem update --system
+            sudo gem uninstall bundler
+            sudo rm /usr/local/bin/bundle
+            sudo gem install bundler
+
       - checkout
 
       # Download and cache dependencies
       - restore_cache:
           keys:
-            - v1-dependencies-{{ checksum "Gemfile.lock" }}
+            - v1-dependencies-{{ arch }}-{{ .Environment.BUNDLER_VERSION }}-{{ checksum "Gemfile.lock" }}
             # fallback to using the latest cache if no exact match is found
             - v1-dependencies-
 
@@ -43,11 +45,16 @@ jobs:
       - save_cache:
           paths:
             - ./vendor/bundle
-          key: v1-dependencies-{{ checksum "Gemfile.lock" }}
+          key: v1-dependencies-{{ arch }}-{{ .Environment.BUNDLER_VERSION }}-{{ checksum "Gemfile.lock" }}
 
       # Database setup
-      - run: bundle exec rake db:create
-      - run: bundle exec rake db:schema:load
+      - run:
+          name: Set up database
+          command: |
+            cp example.env .env
+            cp config/database.example.yml config/database.yml
+            bundle exec rake db:create
+            bundle exec rake db:schema:load
 
       # run tests!
       - run:
