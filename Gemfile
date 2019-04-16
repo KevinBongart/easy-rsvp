@@ -1,8 +1,6 @@
 source 'https://rubygems.org'
 git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 
-ruby '2.5.1'
-
 gem 'rails'
 
 gem "aws-sdk-s3", require: false
@@ -24,7 +22,10 @@ gem 'uglifier'
 
 group :development, :test do
   gem 'byebug'
+  gem 'capybara'
   gem 'dotenv-rails'
+  gem 'launchy'
+  gem 'rspec-rails'
 end
 
 group :development do
