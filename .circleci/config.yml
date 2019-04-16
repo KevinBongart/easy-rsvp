@@ -51,8 +51,6 @@ jobs:
       - run:
           name: Set up database
           command: |
-            cp example.env .env
-            cp config/database.example.yml config/database.yml
             bundle exec rake db:create
             bundle exec rake db:schema:load
 
