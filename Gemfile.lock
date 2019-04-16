@@ -150,7 +150,7 @@ GEM
     octicons_helper (8.5.0)
       octicons (= 8.5.0)
       rails
-    pg (1.0.0)
+    pg (1.1.4)
     popper_js (1.14.5)
     public_suffix (3.0.3)
     puma (3.12.1)
