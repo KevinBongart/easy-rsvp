@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Easy RSVP</title>
+    <title>
+      <%= @event&.title || "Easy RSVP" %>
+    </title>
 
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
