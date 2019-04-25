@@ -34,7 +34,7 @@
 </p>
 
 <% Rsvp::RESPONSES.each do |response| %>
-  <% rsvps = @event.rsvps.where.not(id: nil).where(response: response) %>
+  <% rsvps = @rsvps.select { |rsvp| rsvp.response.to_sym == response } %>
 
   <% if rsvps.any? %>
     <strong><%= response.to_s.titleize %></strong> (<%= rsvps.count %>)

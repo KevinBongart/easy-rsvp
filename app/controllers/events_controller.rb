@@ -4,9 +4,10 @@ class EventsController < ApplicationController
 
   def show
     @rsvp = @event.rsvps.new
+    @rsvps = @event.rsvps.persisted.order(created_at: :asc)
 
     @user_rsvp_hashids = session[@event.hashid] || []
-    @responded = @event.rsvps.where.not(id: nil).any? { |rsvp| rsvp.hashid.in? @user_rsvp_hashids }
+    @responded = @rsvps.any? { |rsvp| rsvp.hashid.in? @user_rsvp_hashids }
   end
 
   def new
