@@ -2,6 +2,7 @@ class EventsAdminController < ApplicationController
   before_action :set_event
 
   def show
+    @rsvps = @event.rsvps.persisted.order(created_at: :asc)
   end
 
   def edit

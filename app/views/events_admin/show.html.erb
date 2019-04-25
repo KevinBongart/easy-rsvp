@@ -14,14 +14,14 @@
 <ul>
   <li>
     This is your super-secret admin link:
-    <%= link_to event_admin_url(@event, @event.admin_token), event_admin_path(@event, @event.admin_token) %>.
+    <%= link_to event_admin_url(@event, @event.admin_token), event_admin_path(@event, @event.admin_token), id: 'admin-link' %>.
     Bookmark it or
     <%= link_to 'receive it by email', '#', data: { toggle: :modal, target: '#emailModal' } %>.
   </li>
 
   <li>
     Invite your guests by sending them this link:
-    <%= link_to event_url(@event), event_path(@event) %>
+    <%= link_to event_url(@event), event_path(@event), id: 'public-link' %>
 
     <%= content_tag :button,
       'Copy',
@@ -50,7 +50,7 @@
 
 <ul>
   <% Rsvp::RESPONSES.each do |response| %>
-    <% rsvps = @event.rsvps.where.not(id: nil).where(response: response) %>
+    <% rsvps = @rsvps.select { |rsvp| rsvp.response.to_sym == response } %>
 
     <li>
       <%= response.to_s.titleize %> (<%= rsvps.count %>)
