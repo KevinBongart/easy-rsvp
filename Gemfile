@@ -1,6 +1,8 @@
 source 'https://rubygems.org'
 git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 
+ruby File.read('.ruby-version')
+
 gem 'rails'
 
 gem "aws-sdk-s3", require: false
