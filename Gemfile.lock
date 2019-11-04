@@ -224,7 +224,7 @@ GEM
       tilt
     sendgrid-ruby (6.0.0)
       ruby_http_client (~> 3.3.0)
-    simple_form (4.1.0)
+    simple_form (5.0.0)
       actionpack (>= 5.0)
       activemodel (>= 5.0)
     spring (2.1.0)
