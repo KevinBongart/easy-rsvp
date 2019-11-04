@@ -6,7 +6,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/ruby:2.6.3-node-browsers
+      - image: circleci/ruby:latest-node-browsers
         environment:
           BUNDLER_VERSION: 2.0.1
           DOMAIN: example.com
@@ -22,12 +22,9 @@ jobs:
 
     steps:
       - run:
-          name: configure bundler
+          name: Update Bundler
           command: |
-            sudo gem update --system
-            sudo gem uninstall bundler
-            sudo rm /usr/local/bin/bundle
-            sudo gem install bundler
+            gem install bundler:2.0.1
 
       - checkout
 
@@ -39,7 +36,7 @@ jobs:
             - v1-dependencies-
 
       - run:
-          name: install dependencies
+          name: Install Bundler dependencies
           command: |
             bundle install --jobs=4 --retry=3 --path vendor/bundle
 
@@ -48,16 +45,14 @@ jobs:
             - ./vendor/bundle
           key: v1-dependencies-{{ arch }}-{{ .Environment.BUNDLER_VERSION }}-{{ checksum "Gemfile.lock" }}
 
-      # Database setup
       - run:
           name: Set up database
           command: |
             bundle exec rake db:create
             bundle exec rake db:schema:load
 
-      # run tests!
       - run:
-          name: run tests
+          name: Run tests
           command: |
             mkdir /tmp/test-results
             TEST_FILES="$(circleci tests glob "spec/**/*_spec.rb" | \
@@ -70,7 +65,7 @@ jobs:
               --format progress \
               $TEST_FILES
 
-      # collect reports
+      # Collect reports
       - store_test_results:
           path: /tmp/test-results
       - store_artifacts:
