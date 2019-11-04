@@ -291,7 +291,7 @@ DEPENDENCIES
   octicons_helper
   pg
   puma
-  rails
+  rails (< 6)
   rails_real_favicon
   rspec-rails
   rspec_junit_formatter
@@ -305,7 +305,7 @@ DEPENDENCIES
   web-console
 
 RUBY VERSION
-   ruby 2.6.3p62
+   ruby 2.6.5p114
 
 BUNDLED WITH
    1.17.2
