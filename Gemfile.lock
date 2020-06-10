@@ -211,8 +211,9 @@ GEM
       sprockets (> 3.0)
       sprockets-rails
       tilt
-    sendgrid-ruby (6.1.2)
+    sendgrid-ruby (6.3.0)
       ruby_http_client (~> 3.4)
+      starkbank-ecdsa (~> 0.0.2)
     simple_form (5.0.2)
       actionpack (>= 5.0)
       activemodel (>= 5.0)
@@ -227,6 +228,7 @@ GEM
       actionpack (>= 4.0)
       activesupport (>= 4.0)
       sprockets (>= 3.0.0)
+    starkbank-ecdsa (0.0.2)
     thor (1.0.1)
     thread_safe (0.3.6)
     tilt (2.0.10)
