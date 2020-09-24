@@ -199,7 +199,7 @@ GEM
     rspec-support (3.9.3)
     rspec_junit_formatter (0.4.1)
       rspec-core (>= 2, < 4, != 2.12.0)
-    ruby_http_client (3.5.0)
+    ruby_http_client (3.5.1)
     rubyzip (2.2.0)
     sass-rails (6.0.0)
       sassc-rails (~> 2.1, >= 2.1.1)
@@ -211,7 +211,7 @@ GEM
       sprockets (> 3.0)
       sprockets-rails
       tilt
-    sendgrid-ruby (6.1.2)
+    sendgrid-ruby (6.3.4)
       ruby_http_client (~> 3.4)
     simple_form (5.0.2)
       actionpack (>= 5.0)
