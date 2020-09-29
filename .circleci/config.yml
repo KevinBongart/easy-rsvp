@@ -1,73 +1,27 @@
-# Ruby CircleCI 2.0 configuration file
-#
-# Check https://circleci.com/docs/2.0/language-ruby/ for more details
-#
-version: 2
+version: 2.1
+orbs:
+  ruby: circleci/ruby@1.1.1 # https://circleci.com/orbs/registry/orb/circleci/ruby
+
 jobs:
   build:
     docker:
-      - image: circleci/ruby:latest-node-browsers
+      - image: circleci/ruby:latest-node
         environment:
-          BUNDLER_VERSION: 2.1.4
-          DOMAIN: example.com
           PGHOST: 127.0.0.1
           PGUSER: postgres
           RAILS_ENV: test
-      - image: circleci/postgres:10.5-alpine
+      - image: circleci/postgres:latest
         environment:
+          POSTGRES_HOST_AUTH_METHOD: trust
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: ""
-
-    working_directory: ~/repo
-
+    executor: ruby/default
     steps:
-      - run:
-          name: Update Bundler
-          command: |
-            gem install bundler:$BUNDLER_VERSION
-
       - checkout
-
-      # Download and cache dependencies
-      - restore_cache:
-          keys:
-            - v1-dependencies-{{ arch }}-{{ .Environment.BUNDLER_VERSION }}-{{ checksum "Gemfile.lock" }}
-            # fallback to using the latest cache if no exact match is found
-            - v1-dependencies-
-
+      - ruby/install-deps
       - run:
-          name: Install Bundler dependencies
-          command: |
-            bundle install --jobs=4 --retry=3 --path vendor/bundle
-
-      - save_cache:
-          paths:
-            - ./vendor/bundle
-          key: v1-dependencies-{{ arch }}-{{ .Environment.BUNDLER_VERSION }}-{{ checksum "Gemfile.lock" }}
-
+          name: Wait for DB
+          command: 'dockerize -wait tcp://localhost:5432 -timeout 1m'
       - run:
           name: Set up database
-          command: |
-            bundle exec rake db:create
-            bundle exec rake db:schema:load
-
-      - run:
-          name: Run tests
-          command: |
-            mkdir /tmp/test-results
-            TEST_FILES="$(circleci tests glob "spec/**/*_spec.rb" | \
-              circleci tests split --split-by=timings)"
-
-            bundle exec rspec \
-              --format progress \
-              --format RspecJunitFormatter \
-              --out /tmp/test-results/rspec.xml \
-              --format progress \
-              $TEST_FILES
-
-      # Collect reports
-      - store_test_results:
-          path: /tmp/test-results
-      - store_artifacts:
-          path: /tmp/test-results
-          destination: test-results
+          command: 'bundle exec rails db:create db:schema:load --trace'
+      - ruby/rspec-test
