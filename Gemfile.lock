@@ -226,7 +226,7 @@ GEM
       sprockets (> 3.0)
       sprockets-rails
       tilt
-    sendgrid-ruby (6.3.4)
+    sendgrid-ruby (6.3.5)
       ruby_http_client (~> 3.4)
     simple_form (5.0.2)
       actionpack (>= 5.0)
