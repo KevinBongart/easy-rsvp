@@ -1,11 +1,11 @@
 version: 2.1
 orbs:
-  ruby: circleci/ruby@1.1.1 # https://circleci.com/orbs/registry/orb/circleci/ruby
+  ruby: circleci/ruby@1.1.2 # https://circleci.com/orbs/registry/orb/circleci/ruby
 
 jobs:
   build:
     docker:
-      - image: circleci/ruby:latest-node
+      - image: circleci/ruby:2.7-node-browsers
         environment:
           DOMAIN: example.com
           PGHOST: 127.0.0.1
