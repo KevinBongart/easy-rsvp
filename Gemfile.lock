@@ -232,7 +232,7 @@ GEM
       sprockets (> 3.0)
       sprockets-rails
       tilt
-    sendgrid-ruby (6.3.9)
+    sendgrid-ruby (6.4.0)
       ruby_http_client (~> 3.4)
     simple_form (5.1.0)
       actionpack (>= 5.2)
