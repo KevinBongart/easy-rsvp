@@ -7,7 +7,7 @@ gem 'rails', '< 7'
 
 gem "aws-sdk-s3", require: false
 gem 'bootsnap', require: false
-gem 'bootstrap'
+gem 'bootstrap', '< 5'
 gem 'coffee-rails'
 gem 'hashid-rails'
 gem 'jbuilder'
