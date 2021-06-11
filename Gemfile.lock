@@ -104,7 +104,7 @@ GEM
       coffee-script-source
       execjs
     coffee-script-source (1.12.2)
-    concurrent-ruby (1.1.8)
+    concurrent-ruby (1.1.9)
     crass (1.0.6)
     diff-lcs (1.4.4)
     dotenv (2.7.6)
@@ -135,7 +135,7 @@ GEM
     listen (3.5.1)
       rb-fsevent (~> 0.10, >= 0.10.3)
       rb-inotify (~> 0.9, >= 0.9.10)
-    loofah (2.9.1)
+    loofah (2.10.0)
       crass (~> 1.0.2)
       nokogiri (>= 1.5.9)
     mail (2.7.1)
@@ -150,10 +150,10 @@ GEM
     nokogiri (1.11.7)
       mini_portile2 (~> 2.5.0)
       racc (~> 1.4)
-    octicons (14.2.1)
-    octicons_helper (14.2.1)
+    octicons (14.2.2)
+    octicons_helper (14.2.2)
       actionview
-      octicons (= 14.2.1)
+      octicons (= 14.2.2)
       railties
     pg (1.2.3)
     popper_js (1.16.0)
