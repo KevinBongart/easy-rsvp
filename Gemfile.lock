@@ -150,10 +150,10 @@ GEM
     nokogiri (1.11.7)
       mini_portile2 (~> 2.5.0)
       racc (~> 1.4)
-    octicons (14.2.2)
-    octicons_helper (14.2.2)
+    octicons (15.0.0)
+    octicons_helper (15.0.0)
       actionview
-      octicons (= 14.2.2)
+      octicons (= 15.0.0)
       railties
     pg (1.2.3)
     popper_js (1.16.0)
@@ -194,7 +194,7 @@ GEM
       method_source
       rake (>= 0.13)
       thor (~> 1.0)
-    rake (13.0.3)
+    rake (13.0.6)
     rb-fsevent (0.10.4)
     rb-inotify (0.10.1)
       ffi (~> 1.0)
