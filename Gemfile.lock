@@ -150,17 +150,17 @@ GEM
     nokogiri (1.12.5)
       mini_portile2 (~> 2.6.1)
       racc (~> 1.4)
-    octicons (16.0.0)
-    octicons_helper (16.0.0)
+    octicons (16.1.0)
+    octicons_helper (16.1.0)
       actionview
-      octicons (= 16.0.0)
+      octicons (= 16.1.0)
       railties
     pg (1.2.3)
     popper_js (1.16.0)
     public_suffix (4.0.6)
     puma (5.5.0)
       nio4r (~> 2.0)
-    racc (1.5.2)
+    racc (1.6.0)
     rack (2.2.3)
     rack-test (1.1.0)
       rack (>= 1.0, < 3)
@@ -265,7 +265,7 @@ GEM
     websocket-extensions (0.1.5)
     xpath (3.2.0)
       nokogiri (~> 1.8)
-    zeitwerk (2.4.2)
+    zeitwerk (2.5.1)
 
 PLATFORMS
   ruby
