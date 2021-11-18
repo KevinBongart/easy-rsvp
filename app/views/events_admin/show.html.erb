@@ -108,7 +108,7 @@
 
             <%= f.submit 'Update', class: 'btn btn-primary mr-2' %>
             <button class='btn btn-link' data-dismiss='modal'>Close</button>
-            <%= button_to 'Delete…', event_admin_rsvp_path(@event, @event.admin_token, rsvp), method: :delete, class: 'btn btn-danger float-right', data: { confirm: 'Are you sure you want to delete this RSVP?' } %>
+            <%= link_to 'Delete…', event_admin_rsvp_path(@event, @event.admin_token, rsvp), method: :delete, class: 'btn btn-danger float-right', data: { confirm: 'Are you sure you want to delete this RSVP?' } %>
           <% end %>
         </div>
       </div>
