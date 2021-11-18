@@ -5,7 +5,11 @@ Rails.application.routes.draw do
       param: :admin_token,
       only: [:show, :edit, :update, :destroy] do
 
-      resources :admin_email_requests, only: [:create]
+
+      scope module: 'admin' do
+        resources :email_requests, only: [:create]
+        resources :rsvps, only: [:update, :destroy]
+      end
     end
 
     resources :rsvps, only: [:create, :destroy]
