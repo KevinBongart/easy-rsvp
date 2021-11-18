@@ -8,6 +8,7 @@ Rails.application.routes.draw do
 
       scope module: 'admin' do
         resources :email_requests, only: [:create]
+        resources :rsvps, only: [:update, :destroy]
       end
     end
 

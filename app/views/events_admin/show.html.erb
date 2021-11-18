@@ -58,6 +58,7 @@
         <% rsvps.each do |rsvp| %>
           <li>
             <%= rsvp.name %>
+            [<%= link_to 'edit', '#', data: { toggle: :modal, target: "#rsvp_#{rsvp.hashid}_modal" } %>]
           </li>
         <% end %>
       </ul>
@@ -87,3 +88,30 @@
     </div>
   </div>
 </div>
+
+<% @rsvps.each do |rsvp| %>
+  <div class='modal fade' id='<%= "rsvp_#{rsvp.hashid}_modal" %>' tabindex='-1' role='dialog' aria-labelledby='emailModalLabel' aria-hidden='true'>
+    <div class='modal-dialog' role='document'>
+      <div class='modal-content'>
+        <div class='modal-body'>
+          <%= form_for rsvp, url: event_admin_rsvp_path(@event, @event.admin_token, rsvp) do |f| %>
+
+            <div class='form-group'>
+              <%= f.label :name %>
+              <%= f.text_field :name, class: 'form-control' %>
+            </div>
+
+            <div class='form-group'>
+              <%= f.label :response %>
+              <%= f.select :response, Rsvp::RESPONSES.map { |r| [r.to_s.titleize, r] } %>
+            </div>
+
+            <%= f.submit 'Update', class: 'btn btn-primary mr-2' %>
+            <button class='btn btn-link' data-dismiss='modal'>Close</button>
+            <%= button_to 'Delete…', event_admin_rsvp_path(@event, @event.admin_token, rsvp), method: :delete, class: 'btn btn-danger float-right', data: { confirm: 'Are you sure you want to delete this RSVP?' } %>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+<% end %>
