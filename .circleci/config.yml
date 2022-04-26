@@ -5,7 +5,7 @@ orbs:
 jobs:
   build:
     docker:
-      - image: circleci/ruby:latest-node-browsers
+      - image: cimg/ruby:3.1.2-node-browsers
         environment:
           DOMAIN: example.com
           PGHOST: 127.0.0.1
