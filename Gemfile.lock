@@ -166,7 +166,7 @@ GEM
       actionview
       octicons (= 17.7.0)
       railties
-    pg (1.4.3)
+    pg (1.4.5)
     popper_js (1.16.1)
     public_suffix (4.0.7)
     puma (6.0.0)
