@@ -15,8 +15,7 @@
   <li>
     This is your super-secret admin link:
     <%= link_to event_admin_url(@event, @event.admin_token), event_admin_path(@event, @event.admin_token), id: 'admin-link' %>.
-    Bookmark it or
-    <%= link_to 'receive it by email', '#', data: { toggle: :modal, target: '#emailModal' } %>.
+    Bookmark it!
   </li>
 
   <li>
@@ -65,29 +64,6 @@
     </li>
   <% end %>
 </ul>
-
-<div class='modal fade' id='emailModal' tabindex='-1' role='dialog' aria-labelledby='emailModalLabel' aria-hidden='true'>
-  <div class='modal-dialog' role='document'>
-    <div class='modal-content'>
-      <div class='modal-body'>
-        <%= form_tag event_admin_email_requests_path(@event, @event.admin_token) do %>
-
-          <div class='form-group'>
-            <%= label_tag :email, 'Your email address:' %>
-            <%= text_field_tag :email, nil, class: 'form-control' %>
-
-            <small class='form-text text-muted'>
-              We don't store and will never share your email.
-            </small>
-          </div>
-
-          <%= submit_tag 'Receive the admin link', class: 'btn btn-primary mr-2' %>
-          <button class='btn btn-link' data-dismiss='modal'>Close</button>
-        <% end %>
-      </div>
-    </div>
-  </div>
-</div>
 
 <% @rsvps.each do |rsvp| %>
   <div class='modal fade' id='<%= "rsvp_#{rsvp.hashid}_modal" %>' tabindex='-1' role='dialog' aria-labelledby='emailModalLabel' aria-hidden='true'>
