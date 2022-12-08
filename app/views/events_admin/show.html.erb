@@ -41,7 +41,7 @@
     <%= link_to "Add some details", edit_event_admin_path(@event, @event.admin_token) %>.
   </p>
 <% else %>
-  <div class='trix-content '><%= sanitize @event.body %></div>
+  <div class='trix-content'><%= sanitize @event.body %></div>
   <br>
 <% end %>
 
