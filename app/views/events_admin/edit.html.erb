@@ -1,15 +1,22 @@
 <h1>Edit your event</h1>
 
 <%= simple_form_for @event, url: event_admin_path(@event, @event.admin_token) do |f| %>
-  <h2>Basics</h2>
+  <%= f.input :title %>
 
-  <%= f.input :title, required: true %>
-  <%= f.input :date, as: :date, required: true %>
+  <%= f.input :date,
+    label: 'When is this happening?',
+    order: [:month, :day, :year],
+    start_year: Date.today.year
+  %>
 
-  <h2>Description</h2>
 
+  <%= f.label :body, 'More details (optional):' %>
   <%= f.input :body, as: :hidden %>
   <trix-editor input="event_body"></trix-editor>
+
+  <br>
+
+  <%= f.input :show_rsvp_names, label: 'Let guests see the names of other guests' %>
 
   <br>
 
