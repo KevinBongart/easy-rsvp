@@ -13,6 +13,10 @@
 
   <br>
 
+  <%= f.input :show_rsvp_names, label: 'Let guests see the names of other guests' %>
+
+  <br>
+
   <%= f.button :submit, class: 'btn-primary mr-2' %>
   <%= link_to "Back", event_admin_path(@event, @event.admin_token), class: 'btn-link' %>
 <% end %>

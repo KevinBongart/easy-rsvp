@@ -18,6 +18,10 @@
 
 <h2>Who's coming?</h2>
 
+<% unless @event.show_rsvp_names? %>
+  <small>Guest names are hidden to other guests.</small>
+<% end %>
+
 <p>
   <%= form_for [@event, @rsvp], html: { class: "form-inline #{'d-none' if @responded}" } do |f| %>
     <%= f.label :name, "Your name:", class: "mr-2" %>
@@ -41,15 +45,25 @@
 
     <ul>
       <% rsvps.each do |rsvp| %>
-        <li>
-          <%= rsvp.name %>
+        <% if @event.show_rsvp_names? %>
+          <li>
+            <%= rsvp.name %>
 
-          <% if rsvp.hashid.in? @user_rsvp_hashids %>
+            <% if rsvp.hashid.in? @user_rsvp_hashids %>
+              <small>
+                [<%= link_to 'x', event_rsvp_path(@event, rsvp), method: :delete %>]
+              </small>
+            <% end %>
+          </li>
+        <% elsif rsvp.hashid.in? @user_rsvp_hashids %>
+          <li>
+            <%= rsvp.name %>
+
             <small>
               [<%= link_to 'x', event_rsvp_path(@event, rsvp), method: :delete %>]
             </small>
-          <% end %>
-        </li>
+          </li>
+        <% end %>
       <% end %>
     </ul>
   <% end %>

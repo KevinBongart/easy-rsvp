@@ -47,6 +47,16 @@
 
 <h2>RSVPs</h2>
 
+<p>
+  <% if @event.show_rsvp_names? %>
+    Guests can see the names of other guests.
+  <% else %>
+    Guest names are hidden to other guests.
+  <% end %>
+
+  <%= link_to "Edit", edit_event_admin_path(@event, @event.admin_token) %>
+</p>
+
 <ul>
   <% Rsvp::RESPONSES.each do |response| %>
     <% rsvps = @rsvps.select { |rsvp| rsvp.response.to_sym == response } %>
