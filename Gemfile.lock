@@ -166,10 +166,10 @@ GEM
     nokogiri (1.14.2)
       mini_portile2 (~> 2.8.0)
       racc (~> 1.4)
-    octicons (18.3.0)
-    octicons_helper (18.3.0)
+    octicons (19.2.0)
+    octicons_helper (19.2.0)
       actionview
-      octicons (= 18.3.0)
+      octicons (= 19.2.0)
       railties
     pg (1.4.6)
     popper_js (1.16.1)
