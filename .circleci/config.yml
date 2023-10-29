@@ -25,3 +25,15 @@ jobs:
           name: Set up database
           command: 'bundle exec rails db:create db:schema:load --trace'
       - ruby/rspec-test
+  gravity:
+    docker:
+      - image: cimg/ruby:3.1.4-node
+        environment:
+          RAILS_ENV: production
+    executor: ruby/default
+    steps:
+      - checkout
+      - ruby/install-deps
+      - run:
+          name: Precompile assets
+          command: 'bundle exec rails assets:precompile --trace'
