@@ -36,7 +36,7 @@ jobs:
     docker:
       - image: cimg/ruby:3.1.4-node
         environment:
-          RAILS_ENV: production
+          RAILS_ENV: test
     executor: ruby/default
     steps:
       - checkout
