@@ -5,6 +5,13 @@ orbs:
 jobs:
   build:
     docker:
+      - image: cimg/ruby:3.1.4
+    executor: ruby/default
+    steps:
+      - checkout
+      - ruby/install-deps
+  test:
+    docker:
       - image: cimg/ruby:3.1.4-browsers
         environment:
           PGHOST: 127.0.0.1
@@ -37,3 +44,17 @@ jobs:
       - run:
           name: Precompile assets
           command: 'bundle exec rails assets:precompile --trace'
+workflows:
+  build-and-test:
+    jobs:
+      - build
+      - test:
+          requires:
+            - build
+      - gravity:
+          requires:
+            - build
+          filters:
+            branches:
+              except:
+                - main
