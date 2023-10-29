@@ -49,7 +49,7 @@ jobs:
           command: 'npm install @gravityci/cli'
       - run:
           name: 'Run Gravity'
-          command: 'npx run gravityci "public"'
+          command: 'npm run gravityci "public"'
 workflows:
   build-and-test:
     jobs:
