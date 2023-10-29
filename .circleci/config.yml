@@ -56,5 +56,5 @@ workflows:
             - build
           filters:
             branches:
-              except:
+              ignore:
                 - main
