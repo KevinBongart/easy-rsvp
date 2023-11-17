@@ -45,6 +45,9 @@ jobs:
           name: Precompile assets
           command: 'bundle exec rails assets:precompile --trace'
       - run:
+          name: 'Install Gravity'
+          command: 'npm install @gravityci/cli'
+      - run:
           name: 'Run Gravity'
           command: 'npx gravityci "public"'
 workflows:
