@@ -5,6 +5,13 @@ orbs:
 jobs:
   build:
     docker:
+      - image: cimg/ruby:3.1.4
+    executor: ruby/default
+    steps:
+      - checkout
+      - ruby/install-deps
+  test:
+    docker:
       - image: cimg/ruby:3.1.4-browsers
         environment:
           PGHOST: 127.0.0.1
@@ -25,3 +32,35 @@ jobs:
           name: Set up database
           command: 'bundle exec rails db:create db:schema:load --trace'
       - ruby/rspec-test
+  gravity:
+    docker:
+      - image: cimg/ruby:3.1.4-node
+        environment:
+          RAILS_ENV: test
+    executor: ruby/default
+    steps:
+      - checkout
+      - ruby/install-deps
+      - run:
+          name: Precompile assets
+          command: 'bundle exec rails assets:precompile --trace'
+      - run:
+          name: 'Install Gravity'
+          command: 'npm install @gravityci/cli'
+      - run:
+          name: 'Run Gravity'
+          command: 'npx gravityci "public"'
+workflows:
+  build-and-test:
+    jobs:
+      - build
+      - test:
+          requires:
+            - build
+      - gravity:
+          requires:
+            - build
+          filters:
+            branches:
+              ignore:
+                - main
