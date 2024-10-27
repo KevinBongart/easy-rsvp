@@ -1,6 +1,6 @@
 version: 2.1
 orbs:
-  ruby: circleci/ruby@2.0.0 # https://circleci.com/orbs/registry/orb/circleci/ruby
+  ruby: circleci/ruby@2.1.1 # https://circleci.com/orbs/registry/orb/circleci/ruby
 
 jobs:
   build:
@@ -25,3 +25,30 @@ jobs:
           name: Set up database
           command: 'bundle exec rails db:create db:schema:load --trace'
       - ruby/rspec-test
+  deploy:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - add_ssh_keys
+      - checkout
+      - run:
+          name: Add git remote host to know hosts
+          command: ssh-keyscan dokku.kevinbongart.net >> ~/.ssh/known_hosts
+      - run:
+          name: Add Dokku git remote
+          command: git remote add dokku dokku@dokku.kevinbongart.net:easy-rsvp
+      - run:
+          name: Deploy to Dokku
+          command: git push dokku main
+
+workflows:
+  build-and-deploy:
+    jobs:
+      - build
+      - deploy:
+          requires:
+            - build
+          filters:
+            branches:
+              only:
+                - main
