@@ -31,6 +31,17 @@
 
     Everyone with the link can RSVP, no account required.
   </li>
+
+  <li>
+    <% if @event.published? %>
+      If you'd like to unpublish your event, click here:
+      <%= button_to 'Unpublish', toggle_publish_event_admin_path(@event, @event.admin_token), class: 'btn btn-secondary btn-sm', form_class: 'd-inline-block' %>
+      No one will be able to view the event page. You can come back to this admin page anytime to change this if needed.
+    <% else %>
+      Your event is not publicly viewable right now. No one is currently able to view the event page. Click here to publish it:
+      <%= button_to 'Publish', toggle_publish_event_admin_path(@event, @event.admin_token), class: 'btn btn-secondary btn-sm', form_class: 'd-inline-block' %>
+    <% end %>
+  </li>
 </ul>
 
 <h2>Details</h2>

@@ -21,6 +21,11 @@ class EventsAdminController < ApplicationController
     redirect_to root_path, notice: 'Event was successfully destroyed.'
   end
 
+  def toggle_publish
+    @event.toggle!(:published)
+    redirect_to event_admin_path(@event, @event.admin_token), notice: "Your event is now #{@event.published? ? 'live' : 'unpublished'}."
+  end
+
   private
 
   def set_event
