@@ -43,4 +43,36 @@ describe 'event creation' do
     expect(page).to have_content 'Maybe (1)'
     expect(page).to have_content 'No (1)'
   end
+
+  it 'can be unpublished' do
+    visit '/'
+    fill_in 'What are you planning?', with: "Batman's surprise birthday"
+    click_button 'Create your event, for free!'
+    admin_path = current_path
+
+    expect(page).to have_content "Batman's surprise birthday"
+
+    click_link 'public-link'
+
+    expect(page).to have_content "Batman's surprise birthday"
+
+    visit(admin_path) # Back to admin page
+    click_button 'click here'
+
+    expect(page).to have_content "Your event is now unpublished."
+
+    click_link 'public-link'
+
+    expect(current_path).to eq ('/')
+    expect(page).to have_content "This event is no longer viewable."
+
+    visit(admin_path) # Back to admin page
+    click_button 'Click here to publish it'
+
+    expect(page).to have_content "Your event is now live."
+
+    click_link 'public-link'
+
+    expect(page).to have_content "Batman's surprise birthday"
+  end
 end
