@@ -12,7 +12,6 @@ class Event < ApplicationRecord
     "#{hashid}-#{title.parameterize}"
   end
 
-
   private
 
   def set_admin_token

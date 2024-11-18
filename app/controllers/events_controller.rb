@@ -30,6 +30,10 @@ class EventsController < ApplicationController
   def set_event
     hashid = hashid_from_param(params[:id])
     @event = Event.find_by_hashid!(hashid)
+
+    unless @event.published?
+      redirect_to root_path, alert: 'This event is no longer viewable.'
+    end
   end
 
   def set_placeholders

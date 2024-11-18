@@ -29,3 +29,12 @@
     vertical-align: bottom;
   }
 }
+
+form.inline-btn-link {
+  display: inline-block;
+
+  .btn.btn-link {
+    padding: 0;
+    vertical-align: baseline;
+  }
+}

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2023_06_20_075902) do
+ActiveRecord::Schema[7.2].define(version: 2024_11_15_112908) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -39,7 +39,7 @@ ActiveRecord::Schema[7.2].define(version: 2023_06_20_075902) do
   end
 
   create_table "active_storage_variant_records", force: :cascade do |t|
-    t.bigint "blob_id", null: false
+    t.integer "blob_id", null: false
     t.string "variation_digest", null: false
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
   end
@@ -52,6 +52,7 @@ ActiveRecord::Schema[7.2].define(version: 2023_06_20_075902) do
     t.datetime "created_at", precision: nil, null: false
     t.datetime "updated_at", precision: nil, null: false
     t.boolean "show_rsvp_names", default: true, null: false
+    t.boolean "published", default: true
   end
 
   create_table "image_uploads", force: :cascade do |t|
