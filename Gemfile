@@ -21,6 +21,7 @@ gem 'pg'
 gem 'puma'
 gem 'sass-rails'
 gem 'simple_form'
+gem 'skylight'
 gem 'turbolinks'
 gem 'uglifier'
 
