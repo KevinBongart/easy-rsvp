@@ -26,7 +26,7 @@ module Admin
 
     # Example: {2022=>"12", 2023=>"44"}
     def yearly_counts
-      years = events.group_by { |e| e.date.year }
+      years = events.group_by { |e| e.created_at.year }
       years.sort.reverse.map { |year, evts| [year, number_with_delimiter(evts.size)] }.to_h
     end
 

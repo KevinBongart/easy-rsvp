@@ -3,12 +3,12 @@ require 'rails_helper'
 describe 'admin dashboard stats', type: :feature do
   before do
     # Create events in different years and months
-    Event.create!(title: "Old Event", date: Date.new(2021, 5, 10))
-    Event.create!(title: "Mid Event", date: Date.new(2022, 7, 15))
-    Event.create!(title: "Recent Event", date: Date.new(Date.today.year, 1, 20))
-    Event.create!(title: "This Month Event", date: Date.today.beginning_of_month + 2.days)
-    Event.create!(title: "Another This Month", date: Date.today.beginning_of_month + 10.days)
-    Event.create!(title: "Last Month Event", date: (Date.today.beginning_of_month - 1.month) + 5.days)
+    Event.create!(title: "Old Event", date: Date.new(2021, 5, 10), created_at: Date.new(2021, 5, 10))
+    Event.create!(title: "Mid Event", date: Date.new(2022, 7, 15), created_at: Date.new(2022, 7, 15))
+    Event.create!(title: "Recent Event", date: Date.new(Date.today.year, 1, 20), created_at: Date.new(Date.today.year, 1, 20))
+    Event.create!(title: "This Month Event", date: Date.today.beginning_of_month + 2.days, created_at: Date.today.beginning_of_month + 2.days)
+    Event.create!(title: "Another This Month", date: Date.today.beginning_of_month + 10.days, created_at: Date.today.beginning_of_month + 10.days)
+    Event.create!(title: "Last Month Event", date: (Date.today.beginning_of_month - 1.month) + 5.days, created_at: (Date.today.beginning_of_month - 1.month) + 5.days)
   end
 
   it 'shows correct stats for total, yearly, and monthly event counts' do
