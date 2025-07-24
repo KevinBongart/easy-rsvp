@@ -22,24 +22,24 @@
   <% end %>
 </div>
 
-<table class="table">
+<table class="table table-sm table-striped table-hover">
   <thead>
     <tr>
       <th scope="col">#</th>
       <th scope="col">Name</th>
       <th scope="col">Date</th>
       <th scope="col">RSVPs</th>
-      <th scope="col">Admin Link</th>
+      <th scope="col">Admin</th>
     </tr>
   </thead>
   <tbody>
     <% @events.each do |event| %>
       <tr>
-        <th scope="row"><%= link_to event.id, event %></th>
+        <th scope="row" class="text-nowrap"><%= link_to event.id, event %></th>
         <td><%= link_to event.title, event %></td>
-        <td><%= event.date %></td>
-        <td><%= event.rsvps.length %></td>
-        <td><%= link_to event.admin_token, event_admin_path(event, event.admin_token) %></td>
+        <td class="text-nowrap"><%= event.date %></td>
+        <td class="text-nowrap"><code class="small"><%= event.rsvps.length %></code></td>
+        <td class="text-nowrap"><code class="small"><%= link_to event.admin_token.split('-').first, event_admin_path(event, event.admin_token), class: "text-body" %></code></td>
       </tr>
     <% end %>
   </tbody>
