@@ -13,6 +13,15 @@
   </div>
 </div>
 
+<%# Sorting toggle %>
+<div class="mb-2">
+  <% if params[:sort] == "rsvps" %>
+    <%= link_to "Sort by ID", admin_events_path %>
+  <% else %>
+    <%= link_to "Sort by RSVP count", admin_events_path(sort: "rsvps") %>
+  <% end %>
+</div>
+
 <table class="table">
   <thead>
     <tr>
@@ -35,3 +44,5 @@
     <% end %>
   </tbody>
 </table>
+
+<%= paginate @events %>
