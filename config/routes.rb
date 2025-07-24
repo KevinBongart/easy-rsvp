@@ -18,5 +18,9 @@ Rails.application.routes.draw do
 
   resources :image_uploads, only: [:create]
 
+  namespace :admin do
+    resources :events, only: [:index]
+  end
+
   root to: "events#new"
 end
