@@ -1,11 +1,5 @@
 module Admin
   class AdminController < ApplicationController
-    before_action :raise_if_production
-
-    private
-
-    def raise_if_production
-      raise "This page is for debugging purposes only. Do not run in production!" if Rails.env.production?
-    end
+    http_basic_authenticate_with name: ENV["ADMIN_USER"], password: ENV["ADMIN_PASSWORD"]
   end
 end

@@ -1,3 +1,18 @@
+<div class="mb-3">
+  <div>
+    <strong>Total events:</strong> <%= @event_stats.total_events %>
+    (<%= @event_stats.yearly_counts_display %>)
+  </div>
+  <div>
+    <strong>Last <%= @event_stats.months_back %> full months:</strong> <%= @event_stats.full_months_display %>
+  </div>
+  <div>
+    <strong>This month (<%= @event_stats.current_month_label %>):</strong>
+    <%= @event_stats.current_month_count %> so far,
+    extrapolated: <%= @event_stats.extrapolated_current_month_count %>
+  </div>
+</div>
+
 <table class="table">
   <thead>
     <tr>
@@ -5,15 +20,17 @@
       <th scope="col">Name</th>
       <th scope="col">Date</th>
       <th scope="col">RSVPs</th>
+      <th scope="col">Admin Link</th>
     </tr>
   </thead>
   <tbody>
     <% @events.each do |event| %>
       <tr>
         <th scope="row"><%= link_to event.id, event %></th>
-        <td><%= event.title %></td>
+        <td><%= link_to event.title, event %></td>
         <td><%= event.date %></td>
         <td><%= event.rsvps.length %></td>
+        <td><%= link_to event.admin_token, event_admin_path(event, event.admin_token) %></td>
       </tr>
     <% end %>
   </tbody>
