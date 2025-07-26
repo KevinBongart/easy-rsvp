@@ -1,10 +1,10 @@
 class Rsvp < ApplicationRecord
   include Hashid::Rails
 
-  RESPONSES = [
-    :yes,
-    :maybe,
-    :no
+  RESPONSES = %i[
+    yes
+    maybe
+    no
   ]
 
   belongs_to :event

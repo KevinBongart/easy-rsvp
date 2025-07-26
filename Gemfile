@@ -1,5 +1,4 @@
 source 'https://rubygems.org'
-
 git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 
 ruby File.read('.ruby-version')
@@ -33,13 +32,14 @@ group :development, :test do
   gem 'capybara'
   gem 'dotenv-rails'
   gem 'launchy'
-  gem 'rspec-rails'
   gem 'rspec_junit_formatter'
+  gem 'rspec-rails'
 end
 
 group :development do
   gem 'listen'
   gem 'rails_real_favicon'
+  gem 'rubocop', require: false
   gem 'spring'
   gem 'spring-watcher-listen'
   gem 'web-console'

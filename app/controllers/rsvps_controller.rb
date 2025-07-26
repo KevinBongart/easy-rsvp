@@ -22,7 +22,7 @@ class RsvpsController < ApplicationController
 
     if @rsvp.hashid.in?(event_session)
       @rsvp.destroy
-      event_session -= [@rsvp.hashid]
+      event_session - [@rsvp.hashid]
     end
 
     redirect_to @event

@@ -63,7 +63,7 @@ describe 'event creation' do
 
     click_link 'public-link'
 
-    expect(current_path).to eq ('/')
+    expect(current_path).to eq('/')
     expect(page).to have_content "This event is no longer viewable."
 
     visit(admin_path) # Back to admin page
