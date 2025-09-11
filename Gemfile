@@ -4,7 +4,7 @@ git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 
 ruby File.read('.ruby-version')
 
-gem 'rails', '< 8'
+gem 'rails', '~> 8.0.0'
 
 gem "aws-sdk-s3", require: false
 gem 'bootsnap', require: false
