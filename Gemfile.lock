@@ -308,6 +308,7 @@ GEM
     regexp_parser (2.11.2)
     reline (0.6.2)
       io-console (~> 0.5)
+    rollbar (3.6.2)
     rspec-core (3.13.5)
       rspec-support (~> 3.13.0)
     rspec-expectations (3.13.5)
@@ -421,6 +422,7 @@ DEPENDENCIES
   puma
   rails (~> 8.0.0)
   rails_real_favicon
+  rollbar
   rspec-rails
   rspec_junit_formatter
   ruby-lsp
