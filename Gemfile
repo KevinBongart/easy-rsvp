@@ -24,7 +24,6 @@ gem 'puma'
 gem 'sass-rails'
 gem 'scout_apm'
 gem 'simple_form'
-gem 'skylight'
 gem 'turbolinks'
 gem 'uglifier'
 

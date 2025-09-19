@@ -348,8 +348,6 @@ GEM
     simple_form (5.3.1)
       actionpack (>= 5.2)
       activemodel (>= 5.2)
-    skylight (6.0.4)
-      activesupport (>= 5.2.0)
     spring (4.4.0)
     spring-watcher-listen (2.1.0)
       listen (>= 2.7, < 4.0)
@@ -429,7 +427,6 @@ DEPENDENCIES
   sass-rails
   scout_apm
   simple_form
-  skylight
   spring
   spring-watcher-listen
   turbolinks
