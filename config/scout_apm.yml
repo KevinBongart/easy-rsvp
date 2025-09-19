@@ -1,7 +1,6 @@
 # This configuration file is used for Scout APM.
 # Environment variables can also be used to configure Scout. See our help docs at https://scoutapm.com/docs/ruby/configuration#environment-variables for more information.
 common: &defaults
-
   # key: Your Organization key for Scout APM. Found on the settings screen.
   # - Default: none
   key: <%= ENV['SCOUT_APM_API_KEY'] %>
@@ -32,6 +31,7 @@ common: &defaults
   # - Default: none
   # - Valid Options: true, false
   monitor: true
+  errors_enabled: true
 
 production:
   <<: *defaults
