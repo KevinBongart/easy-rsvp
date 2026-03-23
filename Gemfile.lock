@@ -316,7 +316,7 @@ GEM
     regexp_parser (2.11.2)
     reline (0.6.3)
       io-console (~> 0.5)
-    rollbar (3.6.2)
+    rollbar (3.7.0)
     rspec-core (3.13.5)
       rspec-support (~> 3.13.0)
     rspec-expectations (3.13.5)
