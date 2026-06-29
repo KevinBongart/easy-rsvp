@@ -234,10 +234,10 @@ GEM
       racc (~> 1.4)
     nokogiri (1.19.4-x86_64-linux-musl)
       racc (~> 1.4)
-    octicons (19.23.1)
-    octicons_helper (19.23.1)
+    octicons (19.28.1)
+    octicons_helper (19.28.1)
       actionview
-      octicons (= 19.23.1)
+      octicons (= 19.28.1)
       railties
     parser (3.3.10.2)
       ast (~> 2.4.1)
