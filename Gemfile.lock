@@ -236,10 +236,10 @@ GEM
       racc (~> 1.4)
     nokogiri (1.19.4-x86_64-linux-musl)
       racc (~> 1.4)
-    octicons (19.28.1)
-    octicons_helper (19.28.1)
+    octicons (19.32.0)
+    octicons_helper (19.32.0)
       actionview
-      octicons (= 19.28.1)
+      octicons (= 19.32.0)
       railties
     parser (3.3.11.1)
       ast (~> 2.4.1)
@@ -306,7 +306,7 @@ GEM
     rb-fsevent (0.11.2)
     rb-inotify (0.11.1)
       ffi (~> 1.0)
-    rbs (4.1.1)
+    rbs (4.1.2)
       logger
       prism (>= 1.6.0)
       tsort
@@ -394,7 +394,7 @@ GEM
     websocket-extensions (0.1.5)
     xpath (3.2.0)
       nokogiri (~> 1.8)
-    zeitwerk (2.8.2)
+    zeitwerk (2.8.3)
 
 PLATFORMS
   aarch64-linux
