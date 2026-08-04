@@ -241,7 +241,7 @@ GEM
       actionview
       octicons (= 19.28.1)
       railties
-    parser (3.3.11.1)
+    parser (3.3.12.0)
       ast (~> 2.4.1)
       racc
     pg (1.6.3)
@@ -353,7 +353,7 @@ GEM
       sprockets (> 3.0)
       sprockets-rails
       tilt
-    scout_apm (6.2.0)
+    scout_apm (6.2.1)
       parser
     securerandom (0.4.1)
     simple_form (5.4.1)
