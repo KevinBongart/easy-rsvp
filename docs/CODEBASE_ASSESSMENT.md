@@ -30,7 +30,9 @@ Hosted execution of the earlier suite exposed an obsolete Chrome repository
 signing key in the browser image and timestamp precision differences between
 Ruby and PostgreSQL. CI now uses the Ruby/Node image with Firefox installed by
 the browser orb. No-mutation assertions compare reloaded persisted values on
-both sides, including timestamps. Hosted verification of these changes is pending.
+both sides, including timestamps. CircleCI build
+[1837](https://circleci.com/gh/KevinBongart/easy-rsvp/1837) passed on `eaa2ed1`,
+including eager loading, assets, all 144 examples, and artifact upload.
 
 Phase 0.1 still awaits the owner's unpublished-event guest-write policy and its
 tests. Phase 0.3 still awaits the dashboard date-basis decision and tests using
