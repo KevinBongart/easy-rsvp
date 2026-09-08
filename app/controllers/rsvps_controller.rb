@@ -35,6 +35,7 @@ class RsvpsController < ApplicationController
   def set_event
     hashid = hashid_from_param(params[:event_id])
     @event = Event.find_by_hashid!(hashid)
+    raise ActiveRecord::RecordNotFound unless @event.published?
   end
 
   def rsvp_params
