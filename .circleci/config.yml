@@ -6,7 +6,7 @@ orbs:
 jobs:
   build:
     docker:
-      - image: cimg/ruby:3.3.4
+      - image: cimg/ruby:3.3.4-node
         environment:
           PGHOST: 127.0.0.1
           PGUSER: postgres
