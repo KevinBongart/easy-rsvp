@@ -37,6 +37,12 @@ group :development, :test do
   gem 'rspec_junit_formatter'
 end
 
+group :test do
+  gem 'factory_bot_rails', '~> 6.4'
+  gem 'selenium-webdriver', '~> 4.35'
+  gem 'webmock', '~> 3.23'
+end
+
 group :development do
   gem 'listen'
   gem 'rails_real_favicon'

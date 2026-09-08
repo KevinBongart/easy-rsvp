@@ -18,6 +18,9 @@ Rails.application.configure do
   # Configure public file server for tests with cache-control for performance.
   config.public_file_server.headers = { "cache-control" => "public, max-age=3600" }
 
+  # Browser specs must resolve current source, not a stale precompiled manifest.
+  config.assets.resolve_with = [:environment]
+
   # Show full error reports.
   config.consider_all_requests_local = true
   config.cache_store = :null_store
@@ -30,6 +33,7 @@ Rails.application.configure do
 
   # Store uploaded files on the local file system in a temporary directory.
   config.active_storage.service = :test
+  config.active_job.queue_adapter = :test
 
   # Tell Action Mailer not to deliver emails to the real world.
   # The :test delivery method accumulates sent emails in the

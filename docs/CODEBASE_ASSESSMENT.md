@@ -8,6 +8,25 @@ Status: **assessment complete; test-harness follow-up implemented; product remed
 initial assessment brief. Standards: [Rails Engineering Playbook](RAILS_ENGINEERING_PLAYBOOK.md).
 Application reference: [AGENTS.md](../AGENTS.md).
 
+## Branch preparation follow-up — 2026-09-08
+
+Before opening the PR, the branch was rebased onto `origin/main` at `cffb25e`.
+That includes 44 upstream dependency commits, including Rails 8.1.3. The original
+assessment and dependency audit below describe `38413a5`; their locked versions
+and advisory counts must not be treated as the current branch's dependency state.
+The application behavior findings still apply because upstream changed only the
+Gemfile and lockfile.
+
+On this updated branch, `bin/ci --seed 56913` passes eager loading, asset
+compilation, and **132 examples, 0 failures, 8 pending** (13.19 seconds of RSpec
+execution). A fresh bundler-audit scan using the same advisory database reports
+**two gem/advisory matches**: Active Storage 8.1.3 (CVE-2026-66066; patched in
+8.1.3.1) and rubyzip 2.4.1 (CVE-2026-85396; patched in 3.4.0). The latter is also
+used by development tooling; assess dependency constraints before upgrading.
+These remain version matches, not verified exploitability. The vendored Trix
+assessment is separate and still applies. The original 75-match report is retained
+as historical evidence.
+
 ## Test-harness follow-up — 2026-09-08
 
 The initial assessment below remains a dated baseline. The subsequent test work

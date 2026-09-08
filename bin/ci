@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+export RAILS_ENV="${RAILS_ENV:-test}"
+if [[ "$RAILS_ENV" != test ]]; then
+  echo 'bin/ci requires RAILS_ENV=test' >&2
+  exit 1
+fi
+export ADMIN_USER=spec-admin ADMIN_PASSWORD=spec-password
+export AWS_EC2_METADATA_DISABLED=true SCOUT_MONITOR=false
+
+bin/rails zeitwerk:check
+bin/rails assets:precompile
+mkdir -p tmp/test-results
+bundle exec rspec --format progress --format RspecJunitFormatter --out tmp/test-results/rspec.xml "$@"

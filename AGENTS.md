@@ -38,7 +38,7 @@ Verified against the repository on 2026-09-08; the version files remain authorit
 
 | Concern | Current implementation |
 | --- | --- |
-| Runtime | Ruby 3.3.4; Rails 8.0.2.1 in `Gemfile.lock` |
+| Runtime | Ruby 3.3.4; Rails 8.1.3 in `Gemfile.lock` |
 | Framework defaults | `config.load_defaults 5.2`, with later defaults initializers |
 | Database | PostgreSQL; `events_development`, `events_test`, `events_production` |
 | UI | ERB, Simple Form, Bootstrap 4.6.2.1 |

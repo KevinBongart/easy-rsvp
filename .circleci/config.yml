@@ -1,6 +1,7 @@
 version: 2.1
 orbs:
   ruby: circleci/ruby@2.1.1 # https://circleci.com/orbs/registry/orb/circleci/ruby
+  browser-tools: circleci/browser-tools@2.4.2
 
 jobs:
   build:
@@ -18,13 +19,22 @@ jobs:
     steps:
       - checkout
       - ruby/install-deps
+      - browser-tools/install_firefox
+      - browser-tools/install_geckodriver
       - run:
           name: Wait for DB
           command: 'dockerize -wait tcp://localhost:5432 -timeout 1m'
       - run:
           name: Set up database
           command: 'bundle exec rails db:create db:schema:load --trace'
-      - ruby/rspec-test
+      - run:
+          name: Rails, assets, and all tests (including headless Firefox)
+          command: bin/ci
+      - store_test_results:
+          path: tmp/test-results
+      - store_artifacts:
+          path: tmp/screenshots
+          destination: browser-failures
   deploy:
     docker:
       - image: cimg/base:stable

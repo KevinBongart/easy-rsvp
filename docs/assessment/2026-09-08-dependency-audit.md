@@ -1,5 +1,9 @@
 # Dependency audit — 2026-09-08
 
+Historical baseline: this report audits `38413a5`. The test PR subsequently
+rebased onto `cffb25e`, which includes 44 dependency commits and Rails 8.1.3.
+The counts and locked versions below do not describe that updated branch.
+
 Generated from `Gemfile.lock` at `38413a5` using bundler-audit 0.9.3 and
 ruby-advisory-db commit `e7179ad`. Command:
 `RBENV_VERSION=4.0.3 bundle-audit check --update --format json`.
