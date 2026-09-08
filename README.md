@@ -50,7 +50,7 @@ bundle exec rspec --tag js                    # all Firefox specs, including kno
 bundle exec rspec --seed 18467                # reproduce a full-suite ordering
 ```
 
-The suite has 144 examples (12 known pending regressions) and covers models,
+The suite has 150 examples (14 known pending regressions) and covers models,
 presenter units, mailers, HTTP requests, independent
 organizer/guest sessions, database-import services, Rack Test form flows, and
 real browser interactions. Firefox actually drops a PNG into Trix, submits it
@@ -69,8 +69,9 @@ operations are part of the suite.
 Known defects have executable `pending` expectations with assessment item IDs;
 they still run, and an unexpected pass fails the suite so the pending marker must
 be removed when the issue is fixed. They are separate from passing smoke coverage.
-Unpublished-event write semantics and monthly-statistics semantics still require
-product decisions; the tests do not decide those policies implicitly.
+The approved policy blocks guest RSVP additions/deletions on unpublished events
+while preserving organizer editing; two pending tests cover its missing enforcement.
+The dashboard date basis still requires a product decision.
 
 `bin/ci` writes JUnit results to `tmp/test-results/rspec.xml`. Failed system tests
 save screenshots under `tmp/screenshots/`; CircleCI retains both. CircleCI deploys

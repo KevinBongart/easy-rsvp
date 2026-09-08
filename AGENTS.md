@@ -25,8 +25,10 @@ model when applying the playbook's authentication and ownership guidance.
   `ADMIN_USER` and `ADMIN_PASSWORD`. `Admin::AdminController` is the dashboard
   base; `Admin::BaseController` handles organizer tokens. They are different
   access boundaries despite their similar names.
-- Unpublished events are hidden by `EventsController#show`; separately assess
-  whether mutation endpoints enforce the intended publication rule.
+- Owner-approved policy: unpublished events block guest RSVP additions and
+  deletions, including deletion by a guest who previously owned a response.
+  Organizer editing and RSVP management remain available. Publication checks on
+  guest mutations are still missing; pending regressions cover the Phase 1.5 fix.
 
 Never import Bon App's accepted security risks as Easy RSVP owner decisions.
 Do not expose organizer links, tokens, credentials, or imported personal data in

@@ -8,6 +8,19 @@ Status: **assessment complete; test-harness follow-up implemented; product remed
 initial assessment brief. Standards: [Rails Engineering Playbook](RAILS_ENGINEERING_PLAYBOOK.md).
 Application reference: [AGENTS.md](../AGENTS.md).
 
+## Unpublished-event policy follow-up — 2026-09-08
+
+The owner confirmed that unpublished events must block guest RSVP additions and
+deletions, while organizer editing remains available. Six request examples now
+cover blocked guest additions, blocked deletion by a previously authorized guest,
+organizer event editing, organizer RSVP update/delete, and guest additions after
+republishing. Both denied guest-write tests first failed with actual record
+creation/deletion; they are now executable pending regressions for Phase 1.5.
+The other four pass. `CI=true bin/ci --seed 56913` passes eager loading, assets,
+and **150 examples, 0 failures, 14 pending** (14.68 seconds of RSpec execution).
+Phase 0.1 is complete as a coverage task; Phase 1.5 enforcement is still outstanding.
+Phase 0.3 remains open only for the dashboard date-basis decision and its tests.
+
 ## Phase 0 completion work — 2026-09-08
 
 The follow-up adds 12 examples, for **144 examples with 12 known pending
@@ -34,10 +47,8 @@ both sides, including timestamps. CircleCI build
 [1837](https://circleci.com/gh/KevinBongart/easy-rsvp/1837) passed on `eaa2ed1`,
 including eager loading, assets, all 144 examples, and artifact upload.
 
-Phase 0.1 still awaits the owner's unpublished-event guest-write policy and its
-tests. Phase 0.3 still awaits the dashboard date-basis decision and tests using
-different creation and scheduled dates. Those questions are pending; neither
-phase is marked complete or silently assigned a new product policy.
+At this point both policy questions were pending. The later unpublished-event
+follow-up above records the approved rule and completes 0.1; 0.3 remains open.
 
 ## Branch preparation follow-up — 2026-09-08
 
@@ -107,8 +118,8 @@ persisted-image assertion, and the application source was restored unchanged.
 CircleCI YAML parses locally; online `circleci config validate` was attempted but
 rejected the existing API token. Hosted execution has not been verified.
 
-Phase 0.1 and 0.3 remain open for the policy-dependent tests listed in the
-Phase 0 completion work above. Production mail-host and delivery-failure coverage
+The later follow-ups above complete Phase 0.1; Phase 0.3 remains open for the
+dashboard policy-dependent tests. Production mail-host and delivery-failure coverage
 has since been added. Phase 7.1 has local/hosted test parity and browser
 artifacts implemented; scans and lint remain separate follow-ups. No product
 controllers, models, views, or JavaScript were changed by this test expansion.
@@ -244,11 +255,11 @@ provided; Bon App's accepted risks do not transfer.
 
 ## Phase 0 — Test harness first
 
-- [ ] **0.1 P1 — Cover access boundaries and malformed requests.** Covered:
+- [x] **0.1 P1 — Cover access boundaries and malformed requests.** Covered:
   wrong organizer tokens, cross-event RSVP update/delete, dashboard authentication,
   empty/missing/stale ownership state, unsupported/missing/non-string submit values,
-  and missing name parameters, with no-mutation assertions. Remaining: decide and
-  test whether unpublished events permit guest creation and deletion of responses.
+  and missing name parameters, with no-mutation assertions. The approved unpublished
+  rule now has pending guest-write regressions and passing organizer/republish tests.
 
 - [x] **0.2 P1 — Add a small real-browser suite.** Rack Test covers fast forms;
   Selenium/headless Firefox covers editor save/upload, clipboard, RSVP-again,
@@ -299,13 +310,13 @@ provided; Bon App's accepted risks do not transfer.
   a safe data cleanup/migration, and a database check constraint; test model,
   request, and direct-database writes. Do not silently coerce existing bad data.
 
-- [ ] **1.5 P2 — Decide and enforce unpublished-event write semantics.** Public
+- [ ] **1.5 P2 — Enforce the approved unpublished-event write policy.** Public
   display checks `published?` (`app/controllers/events_controller.rb:34`), but
-  `RsvpsController#set_event` does not. A direct POST adds an RSVP to an unpublished
-  event. This is a verified behavior gap; the UI promises hidden visibility,
-  not explicitly frozen responses. Decide whether unpublishing also closes
-  responses, then document and test the chosen create/delete policy. Do not
-  infer that organizer editing should stop.
+  `RsvpsController#set_event` does not. The owner confirmed that unpublishing blocks
+  guest creation and deletion of RSVPs, including previously session-owned responses.
+  Organizer event editing and RSVP management must remain available. The two
+  pending request regressions reproduce actual writes; implement the guard and
+  remove their pending markers. Republishing must restore guest RSVP access.
 
 - [ ] **1.6 P1 — Fix production email link hosts.**
   `config/environments/production.rb:60` hardcodes `example.com`, overriding
