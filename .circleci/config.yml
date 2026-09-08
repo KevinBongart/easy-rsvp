@@ -45,11 +45,17 @@ jobs:
       - add_ssh_keys
       - checkout
       - run:
-          name: Add git remote host to know hosts
-          command: ssh-keyscan dokku.kevinbongart.net >> ~/.ssh/known_hosts
-      - run:
-          name: Add Dokku git remote
-          command: git remote add dokku dokku@dokku.kevinbongart.net:easy-rsvp
+          name: Configure Dokku remote
+          command: |
+            set -euo pipefail
+            : "${DOKKU_HOST:?Set DOKKU_HOST in CircleCI project environment variables}"
+            dokku_hostname="${DOKKU_HOST##*@}"
+            if [[ ! "$dokku_hostname" =~ ^[a-zA-Z0-9_][a-zA-Z0-9_.-]*$ ]]; then
+              echo 'DOKKU_HOST must contain a hostname, optionally prefixed by an SSH user' >&2
+              exit 1
+            fi
+            ssh-keyscan "$dokku_hostname" >> ~/.ssh/known_hosts
+            git remote add dokku "dokku@${dokku_hostname}:easy-rsvp"
       - run:
           name: Deploy to Dokku
           command: git push dokku main

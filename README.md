@@ -50,7 +50,7 @@ bundle exec rspec --tag js                    # all Firefox specs, including kno
 bundle exec rspec --seed 18467                # reproduce a full-suite ordering
 ```
 
-The suite has 156 examples (19 known pending regressions) and covers models,
+The suite has 159 examples (19 known pending regressions) and covers models,
 presenter units, mailers, HTTP requests, independent
 organizer/guest sessions, database-import services, Rack Test form flows, and
 real browser interactions. Firefox actually drops a PNG into Trix, submits it
@@ -87,11 +87,12 @@ Stop local Rails servers/consoles holding database connections, and ensure
 and SCP access to the Dokku server, plus `pg_dump`, `pg_restore`, `dropdb`, and
 `createdb` compatible with the production PostgreSQL version.
 
-Supply the name of Easy RSVP's linked Dokku **PostgreSQL service**, which can
-differ from the app name:
+Set `DOKKU_HOST` to the SSH destination and `DOKKU_PG_SERVICE` to the linked
+Dokku **PostgreSQL service** (which can differ from the app name). Both are
+required and can be set in your untracked `.env`:
 
 ```sh
-DOKKU_PG_SERVICE=your-service-name bin/rails db:pull_production
+DOKKU_HOST=root@your-dokku-host DOKKU_PG_SERVICE=your-service-name bin/rails db:pull_production
 ```
 
 The task prompts you to type `events_development`. It refuses other database
@@ -104,9 +105,13 @@ restore the previous local database automatically if replacement fails.
 | Setting | Purpose |
 | --- | --- |
 | `DOKKU_PG_SERVICE` | Required linked PostgreSQL service name; no guessed default |
-| `DOKKU_HOST` | SSH destination; defaults to `root@dokku.kevinbongart.net` |
+| `DOKKU_HOST` | Required SSH destination, e.g. `root@your-dokku-host`; no default |
 | `PG_BIN` | Directory containing all four PostgreSQL tools, if automatic discovery selects the wrong version or finds none |
 | `CONFIRM_PULL_PRODUCTION` | Set to exactly `events_development` for an intentional noninteractive replacement |
+
+Also set `DOKKU_HOST` in CircleCI project environment variables before deploying.
+The deploy job uses its hostname portion and connects as the `dokku` user; the
+import task uses the full SSH destination.
 
 The production database is only exported. The remote temporary dump is removed
 after copying; a cleanup failure is reported. Production and pre-import local

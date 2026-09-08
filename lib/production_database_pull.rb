@@ -9,7 +9,6 @@ require "shellwords"
 # local development database. The production database is never written to.
 class ProductionDatabasePull
   DEVELOPMENT_DATABASE = "events_development"
-  DEFAULT_DOKKU_HOST = "root@dokku.kevinbongart.net"
   LOCAL_DATABASE_HOSTS = [ nil, "", "localhost", "127.0.0.1", "::1" ].freeze
   MINIMUM_ARCHIVE_SIZE = 1_024
   POSTGRES_EXECUTABLES = %w[pg_dump pg_restore dropdb createdb].freeze
@@ -71,7 +70,7 @@ class ProductionDatabasePull
   def call
     validate_local_target!
     service = required_setting("DOKKU_PG_SERVICE")
-    host = env.fetch("DOKKU_HOST", DEFAULT_DOKKU_HOST)
+    host = required_setting("DOKKU_HOST")
     validate_remote_setting!(host, service)
     postgres_bin = resolve_postgres_bin
     confirm!
@@ -124,7 +123,7 @@ class ProductionDatabasePull
 
   def required_setting(name)
     value = env[name].to_s.strip
-    raise Error, "Set #{name} to Easy RSVP's Dokku PostgreSQL service name." if value.empty?
+    raise Error, "Set #{name} before importing the production database." if value.empty?
 
     value
   end

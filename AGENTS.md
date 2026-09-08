@@ -48,7 +48,7 @@ Verified against the repository on 2026-09-08; the version files remain authorit
 | Storage | Active Storage; S3 in development/production, disk in test |
 | Mail | Action Mailer with SMTP; organizer-link delivery is synchronous |
 | Tests | RSpec, FactoryBot, WebMock; Rack Test by default, Selenium/headless Firefox for `js: true` system specs |
-| CI/deploy | CircleCI; Dokku app `easy-rsvp` on `dokku.kevinbongart.net` |
+| CI/deploy | CircleCI; Dokku app `easy-rsvp`, server configured through `DOKKU_HOST` |
 
 The legacy frontend is the current implementation, not a permanent exemption
 from the playbook. Modernize incrementally behind browser coverage. Do not use

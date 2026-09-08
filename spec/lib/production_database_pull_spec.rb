@@ -200,6 +200,17 @@ RSpec.describe ProductionDatabasePull do
     expect(runner.calls).to be_empty
   end
 
+  [nil, "", "   "].each do |host|
+    it "rejects a missing or blank Dokku host (#{host.inspect}) before running commands" do
+      host.nil? ? environment.delete("DOKKU_HOST") : environment["DOKKU_HOST"] = host
+
+      expect { pull }.to raise_error(described_class::Error, /Set DOKKU_HOST/)
+      expect(runner.calls).to be_empty
+      expect(disconnect).not_to have_received(:call)
+      expect(backup_dir).not_to exist
+    end
+  end
+
   it "requires an explicit Dokku PostgreSQL service" do
     environment.delete("DOKKU_PG_SERVICE")
 
