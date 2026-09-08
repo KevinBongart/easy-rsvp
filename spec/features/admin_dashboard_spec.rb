@@ -19,7 +19,7 @@ describe 'admin dashboard stats', type: :feature do
     visit '/admin/events'
 
     # Total events
-    expect(page).to have_content("Total events:")
+    expect(page).to have_content("Total events created:")
     expect(page).to have_content("2021: 1")
     expect(page).to have_content("2022: 1")
     expect(page).to have_content("#{Date.today.year}: 4")

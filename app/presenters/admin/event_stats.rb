@@ -37,10 +37,7 @@ module Admin
 
     # Example: [["April 2024", "5"], ["March 2024", "10"], ["February 2024", "12"], ["January 2024", "8"]]
     def monthly_counts_with_labels
-      months = (0..months_back).map { |i| (now - i.months).beginning_of_month }
-      labels = months.map { |d| d.strftime("%B %Y") }
-      counts = months.map { |month| number_with_delimiter(count_events_in_month(month)) }
-      labels.zip(counts)
+      monthly_counts.map { |month, count| [month.strftime("%B %Y"), number_with_delimiter(count)] }
     end
 
     # Example: "March 2024: 10, February 2024: 12, January 2024: 8"
@@ -67,15 +64,18 @@ module Admin
 
       return current_month_count if days_so_far.zero?
 
-      # Convert current_month_count to integer for calculation, then format
-      extrapolated = (current_month_count.to_s.delete(',').to_f / days_so_far * days_in_month).round
+      extrapolated = (monthly_counts.first.last.to_f / days_so_far * days_in_month).round
       number_with_delimiter(extrapolated)
     end
 
     private
 
-    def count_events_in_month(month)
-      events.select { |e| e.date >= month && e.date < (month + 1.month) }.size
+    def monthly_counts
+      @monthly_counts ||= (0..months_back).map do |offset|
+        month = (now - offset.months).beginning_of_month
+        count = events.count { |event| event.created_at >= month && event.created_at < month + 1.month }
+        [month, count]
+      end
     end
   end
 end
