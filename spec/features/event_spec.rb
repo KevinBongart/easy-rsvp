@@ -1,6 +1,7 @@
 require 'rails_helper'
 
 describe 'event creation' do
+  before { travel_to Time.zone.local(2026, 9, 8, 12) }
   it 'works' do
     visit '/'
 

@@ -2,6 +2,7 @@ require 'rails_helper'
 
 describe 'admin dashboard stats', type: :feature do
   before do
+    travel_to Time.zone.local(2026, 9, 8, 12)
     # Create events in different years and months
     Event.create!(title: "Old Event", date: Date.new(2021, 5, 10), created_at: Date.new(2021, 5, 10))
     Event.create!(title: "Mid Event", date: Date.new(2022, 7, 15), created_at: Date.new(2022, 7, 15))
