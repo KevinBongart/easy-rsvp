@@ -4,9 +4,46 @@ Assessed **2026-09-08**, branch `main`, commit `38413a5`, including the existing
 uncommitted playbook/agent documentation, README/environment additions, and
 production-database pull implementation/specs from the preceding task.
 
-Status: **assessment and Phase 0 coverage complete; product remediation remains pending**. This replaces the
+Status: **assessment and Phase 0 coverage complete; original pending regressions fixed; broader remediation remains**. This replaces the
 initial assessment brief. Standards: [Rails Engineering Playbook](RAILS_ENGINEERING_PLAYBOOK.md).
 Application reference: [AGENTS.md](../AGENTS.md).
+
+## Pending-regression remediation — 2026-09-08
+
+Starting from merged PR #868 (`1e516fd`), the 19 pending expectations were removed
+one defect group at a time in priority-ordered commits. All now pass. The fixes are:
+
+1. P1 upload validation: required PNG/JPEG/GIF/WebP content detected from file bytes,
+   with a 10 MB limit and no upload record created for rejected input.
+2. P1 RSVP request guards: missing/non-string submit values, malformed nested
+   parameters, and absent ownership sessions receive controlled responses.
+3. P1 response integrity: model inclusion and a PostgreSQL check constrain new
+   writes, including writes that bypass model validation.
+4. P1 event deletion: dependent RSVP destruction runs within the event transaction.
+5. P1 mail links: production uses the configured `DOMAIN` and HTTPS.
+6. P1 Trix uploads: one document listener, local XHR state, and visible recovery for
+   rejected files, network errors, timeouts, and malformed JSON responses.
+7. P2 publication and session state: unpublished guest writes are blocked;
+   successful deletion removes only the relevant ownership ID and drops empty keys.
+8. P2 statistics: yearly/monthly counts and projections use creation timestamps;
+   monthly numeric counts are computed once and the UI labels creation metrics.
+
+Validation: `CI=true bin/ci --seed 56913` passes eager loading, asset compilation,
+and **177 examples, 0 failures, 0 pending** (13.46 seconds of RSpec execution).
+The added Firefox coverage includes real Turbolinks navigation, a real rejected
+upload followed by a successful upload, and injected transport failures followed
+by retries through the actual endpoint/storage. The database migration was tested
+up/down/up only against `events_test`. No production data was accessed or changed.
+
+The response constraint is intentionally `NOT VALID`: it protects new writes
+without scanning, rewriting, or silently coercing historical responses. Item 1.4
+remains partial until old invalid values are reviewed and the constraint is
+validated. Upload ownership/expiry, direct-upload route policy, and request-level
+abuse limits also remain in 2.4. Dependency patches, vendored Trix replacement,
+log redaction, and the other unchecked assessment items are separate work.
+
+Earlier sections below are dated evidence snapshots, including their historical
+pending counts and descriptions of defects before these fixes.
 
 ## Creation-date policy and Phase 0 completion — 2026-09-08
 
@@ -299,7 +336,7 @@ provided; Bon App's accepted risks do not transfer.
 
 ## Phase 1 — Correctness and proven bit-rot
 
-- [ ] **1.1 P1 — Repair event deletion.** `Event` has `has_many :rsvps` without a
+- [x] **1.1 P1 — Repair event deletion.** Completed in the remediation above; original finding follows. `Event` has `has_many :rsvps` without a
   dependent policy (`app/models/event.rb:4`), while `rsvps.event_id` has a foreign
   key (`db/schema.rb:73`). `EventsAdminController#destroy` at line 19 calls
   `@event.destroy`. A token-authorized DELETE of an event with one RSVP raises
@@ -308,7 +345,7 @@ provided; Bon App's accepted risks do not transfer.
   and unauthorized deletion. This route exists even though no event-delete
   control is currently rendered.
 
-- [ ] **1.2 P1 — Handle malformed RSVP submissions and absent session ownership.**
+- [x] **1.2 P1 — Handle malformed RSVP submissions and absent session ownership.** Completed in the remediation above; original finding follows.
   `app/controllers/rsvps_controller.rb:5` calls `downcase` on `params[:commit]`
   without validating its presence/type. Missing `commit` raises `NoMethodError`.
   Lines 23–25 pass a missing session entry into `in?`, raising `ArgumentError`
@@ -316,13 +353,15 @@ provided; Bon App's accepted risks do not transfer.
   controlled response; treat a missing ownership list as empty and preserve the
   response. Test nil, wrong-shaped values, unsupported answers, and denied deletes.
 
-- [ ] **1.3 P2 — Persist session cleanup after RSVP deletion.** Line 27 reassigns
+- [x] **1.3 P2 — Persist session cleanup after RSVP deletion.** Completed in the remediation above; original finding follows. Line 27 reassigns
   `event_session -= [@rsvp.hashid]` but never writes it back to `session`.
   The record disappears while the cookie's ownership array retains its hashid.
   Repeated use grows stale session data. Store the reduced array or delete an
   empty key; test both database state and subsequent session contents.
 
-- [ ] **1.4 P1 — Validate response membership.** `app/models/rsvp.rb:13` only
+- [ ] **1.4 P1 — Validate response membership.** Model validation and the check
+  constraint for new writes are implemented. Remaining: review historical invalid
+  responses and validate the constraint; no automatic data coercion. Original finding: `app/models/rsvp.rb:13` only
   validates response presence. The organizer endpoint permits `response`
   (`app/controllers/admin/rsvps_controller.rb:26`). A PATCH with `unexpected`
   persists successfully; the public view only groups yes/maybe/no and omits
@@ -330,7 +369,7 @@ provided; Bon App's accepted risks do not transfer.
   a safe data cleanup/migration, and a database check constraint; test model,
   request, and direct-database writes. Do not silently coerce existing bad data.
 
-- [ ] **1.5 P2 — Enforce the approved unpublished-event write policy.** Public
+- [x] **1.5 P2 — Enforce the approved unpublished-event write policy.** Completed in the remediation above; original finding follows. Public
   display checks `published?` (`app/controllers/events_controller.rb:34`), but
   `RsvpsController#set_event` does not. The owner confirmed that unpublishing blocks
   guest creation and deletion of RSVPs, including previously session-owned responses.
@@ -338,7 +377,7 @@ provided; Bon App's accepted risks do not transfer.
   pending request regressions reproduce actual writes; implement the guard and
   remove their pending markers. Republishing must restore guest RSVP access.
 
-- [ ] **1.6 P1 — Fix production email link hosts.**
+- [x] **1.6 P1 — Fix production email link hosts.** Completed in the remediation above; original finding follows.
   `config/environments/production.rb:60` hardcodes `example.com`, overriding
   `config/application.rb`'s `DOMAIN`. A local production boot confirmed this
   even with a nonempty synthetic `DOMAIN`. `UserMailer` renders both organizer
@@ -348,7 +387,7 @@ provided; Bon App's accepted risks do not transfer.
   email journey is commented out; decide whether to restore that feature or
   remove the unused endpoint in a separate product decision.
 
-- [ ] **1.7 P1 — Register one attachment handler per document lifecycle.**
+- [x] **1.7 P1 — Register one attachment handler per document lifecycle.** Completed in the remediation above; original finding follows.
   `app/assets/javascripts/trix_attachments.js:37` adds a document listener inside
   every `turbolinks:load`. In Firefox, three additional load events followed by
   one synthetic attachment event triggered **four upload sends**, intercepted
@@ -404,7 +443,9 @@ provided; Bon App's accepted risks do not transfer.
   Prove redaction with synthetic tokens and review logging configurations. Merely
   adding another filtered parameter does not fix raw path logging.
 
-- [ ] **2.4 P1 — Bound and own public uploads.**
+- [ ] **2.4 P1 — Bound and own public uploads.** Presence, detected content types,
+  a 10 MB limit, and recoverable upload errors are implemented. Ownership/expiry,
+  direct-upload policy, and request-level abuse controls remain. Original finding:
   `ImageUploadsController#create` permits any file and `ImageUpload` has no
   presence/type/size validation. A public JSON upload of a plain text file returned
   200 and persisted it. The app also exposes Rails direct-upload routes. Define
@@ -452,7 +493,7 @@ provided; Bon App's accepted risks do not transfer.
   Add a scale test that limits instantiated rows as well as query count; a
   constant query count alone would let the present problem pass.
 
-- [ ] **4.2 P2 — Use creation timestamps consistently for dashboard counts.**
+- [x] **4.2 P2 — Use creation timestamps consistently for dashboard counts.** Completed in the remediation above; original finding follows.
   `Admin::EventStats#yearly_counts` groups by `created_at.year` (line 29), but
   `count_events_in_month` uses the event's scheduled `date` (line 78).
   A January-created, September-scheduled event counts as a September event.

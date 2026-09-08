@@ -1,13 +1,13 @@
 <div class="mb-3">
   <div>
-    <strong>Total events:</strong> <%= @event_stats.total_events %>
+    <strong>Total events created:</strong> <%= @event_stats.total_events %>
     (<%= @event_stats.yearly_counts_display %>)
   </div>
   <div>
-    <strong>Last <%= @event_stats.months_back %> full months:</strong> <%= @event_stats.full_months_display %>
+    <strong>Last <%= @event_stats.months_back %> full months (events created):</strong> <%= @event_stats.full_months_display %>
   </div>
   <div>
-    <strong>This month (<%= @event_stats.current_month_label %>):</strong>
+    <strong>This month (<%= @event_stats.current_month_label %>) — events created:</strong>
     <%= @event_stats.current_month_count %> so far,
     extrapolated: <%= @event_stats.extrapolated_current_month_count %>
   </div>

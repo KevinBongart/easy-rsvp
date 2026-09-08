@@ -33,7 +33,6 @@ RSpec.describe 'Public RSVPs', type: :request do
   end
 
   it 'handles a missing submit value without crashing' do
-    pending 'Assessment 1.2: nil commit raises NoMethodError'
     post event_rsvps_path(event), params: { rsvp: { name: 'Alex' } }
     expect(response).to have_http_status(:bad_request)
     expect(event.rsvps).to be_empty
@@ -54,18 +53,16 @@ RSpec.describe 'Public RSVPs', type: :request do
   end
 
   it 'denies deletion by a visitor with no ownership session without crashing' do
-    pending 'Assessment 1.2: nil event session raises ArgumentError'
     rsvp = create(:rsvp, event: event)
     expect { delete event_rsvp_path(event, rsvp) }.not_to change(Rsvp, :count)
     expect(response).to redirect_to(event)
   end
 
   it 'removes a deleted response from the ownership session' do
-    pending 'Assessment 1.3: deletion reassigns a local array, not the session'
     post event_rsvps_path(event), params: { rsvp: { name: 'Mine' }, commit: 'Yes' }
     own = event.rsvps.last
     delete event_rsvp_path(event, own)
-    expect(Array(request.session[event.hashid])).not_to include(own.hashid)
+    expect(request.session[event.hashid]).to be_nil
   end
 
   it 'rejects a response ID belonging to another event' do
@@ -82,4 +79,22 @@ RSpec.describe 'Public RSVPs', type: :request do
     expect(response.body).to include('My guest')
     expect(response.body).not_to include('Hidden guest')
   end
+
+  it 'keeps other owned responses and other event sessions when deleting one RSVP' do
+    other_event = create(:event)
+    post event_rsvps_path(other_event), params: { rsvp: { name: 'Elsewhere' }, commit: 'Yes' }
+    elsewhere = other_event.rsvps.last
+    post event_rsvps_path(event), params: { rsvp: { name: 'First' }, commit: 'Yes' }
+    first = event.rsvps.last
+    post event_rsvps_path(event), params: { rsvp: { name: 'Second' }, commit: 'Maybe' }
+    second = event.rsvps.last
+
+    delete event_rsvp_path(event, first)
+    expect(request.session[event.hashid]).to eq([second.hashid])
+    expect(request.session[other_event.hashid]).to eq([elsewhere.hashid])
+    delete event_rsvp_path(event, second)
+    expect(request.session[event.hashid]).to be_nil
+    expect(request.session[other_event.hashid]).to eq([elsewhere.hashid])
+  end
+
 end

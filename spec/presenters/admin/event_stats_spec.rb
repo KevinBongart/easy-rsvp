@@ -73,14 +73,12 @@ RSpec.describe Admin::EventStats do
         entry(date: Date.new(2026, 12, 5), created_at: Time.zone.local(2026, 9, 3)),
         entry(date: Date.new(2026, 9, 5), created_at: Time.zone.local(2026, 8, 20))
       ]
-      pending 'Assessment 4.2: monthly statistics use scheduled dates instead of creation timestamps'
       expect(described_class.new(rows, now: now).current_month_count).to eq('2')
     end
 
     it 'puts a December creation in December history even when the party is in January' do
       rows = [entry(date: Date.new(2027, 1, 5), created_at: Time.zone.local(2026, 12, 20))]
       stats = described_class.new(rows, now: Time.zone.local(2027, 1, 10), months_back: 1)
-      pending 'Assessment 4.2: monthly statistics use scheduled dates instead of creation timestamps'
       expect(stats.monthly_counts_with_labels).to eq([['January 2027', '0'], ['December 2026', '1']])
     end
 
@@ -91,7 +89,6 @@ RSpec.describe Admin::EventStats do
         entry(date: Date.new(2026, 11, 5), created_at: Time.zone.local(2026, 10, 1))
       ]
       stats = described_class.new(rows, now: Time.zone.local(2026, 9, 30, 23, 59, 59))
-      pending 'Assessment 4.2: monthly statistics use scheduled dates instead of creation timestamps'
       expect(stats.current_month_count).to eq('2')
     end
 
@@ -99,7 +96,6 @@ RSpec.describe Admin::EventStats do
       event = entry(date: Date.new(2026, 9, 5), created_at: Time.zone.local(2026, 9, 2))
       original = described_class.new([event], now: now).monthly_counts_with_labels
       event.date = Date.new(2026, 11, 5)
-      pending 'Assessment 4.2: monthly statistics use scheduled dates instead of creation timestamps'
       expect(described_class.new([event], now: now).monthly_counts_with_labels).to eq(original)
     end
 
@@ -108,7 +104,6 @@ RSpec.describe Admin::EventStats do
         entry(date: Date.new(2026, 11, 5), created_at: Time.zone.local(2026, 9, 2))
       end
       rows << entry(date: Date.new(2026, 9, 25), created_at: Time.zone.local(2026, 8, 20))
-      pending 'Assessment 4.2: monthly statistics use scheduled dates instead of creation timestamps'
       expect(described_class.new(rows, now: now).extrapolated_current_month_count).to eq('15')
     end
   end

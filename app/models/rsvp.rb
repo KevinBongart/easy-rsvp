@@ -10,7 +10,7 @@ class Rsvp < ApplicationRecord
   belongs_to :event
 
   validates :name, presence: true
-  validates :response, presence: true
+  validates :response, presence: true, inclusion: { in: RESPONSES.map(&:to_s) }
 
   # Use this to avoid including new (unsaved) records
   scope :persisted, -> { where.not(id: nil) }

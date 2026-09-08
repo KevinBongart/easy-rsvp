@@ -7,6 +7,8 @@ RSpec.describe 'Production mail URL configuration' do
     deployment_host = 'deployment.example.test'
     allow(ENV).to receive(:[]).and_call_original
     allow(ENV).to receive(:[]).with('DOMAIN').and_return(deployment_host)
+    allow(ENV).to receive(:fetch).and_call_original
+    allow(ENV).to receive(:fetch).with('DOMAIN').and_return(deployment_host)
     isolated_application = EasyRsvp::Application.new
     isolated_application.config.action_mailer.default_url_options = { host: deployment_host }
     allow(Rails.application).to receive(:configure) do |&configuration|
@@ -19,10 +21,10 @@ RSpec.describe 'Production mail URL configuration' do
     event = create(:event)
     message = UserMailer.admin_url_request_email('guest@example.test', event)
 
-    pending 'Assessment 1.6: production overrides the deployment mail host with example.com'
     expect(options.fetch(:host)).to eq(deployment_host)
-    expect(message.body.decoded).to include("#{deployment_host}/#{event.to_param}")
-    expect(message.body.decoded).to include("#{deployment_host}/#{event.to_param}/admin/#{event.admin_token}")
+    expect(options.fetch(:protocol)).to eq('https')
+    expect(message.body.decoded).to include("https://#{deployment_host}/#{event.to_param}")
+    expect(message.body.decoded).to include("https://#{deployment_host}/#{event.to_param}/admin/#{event.admin_token}")
     expect(ActionMailer::Base.deliveries).to be_empty
   end
 end

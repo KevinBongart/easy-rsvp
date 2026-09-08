@@ -2,6 +2,8 @@ class RsvpsController < ApplicationController
   before_action :set_event
 
   def create
+    return head :bad_request unless params[:commit].is_a?(String)
+
     response = Rsvp::RESPONSES.find { |r| r == params[:commit].downcase.to_sym }
     @rsvp = @event.rsvps.new(rsvp_params.merge(response: response))
 
@@ -18,11 +20,15 @@ class RsvpsController < ApplicationController
   def destroy
     @rsvp = @event.rsvps.find(params[:id])
 
-    event_session = session[@event.hashid]
+    event_session = Array(session[@event.hashid])
 
-    if @rsvp.hashid.in?(event_session)
-      @rsvp.destroy
-      event_session -= [@rsvp.hashid]
+    if @rsvp.hashid.in?(event_session) && @rsvp.destroy
+      remaining = event_session - [@rsvp.hashid]
+      if remaining.empty?
+        session.delete(@event.hashid)
+      else
+        session[@event.hashid] = remaining
+      end
     end
 
     redirect_to @event
@@ -33,10 +39,15 @@ class RsvpsController < ApplicationController
   def set_event
     hashid = hashid_from_param(params[:event_id])
     @event = Event.find_by_hashid!(hashid)
+    raise ActiveRecord::RecordNotFound unless @event.published?
   end
 
   def rsvp_params
-    params.require(:rsvp).permit(:name)
+    attributes = params.require(:rsvp)
+    unless attributes.is_a?(ActionController::Parameters)
+      raise ActionController::ParameterMissing, :rsvp
+    end
+    attributes.permit(:name)
   end
 
   def hashid_from_param(parameterized_id)

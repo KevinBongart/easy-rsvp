@@ -59,7 +59,6 @@ RSpec.describe Event, type: :model do
   end
 
   it 'deletes an event and its responses together' do
-    pending 'Assessment 1.1: Event has no dependent RSVP deletion policy'
     event = create(:rsvp).event
     expect { event.destroy! }.to change(Rsvp, :count).by(-1)
     expect(described_class.exists?(event.id)).to be(false)

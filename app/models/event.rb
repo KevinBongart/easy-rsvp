@@ -1,7 +1,7 @@
 class Event < ApplicationRecord
   include Hashid::Rails
 
-  has_many :rsvps
+  has_many :rsvps, dependent: :destroy
 
   before_create :set_admin_token
 

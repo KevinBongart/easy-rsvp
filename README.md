@@ -46,11 +46,11 @@ Useful focused commands:
 ```sh
 bundle exec rspec --tag '~js'                 # fast model/request/feature/unit tests
 bundle exec rspec spec/system/javascript_smoke_spec.rb  # passing Firefox smoke flows
-bundle exec rspec --tag js                    # all Firefox specs, including known regressions
+bundle exec rspec --tag js                    # all Firefox smoke and failure-recovery specs
 bundle exec rspec --seed 18467                # reproduce a full-suite ordering
 ```
 
-The suite has 159 examples (19 known pending regressions) and covers models,
+The suite has 177 examples with no pending regressions and covers models,
 presenter units, mailers, HTTP requests, independent
 organizer/guest sessions, database-import services, Rack Test form flows, and
 real browser interactions. Firefox actually drops a PNG into Trix, submits it
@@ -66,14 +66,17 @@ suite, test email/jobs, and WebMock to reject external Ruby HTTP requests.
 WebDriver's localhost traffic is allowed. No production imports or real S3/SMTP
 operations are part of the suite.
 
-Known defects have executable `pending` expectations with assessment item IDs;
-they still run, and an unexpected pass fails the suite so the pending marker must
-be removed when the issue is fixed. They are separate from passing smoke coverage.
-The approved policy blocks guest RSVP additions/deletions on unpublished events
-while preserving organizer editing; two pending tests cover its missing enforcement.
-Dashboard counts and projections must use creation dates. Five pending regressions
-cover the monthly calculations that still use scheduled dates. Phase 0 coverage
-is complete; the documented application fixes remain outstanding.
+All 19 original pending expectations now pass. Guest RSVP additions/deletions are
+blocked on unpublished events while organizer editing remains available. Dashboard
+counts and projections use creation dates. Public image uploads require detected
+PNG/JPEG/GIF/WebP content and a maximum size of 10 MB; failed Trix uploads show an
+error and permit another attempt. Production email links require `DOMAIN` (a host
+without a URL scheme) and use HTTPS.
+
+The RSVP migration enforces supported response values on new writes using a
+PostgreSQL `NOT VALID` check constraint. It leaves historical records unchanged;
+review any invalid values before validating the existing rows in a later migration.
+The migration has been applied and reversed only against the local test database.
 
 `bin/ci` writes JUnit results to `tmp/test-results/rspec.xml`. Failed system tests
 save screenshots under `tmp/screenshots/`; CircleCI retains both. CircleCI deploys

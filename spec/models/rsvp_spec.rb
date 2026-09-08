@@ -21,7 +21,6 @@ RSpec.describe Rsvp, type: :model do
   end
 
   it 'rejects answers outside the supported choices' do
-    pending 'Assessment 1.4: response membership is not validated'
     expect(build(:rsvp, response: 'unexpected')).not_to be_valid
   end
 
@@ -49,4 +48,15 @@ RSpec.describe Rsvp, type: :model do
     end.to raise_error(ActiveRecord::InvalidForeignKey)
     expect(rsvp.reload.event).to be_present
   end
+
+  [nil, 'unexpected'].each do |answer|
+    it "rejects #{answer.inspect} even when model validation is bypassed" do
+      rsvp = create(:rsvp)
+      expect do
+        described_class.transaction(requires_new: true) { rsvp.update_column(:response, answer) }
+      end.to raise_error(ActiveRecord::StatementInvalid) { |error| expect(error.cause).to be_a(PG::CheckViolation) }
+      expect(rsvp.reload.response).to eq('yes')
+    end
+  end
+
 end

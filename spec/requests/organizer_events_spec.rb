@@ -65,4 +65,24 @@ RSpec.describe 'Organizer events', type: :request do
     expect(response).to have_http_status(:not_found)
     expect(event.reload).to be_published
   end
+
+  it 'deletes an event and its responses without touching another events responses' do
+    create_list(:rsvp, 2, event: event)
+    other = create(:rsvp)
+    expect do
+      delete event_admin_path(event, event.admin_token)
+    end.to change(Event, :count).by(-1).and change(Rsvp, :count).by(-2)
+    expect(response).to redirect_to(root_path)
+    expect(Rsvp.exists?(other.id)).to be(true)
+  end
+
+  it 'preserves responses when event deletion uses the wrong token' do
+    rsvp = create(:rsvp, event: event)
+    expect do
+      delete event_admin_path(event, 'wrong')
+    end.not_to change(Rsvp, :count)
+    expect(response).to have_http_status(:not_found)
+    expect(rsvp.reload.event).to eq(event)
+  end
+
 end

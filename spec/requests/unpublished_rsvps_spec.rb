@@ -4,7 +4,6 @@ RSpec.describe 'RSVP access while an event is unpublished', type: :request do
   let!(:event) { create(:event, :unpublished) }
 
   it 'blocks guest additions without saving a response or claiming ownership' do
-    pending 'Assessment 1.5: guest additions ignore event publication'
     expect do
       post event_rsvps_path(event), params: { rsvp: { name: 'Guest' }, commit: 'Yes' }
     end.not_to change(Rsvp, :count)
@@ -18,7 +17,6 @@ RSpec.describe 'RSVP access while an event is unpublished', type: :request do
     rsvp = event.rsvps.last
     event.update!(published: false)
 
-    pending 'Assessment 1.5: guest deletion ignores event publication'
     expect { delete event_rsvp_path(event, rsvp) }.not_to change(Rsvp, :count)
     expect(response).to have_http_status(:not_found)
     expect(request.session[event.hashid]).to include(rsvp.hashid)

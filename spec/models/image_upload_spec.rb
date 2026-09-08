@@ -26,14 +26,23 @@ RSpec.describe ImageUpload, type: :model do
   end
 
   it 'requires a file' do
-    pending 'Assessment 2.4: ImageUpload has no attachment presence validation'
     expect(described_class.new).not_to be_valid
   end
 
   it 'rejects a non-image attachment' do
-    pending 'Assessment 2.4: ImageUpload has no content-type validation'
     upload = described_class.new
     upload.image.attach(io: File.open(Rails.root.join('spec/fixtures/files/notes.txt')), filename: 'notes.txt', content_type: 'text/plain')
     expect(upload).not_to be_valid
   end
+
+  [10.megabytes, 10.megabytes + 1].each do |size|
+    it "enforces the 10 MB limit for a #{size}-byte image" do
+      bytes = File.binread(Rails.root.join('spec/fixtures/files/party.png')).ljust(size, "\0")
+      upload = described_class.new
+      upload.image.attach(io: StringIO.new(bytes), filename: 'large.png', content_type: 'image/png')
+      expect(upload.valid?).to eq(size <= 10.megabytes)
+      expect(upload.errors[:image]).to include('must be 10 MB or smaller') if size > 10.megabytes
+    end
+  end
+
 end

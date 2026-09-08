@@ -30,7 +30,7 @@ RSpec.describe 'Site administrator dashboard', type: :request do
   it 'renders an empty state without broken statistics' do
     get admin_events_path, headers: dashboard_headers
     expect(response).to have_http_status(:ok)
-    expect(response.body).to match(/Total events:<\/strong>\s*0/)
+    expect(response.body).to match(/Total events created:<\/strong>\s*0/)
   end
 
   it 'does not introduce N+1 queries as the listing grows' do
@@ -42,4 +42,15 @@ RSpec.describe 'Site administrator dashboard', type: :request do
     expect(large).to eq(small)
     expect(large).to be <= 3
   end
+
+  it 'shows creation counts even when all parties are scheduled in another month' do
+    travel_to Time.zone.local(2026, 9, 10, 12)
+    create_list(:event, 2, date: Date.new(2026, 11, 5), created_at: Time.zone.local(2026, 9, 2))
+    create(:event, date: Date.new(2026, 9, 20), created_at: Time.zone.local(2026, 8, 2))
+    get admin_events_path, headers: dashboard_headers
+    text = Nokogiri::HTML(response.body).text.squish
+    expect(text).to include('Total events created: 3', 'August 2026: 1')
+    expect(text).to include('This month (September 2026) — events created: 2 so far, extrapolated: 6')
+  end
+
 end

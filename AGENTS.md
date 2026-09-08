@@ -27,8 +27,8 @@ model when applying the playbook's authentication and ownership guidance.
   access boundaries despite their similar names.
 - Owner-approved policy: unpublished events block guest RSVP additions and
   deletions, including deletion by a guest who previously owned a response.
-  Organizer editing and RSVP management remain available. Publication checks on
-  guest mutations are still missing; pending regressions cover the Phase 1.5 fix.
+  Organizer editing and RSVP management remain available. Public mutations enforce
+  publication before looking up or changing a response.
 
 Never import Bon App's accepted security risks as Easy RSVP owner decisions.
 Do not expose organizer links, tokens, credentials, or imported personal data in
@@ -59,11 +59,13 @@ eager-loading, asset-compilation, and RSpec checks.
 ## Code map and domain rules
 
 - `Event`: title/date validation, public hashid/slug, organizer token,
-  publication and RSVP-name visibility flags, `has_many :rsvps`.
+  publication and RSVP-name visibility flags, dependent destruction of RSVPs.
 - `Rsvp`: belongs to an event, name/response presence validation,
-  `RESPONSES = [:yes, :maybe, :no]`. Inclusion is not currently validated.
-- `ImageUpload`: one Active Storage image; uploads are handled independently
-  of event creation.
+  `RESPONSES = [:yes, :maybe, :no]`, with inclusion validation and a database check
+  for new writes. Historical rows still need review before validating the constraint.
+- `ImageUpload`: one required PNG/JPEG/GIF/WebP image, at most 10 MB. The upload
+  endpoint detects MIME type from file bytes. Upload ownership remains independent
+  of event creation and needs a separate lifecycle design.
 - `EventsController`: event creation and public display.
 - `EventsAdminController`: organizer display, editing, deletion, publication.
 - `RsvpsController`: public response creation and session-owned deletion.
@@ -71,8 +73,8 @@ eager-loading, asset-compilation, and RSpec checks.
 - `Admin::EmailRequestsController` / `UserMailer`: email the organizer link.
 - `Admin::EventsController` / `Admin::EventStats`: dashboard listing and stats.
   Owner-approved rule: yearly/monthly counts and projections measure event creation
-  using `created_at`, independent of scheduled `date`. Yearly counts comply; monthly
-  calculations still need the Phase 4.2 fix, covered by pending regressions.
+  using `created_at`, independent of scheduled `date`. Monthly numeric counts are
+  computed once per presenter and formatted for display.
 - `ImageUploadsController`: JSON upload endpoint for the editor.
 
 Use `db/schema.rb` and `config/routes.rb` for exact constraints and paths.
@@ -100,10 +102,9 @@ Firefox specs enable real CSRF protection and restore the setting afterward.
 Trix smoke specs use the real editor and native file-drop events, with real local
 upload/download requests. Never replace them with a stubbed successful upload.
 
-Known defects are executable `pending` regressions linked to assessment items.
-Remove each pending marker as its fix lands; an unexpected pass fails the suite.
+All 19 original pending regressions are fixed; the suite has no pending examples.
 Do not add pending markers for new failures without reproducing and documenting
-the defect. No application services exist under `app/services` today; the
+the defect. Regression expectations must continue to execute after fixes. No application services exist under `app/services` today; the
 production-database utility and command runner are unit-tested under `spec/lib`.
 
 `bin/dev` runs the Rails server. Development uploads use the configured S3 bucket
