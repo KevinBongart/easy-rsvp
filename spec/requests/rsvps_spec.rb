@@ -33,7 +33,6 @@ RSpec.describe 'Public RSVPs', type: :request do
   end
 
   it 'handles a missing submit value without crashing' do
-    pending 'Assessment 1.2: nil commit raises NoMethodError'
     post event_rsvps_path(event), params: { rsvp: { name: 'Alex' } }
     expect(response).to have_http_status(:bad_request)
     expect(event.rsvps).to be_empty
@@ -54,7 +53,6 @@ RSpec.describe 'Public RSVPs', type: :request do
   end
 
   it 'denies deletion by a visitor with no ownership session without crashing' do
-    pending 'Assessment 1.2: nil event session raises ArgumentError'
     rsvp = create(:rsvp, event: event)
     expect { delete event_rsvp_path(event, rsvp) }.not_to change(Rsvp, :count)
     expect(response).to redirect_to(event)

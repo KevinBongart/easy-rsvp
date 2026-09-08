@@ -5,7 +5,6 @@ RSpec.describe 'Malformed public RSVP requests', type: :request do
 
   ['', [], ['Yes'], { answer: 'Yes' }].each do |submit|
     it "rejects submit value #{submit.inspect} without saving or claiming ownership" do
-      pending 'Assessment 1.2: non-string submit values raise NoMethodError' unless submit.is_a?(String)
       expect do
         post event_rsvps_path(event), params: { rsvp: { name: 'Guest' }, commit: submit }
       end.not_to change(Rsvp, :count)
@@ -49,6 +48,15 @@ RSpec.describe 'Malformed public RSVP requests', type: :request do
     end.not_to change(Rsvp, :count)
     expect(response).to redirect_to(event)
     expect(request.session[event.hashid]).to eq([])
+  end
+
+  ['invalid', ['invalid']].each do |attributes|
+    it "rejects malformed RSVP attributes #{attributes.inspect}" do
+      expect do
+        post event_rsvps_path(event), params: { rsvp: attributes, commit: 'Yes' }
+      end.not_to change(Rsvp, :count)
+      expect(response).to have_http_status(:bad_request)
+    end
   end
 
 end
