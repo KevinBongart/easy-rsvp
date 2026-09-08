@@ -19,6 +19,9 @@ jobs:
     steps:
       - checkout
       - ruby/install-deps
+      - run:
+          name: Refresh browser package index
+          command: sudo apt-get update
       - browser-tools/install_firefox
       - browser-tools/install_geckodriver
       - run:
