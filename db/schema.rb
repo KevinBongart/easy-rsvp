@@ -10,30 +10,30 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2024_11_15_112908) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_08_140000) do
   # These are extensions that must be enabled in order to support this database
+  enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
-  enable_extension "plpgsql"
   enable_extension "uuid-ossp"
 
   create_table "active_storage_attachments", force: :cascade do |t|
-    t.string "name", null: false
-    t.string "record_type", null: false
-    t.bigint "record_id", null: false
     t.bigint "blob_id", null: false
     t.datetime "created_at", precision: nil, null: false
+    t.string "name", null: false
+    t.bigint "record_id", null: false
+    t.string "record_type", null: false
     t.index ["blob_id"], name: "index_active_storage_attachments_on_blob_id"
     t.index ["record_type", "record_id", "name", "blob_id"], name: "index_active_storage_attachments_uniqueness", unique: true
   end
 
   create_table "active_storage_blobs", force: :cascade do |t|
-    t.string "key", null: false
-    t.string "filename", null: false
-    t.string "content_type"
-    t.text "metadata"
     t.bigint "byte_size", null: false
     t.string "checksum"
+    t.string "content_type"
     t.datetime "created_at", precision: nil, null: false
+    t.string "filename", null: false
+    t.string "key", null: false
+    t.text "metadata"
     t.string "service_name", null: false
     t.index ["key"], name: "index_active_storage_blobs_on_key", unique: true
   end
@@ -45,14 +45,14 @@ ActiveRecord::Schema[7.2].define(version: 2024_11_15_112908) do
   end
 
   create_table "events", force: :cascade do |t|
-    t.string "title", null: false
-    t.date "date", null: false
-    t.text "body"
     t.string "admin_token", null: false
+    t.text "body"
     t.datetime "created_at", precision: nil, null: false
-    t.datetime "updated_at", precision: nil, null: false
-    t.boolean "show_rsvp_names", default: true, null: false
+    t.date "date", null: false
     t.boolean "published", default: true
+    t.boolean "show_rsvp_names", default: true, null: false
+    t.string "title", null: false
+    t.datetime "updated_at", precision: nil, null: false
   end
 
   create_table "image_uploads", force: :cascade do |t|
@@ -61,13 +61,15 @@ ActiveRecord::Schema[7.2].define(version: 2024_11_15_112908) do
   end
 
   create_table "rsvps", force: :cascade do |t|
+    t.datetime "created_at", precision: nil, null: false
     t.bigint "event_id"
     t.string "name"
     t.string "response"
-    t.datetime "created_at", precision: nil, null: false
     t.datetime "updated_at", precision: nil, null: false
     t.index ["event_id"], name: "index_rsvps_on_event_id"
   end
+
+  add_check_constraint "rsvps", "response IS NOT NULL AND (response::text = ANY (ARRAY['yes'::character varying, 'maybe'::character varying, 'no'::character varying]::text[]))", name: "rsvps_supported_response", validate: false
 
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "rsvps", "events"

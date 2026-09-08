@@ -46,4 +46,14 @@ RSpec.describe 'Organizer RSVP management', type: :request do
       expect(rsvp.reload.attributes).to eq(original)
     end
   end
+
+  it 'rejects unsupported responses without changing the guest or hiding their RSVP' do
+    original = rsvp.reload.attributes
+    patch event_admin_rsvp_path(event, event.admin_token, rsvp), params: { rsvp: { name: 'Changed', response: 'unexpected' } }
+    expect(rsvp.reload.attributes).to eq(original)
+    expect(flash[:alert]).to include('could not be updated')
+    get event_path(event)
+    expect(response.body).to include(rsvp.name)
+  end
+
 end
