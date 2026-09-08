@@ -22,9 +22,13 @@ class RsvpsController < ApplicationController
 
     event_session = Array(session[@event.hashid])
 
-    if @rsvp.hashid.in?(event_session)
-      @rsvp.destroy
-      event_session -= [@rsvp.hashid]
+    if @rsvp.hashid.in?(event_session) && @rsvp.destroy
+      remaining = event_session - [@rsvp.hashid]
+      if remaining.empty?
+        session.delete(@event.hashid)
+      else
+        session[@event.hashid] = remaining
+      end
     end
 
     redirect_to @event
