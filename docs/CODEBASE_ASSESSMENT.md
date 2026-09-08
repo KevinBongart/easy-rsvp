@@ -4,9 +4,26 @@ Assessed **2026-09-08**, branch `main`, commit `38413a5`, including the existing
 uncommitted playbook/agent documentation, README/environment additions, and
 production-database pull implementation/specs from the preceding task.
 
-Status: **assessment complete; test-harness follow-up implemented; product remediation remains pending**. This replaces the
+Status: **assessment and Phase 0 coverage complete; product remediation remains pending**. This replaces the
 initial assessment brief. Standards: [Rails Engineering Playbook](RAILS_ENGINEERING_PLAYBOOK.md).
 Application reference: [AGENTS.md](../AGENTS.md).
+
+## Creation-date policy and Phase 0 completion — 2026-09-08
+
+The owner confirmed that dashboard statistics measure when events were created.
+Yearly totals, monthly history/current counts, and projections must use `created_at`;
+rescheduling an event must not rewrite growth history. Six additional presenter
+examples deliberately separate creation timestamps from scheduled dates: yearly
+assignment, current-month inclusion/exclusion, December/January history, exact
+creation-month boundaries, rescheduling invariance, and monthly projections.
+
+The yearly example passes. The other five first failed with observed incorrect
+counts and are executable pending regressions for Phase 4.2. The suite now has
+**156 examples and 19 pending regressions**. `CI=true bin/ci --seed 56913`
+passes eager loading, asset compilation, and all 156 examples with zero failures
+(11.73 seconds of RSpec execution). All four Phase 0 checklist items are
+complete as coverage tasks. The approved publication/statistics policies are
+recorded; their application fixes and other remediation remain outstanding.
 
 ## Unpublished-event policy follow-up — 2026-09-08
 
@@ -19,7 +36,8 @@ creation/deletion; they are now executable pending regressions for Phase 1.5.
 The other four pass. `CI=true bin/ci --seed 56913` passes eager loading, assets,
 and **150 examples, 0 failures, 14 pending** (14.68 seconds of RSpec execution).
 Phase 0.1 is complete as a coverage task; Phase 1.5 enforcement is still outstanding.
-Phase 0.3 remains open only for the dashboard date-basis decision and its tests.
+At this stage Phase 0.3 remained open for the dashboard policy; the later
+creation-date follow-up above completes it.
 
 ## Phase 0 completion work — 2026-09-08
 
@@ -48,7 +66,7 @@ both sides, including timestamps. CircleCI build
 including eager loading, assets, all 144 examples, and artifact upload.
 
 At this point both policy questions were pending. The later unpublished-event
-follow-up above records the approved rule and completes 0.1; 0.3 remains open.
+and creation-date follow-ups above record both approved rules and complete 0.1/0.3.
 
 ## Branch preparation follow-up — 2026-09-08
 
@@ -118,8 +136,8 @@ persisted-image assertion, and the application source was restored unchanged.
 CircleCI YAML parses locally; online `circleci config validate` was attempted but
 rejected the existing API token. Hosted execution has not been verified.
 
-The later follow-ups above complete Phase 0.1; Phase 0.3 remains open for the
-dashboard policy-dependent tests. Production mail-host and delivery-failure coverage
+The later follow-ups above complete all Phase 0 coverage, including the
+owner-approved publication and dashboard rules. Production mail-host and delivery-failure coverage
 has since been added. Phase 7.1 has local/hosted test parity and browser
 artifacts implemented; scans and lint remain separate follow-ups. No product
 controllers, models, views, or JavaScript were changed by this test expansion.
@@ -266,11 +284,13 @@ provided; Bon App's accepted risks do not transfer.
   organizer response modals, and UJS deletion. An executable pending test reproduces
   upload-handler duplication before its Phase 1 fix.
 
-- [ ] **0.3 P2 — Cover model, presenter, and mail contracts.** Covered:
+- [x] **0.3 P2 — Cover model, presenter, and mail contracts.** Covered:
   event deletion with/without responses, response inclusion, date boundaries and
   extrapolation, hidden-name rendering, configured HTTPS mail URLs, the production
-  mail-host override, blank/invalid attachments, and failed mail delivery. Remaining:
-  choose the dashboard date basis and test differing creation and scheduled dates.
+  mail-host override, blank/invalid attachments, and failed mail delivery. Six
+  creation-date examples separate scheduled dates from creation timestamps,
+  including year/month boundaries, rescheduling, and projections. Five reproduce
+  the monthly calculation defect as pending expectations for Phase 4.2.
 
 - [x] **0.4 P2 — Make the harness deterministic and self-contained.** Fixed clocks,
   synthetic Basic Auth, randomized order, temporary disk storage, test mail/jobs,
@@ -432,14 +452,14 @@ provided; Bon App's accepted risks do not transfer.
   Add a scale test that limits instantiated rows as well as query count; a
   constant query count alone would let the present problem pass.
 
-- [ ] **4.2 P2 — Define one meaning for dashboard counts.**
+- [ ] **4.2 P2 — Use creation timestamps consistently for dashboard counts.**
   `Admin::EventStats#yearly_counts` groups by `created_at.year` (line 29), but
   `count_events_in_month` uses the event's scheduled `date` (line 78).
   A January-created, September-scheduled event counts as a September event.
   The "so far" extrapolation then scales the entire scheduled-month count by
-  elapsed days, including future events. Decide whether these are creation
-  metrics or event-calendar metrics, label them accordingly, and test dates that
-  differ. Keep numeric counts numeric until formatting; avoid parsing formatted
+  elapsed days, including future events. The owner approved creation metrics:
+  use `created_at` for all buckets/projections and label the displayed counts
+  accordingly. Remove the five pending Phase 0.3 markers as the fix lands. Keep numeric counts numeric until formatting; avoid parsing formatted
   strings back into numbers. Cache or aggregate repeated monthly calculations
   within one presenter instance rather than scanning repeatedly.
 

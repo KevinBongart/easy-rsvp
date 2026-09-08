@@ -70,6 +70,9 @@ eager-loading, asset-compilation, and RSpec checks.
 - `Admin::RsvpsController`: organizer response editing/deletion.
 - `Admin::EmailRequestsController` / `UserMailer`: email the organizer link.
 - `Admin::EventsController` / `Admin::EventStats`: dashboard listing and stats.
+  Owner-approved rule: yearly/monthly counts and projections measure event creation
+  using `created_at`, independent of scheduled `date`. Yearly counts comply; monthly
+  calculations still need the Phase 4.2 fix, covered by pending regressions.
 - `ImageUploadsController`: JSON upload endpoint for the editor.
 
 Use `db/schema.rb` and `config/routes.rb` for exact constraints and paths.
