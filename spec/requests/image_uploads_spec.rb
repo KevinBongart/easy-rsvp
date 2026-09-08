@@ -31,4 +31,22 @@ RSpec.describe 'Image upload integration', type: :request do
     expect { post image_uploads_path(format: :json), params: {} }.not_to change(ImageUpload, :count)
     expect(response).to have_http_status(:bad_request)
   end
+
+  it 'rejects a non-image even when its submitted MIME type claims it is a PNG' do
+    file = fixture_file_upload(Rails.root.join('spec/fixtures/files/notes.txt'), 'image/png')
+    expect do
+      post image_uploads_path(format: :json), params: { image_upload: { image: file } }
+    end.not_to change(ImageUpload, :count)
+    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response.parsed_body.fetch('image')).to be_present
+    expect(ActiveStorage::Blob.count).to eq(0)
+  end
+
+  it 'rejects a blank file without leaving an upload record behind' do
+    expect do
+      post image_uploads_path(format: :json), params: { image_upload: { image: '' } }
+    end.not_to change(ImageUpload, :count)
+    expect(response).to have_http_status(:unprocessable_entity)
+  end
+
 end

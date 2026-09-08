@@ -1,6 +1,17 @@
 class ImageUploadsController < ApplicationController
   def create
-    @image_upload = ImageUpload.new(image_upload_params)
+    attributes = image_upload_params
+    file = attributes[:image]
+    if file.present? && !file.is_a?(ActionDispatch::Http::UploadedFile)
+      render json: { image: ["must be an uploaded image file"] }, status: :unprocessable_entity
+      return
+    end
+
+    @image_upload = ImageUpload.new(attributes)
+    if file.present?
+      # Do not trust a client-supplied MIME type or filename extension.
+      @image_upload.image.blob.content_type = Marcel::MimeType.for(file.tempfile)
+    end
 
     respond_to do |format|
       if @image_upload.save
