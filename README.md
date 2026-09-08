@@ -50,7 +50,7 @@ bundle exec rspec --tag js                    # all Firefox specs, including kno
 bundle exec rspec --seed 18467                # reproduce a full-suite ordering
 ```
 
-The suite has 132 examples (8 known pending regressions) and covers models,
+The suite has 144 examples (12 known pending regressions) and covers models,
 presenter units, mailers, HTTP requests, independent
 organizer/guest sessions, database-import services, Rack Test form flows, and
 real browser interactions. Firefox actually drops a PNG into Trix, submits it

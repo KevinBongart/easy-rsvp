@@ -8,6 +8,35 @@ Status: **assessment complete; test-harness follow-up implemented; product remed
 initial assessment brief. Standards: [Rails Engineering Playbook](RAILS_ENGINEERING_PLAYBOOK.md).
 Application reference: [AGENTS.md](../AGENTS.md).
 
+## Phase 0 completion work — 2026-09-08
+
+The follow-up adds 12 examples, for **144 examples with 12 known pending
+regressions**. New coverage exercises blank/array/hash submit values, missing
+name parameters, stale and explicitly empty ownership sessions, HTTPS email
+links, SMTP delivery failure, and the actual production mail configuration.
+The configuration test evaluates the production file against an isolated
+application configuration; it does not boot production or use SMTP/S3.
+
+Three non-string submit cases reproduce the existing `NoMethodError` in 1.2.
+The production configuration test reproduces the `example.com` override in 1.6.
+These four new pending expectations were added only after observing the failures.
+The mail delivery failure test characterizes the current exception propagation,
+while asserting unchanged event data and no recorded delivery; it does not claim
+that the current UI offers graceful recovery.
+
+`CI=true bin/ci --seed 56913` passes eager loading, asset compilation, and
+**144 examples, 0 failures, 12 pending** (12.21 seconds of RSpec execution).
+Hosted execution of the earlier suite exposed an obsolete Chrome repository
+signing key in the browser image and timestamp precision differences between
+Ruby and PostgreSQL. CI now uses the Ruby/Node image with Firefox installed by
+the browser orb. No-mutation assertions compare reloaded persisted values on
+both sides, including timestamps. Hosted verification of these changes is pending.
+
+Phase 0.1 still awaits the owner's unpublished-event guest-write policy and its
+tests. Phase 0.3 still awaits the dashboard date-basis decision and tests using
+different creation and scheduled dates. Those questions are pending; neither
+phase is marked complete or silently assigned a new product policy.
+
 ## Branch preparation follow-up — 2026-09-08
 
 Before opening the PR, the branch was rebased onto `origin/main` at `cffb25e`.
@@ -76,9 +105,9 @@ persisted-image assertion, and the application source was restored unchanged.
 CircleCI YAML parses locally; online `circleci config validate` was attempted but
 rejected the existing API token. Hosted execution has not been verified.
 
-Phase 0.1 and 0.3 now have substantial coverage, but remain open for the unresolved
-unpublished-write/monthly-statistics policies, production mail-host configuration,
-and fuller failure-path coverage. Phase 7.1 has local/hosted test parity and browser
+Phase 0.1 and 0.3 remain open for the policy-dependent tests listed in the
+Phase 0 completion work above. Production mail-host and delivery-failure coverage
+has since been added. Phase 7.1 has local/hosted test parity and browser
 artifacts implemented; scans and lint remain separate follow-ups. No product
 controllers, models, views, or JavaScript were changed by this test expansion.
 
@@ -213,32 +242,27 @@ provided; Bon App's accepted risks do not transfer.
 
 ## Phase 0 — Test harness first
 
-- [ ] **0.1 P1 — Cover access boundaries and malformed requests.** Add request
-  specs for wrong organizer tokens, cross-event RSVP update/delete, dashboard
-  authentication, empty/missing session state, unsupported/missing submit values,
-  and unpublished-event writes. Evidence: only
-  [event features](../spec/features/event_spec.rb) and
-  [dashboard feature](../spec/features/admin_dashboard_spec.rb) exist for the
-  product; neither exercises these negative paths. Keep no-mutation assertions.
+- [ ] **0.1 P1 — Cover access boundaries and malformed requests.** Covered:
+  wrong organizer tokens, cross-event RSVP update/delete, dashboard authentication,
+  empty/missing/stale ownership state, unsupported/missing/non-string submit values,
+  and missing name parameters, with no-mutation assertions. Remaining: decide and
+  test whether unpublished events permit guest creation and deletion of responses.
 
-- [x] **0.2 P1 — Add a small real-browser suite.** Implemented in the follow-up above. Original finding: Keep Rack Test for fast forms;
-  add Selenium/headless Firefox for editor save/upload, clipboard, RSVP-again,
-  organizer response modals, and UJS deletion. Reproduce upload-handler duplication
-  across repeated navigation before fixing it. `spec/rails_helper.rb` currently
-  has no JS driver and the Gemfile does not include Selenium. A local one-off
-  browser pass cannot replace CI coverage.
+- [x] **0.2 P1 — Add a small real-browser suite.** Rack Test covers fast forms;
+  Selenium/headless Firefox covers editor save/upload, clipboard, RSVP-again,
+  organizer response modals, and UJS deletion. An executable pending test reproduces
+  upload-handler duplication before its Phase 1 fix.
 
-- [ ] **0.3 P2 — Cover model, presenter, and mail contracts.** Add tests for event
-  deletion with/without responses, response inclusion, monthly/yearly date
-  semantics, hidden-name rendering, configured mail URLs, blank/invalid uploads,
-  and failed mail delivery. Include different event dates and creation dates so
-  the dashboard test cannot accidentally conflate them.
+- [ ] **0.3 P2 — Cover model, presenter, and mail contracts.** Covered:
+  event deletion with/without responses, response inclusion, date boundaries and
+  extrapolation, hidden-name rendering, configured HTTPS mail URLs, the production
+  mail-host override, blank/invalid attachments, and failed mail delivery. Remaining:
+  choose the dashboard date basis and test differing creation and scheduled dates.
 
-- [x] **0.4 P2 — Make the harness deterministic and self-contained.** Implemented in the follow-up above. Original finding: Freeze
-  date-dependent dashboard examples, use explicit synthetic Basic Auth settings,
-  enable randomized order (currently inside the commented block in
-  `spec/spec_helper.rb`), and retain test disk storage and mail delivery. Add a
-  documented local CI command as tooling lands in Phase 7.
+- [x] **0.4 P2 — Make the harness deterministic and self-contained.** Fixed clocks,
+  synthetic Basic Auth, randomized order, temporary disk storage, test mail/jobs,
+  blocked external Ruby HTTP, and `bin/ci` are implemented. Persisted before/after
+  snapshots avoid platform-dependent timestamp precision mismatches.
 
 ## Phase 1 — Correctness and proven bit-rot
 

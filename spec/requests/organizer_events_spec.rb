@@ -52,7 +52,7 @@ RSpec.describe 'Organizer events', type: :request do
 
   [:get, :patch, :delete].each do |verb|
     it "rejects #{verb} with the wrong organizer token without mutation" do
-      original = event.attributes
+      original = event.reload.attributes
       public_send(verb, event_admin_path(event, 'wrong'), params: { event: { title: 'Changed' } })
       expect(response).to have_http_status(:not_found)
       expect(event.reload.attributes).to eq(original)

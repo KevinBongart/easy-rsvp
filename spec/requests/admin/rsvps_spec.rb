@@ -11,7 +11,7 @@ RSpec.describe 'Organizer RSVP management', type: :request do
   end
 
   it 'rejects blank fields and preserves the original response' do
-    original = rsvp.attributes
+    original = rsvp.reload.attributes
     patch event_admin_rsvp_path(event, event.admin_token, rsvp), params: { rsvp: { name: '', response: '' } }
     expect(rsvp.reload.attributes).to eq(original)
     expect(flash[:alert]).to include('could not be updated')
@@ -32,7 +32,7 @@ RSpec.describe 'Organizer RSVP management', type: :request do
   [:patch, :delete].each do |verb|
     it "denies #{verb} using a token for another event" do
       other = create(:event)
-      original = rsvp.attributes
+      original = rsvp.reload.attributes
       public_send(verb, event_admin_rsvp_path(event, other.admin_token, rsvp), params: { rsvp: { name: 'Changed' } })
       expect(response).to have_http_status(:not_found)
       expect(rsvp.reload.attributes).to eq(original)
@@ -40,7 +40,7 @@ RSpec.describe 'Organizer RSVP management', type: :request do
 
     it "denies cross-event #{verb} even with a valid organizer token" do
       other = create(:event)
-      original = rsvp.attributes
+      original = rsvp.reload.attributes
       public_send(verb, event_admin_rsvp_path(other, other.admin_token, rsvp), params: { rsvp: { name: 'Changed' } })
       expect(response).to have_http_status(:not_found)
       expect(rsvp.reload.attributes).to eq(original)

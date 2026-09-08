@@ -24,4 +24,12 @@ RSpec.describe UserMailer, type: :mailer do
     expect { message.deliver_now }.to change(ActionMailer::Base.deliveries, :size).by(1)
     expect(ActionMailer::Base.delivery_method).to eq(:test)
   end
+
+  it 'uses a configured HTTPS host for both organizer and public links' do
+    allow(described_class).to receive(:default_url_options).and_return(host: 'invites.example.test', protocol: 'https')
+    expect(message.body.decoded).to include("https://invites.example.test/#{event.to_param}")
+    expect(message.body.decoded).to include("https://invites.example.test/#{event.to_param}/admin/#{event.admin_token}")
+    expect(message.body.decoded).not_to include('http://', 'example.com')
+  end
+
 end
