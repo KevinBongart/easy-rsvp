@@ -36,6 +36,7 @@ RSpec.configure do |config|
 
   config.before do
     ActionMailer::Base.deliveries.clear
+    ImageUploadsController.cache_store.clear
     clear_enqueued_jobs
     clear_performed_jobs
   end

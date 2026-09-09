@@ -5,6 +5,7 @@
 <br>
 
 <%= simple_form_for @event do |f| %>
+  <%= hidden_field_tag :image_upload_token, @image_upload_token %>
   <%= f.input :title, required: false, label: 'What are you planning?', placeholder: @placeholders[:title] %>
 
   <%= f.input :date,
@@ -18,7 +19,7 @@
 
   <%= f.label :body, 'More details (optional):' %>
   <%= f.input :body, as: :hidden %>
-  <trix-editor input="event_body" placeholder="<%= @placeholders[:body] %>"></trix-editor>
+  <trix-editor input="event_body" placeholder="<%= @placeholders[:body] %>" data-upload-token="<%= @image_upload_token %>"></trix-editor>
 
   <br>
 

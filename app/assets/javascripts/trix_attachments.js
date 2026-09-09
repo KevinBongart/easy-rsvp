@@ -6,6 +6,7 @@
   function uploadAttachment(attachment, editor) {
     var form = new FormData();
     form.append("image_upload[image]", attachment.file);
+    form.append("image_upload[token]", editor.dataset.uploadToken);
 
     var xhr = new XMLHttpRequest();
     xhr.open("POST", "/image_uploads", true);

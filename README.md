@@ -75,8 +75,26 @@ All 19 original pending expectations now pass. Guest RSVP additions/deletions ar
 blocked on unpublished events while organizer editing remains available. Dashboard
 counts and projections use creation dates. Public image uploads require detected
 PNG/JPEG/GIF/WebP content and a maximum size of 10 MB; failed Trix uploads show an
-error and permit another attempt. Production email links require `DOMAIN` (a host
-without a URL scheme) and use HTTPS.
+error and permit another attempt. The editor issues a per-form upload capability,
+and saving an event assigns only the images still referenced in that editor. The
+unused Active Storage direct-upload endpoint returns 404. Upload requests with a
+declared content length have an 11 MB transport envelope and are limited to 20
+attempts per IP per minute using the configured Rails controller cache.
+Production email links require `DOMAIN` (a host without a URL scheme) and use
+HTTPS.
+
+Managed uploads that are not assigned to an event cannot be claimed after 24
+hours. Run the cleanup task from a production scheduler, preferably hourly:
+
+```sh
+bin/rails image_uploads:purge_abandoned
+```
+
+The task refuses to run in development because an imported database may still
+reference production storage. Historical unowned uploads have no capability
+digest and are deliberately excluded; review those rows separately before any
+backfill or deletion. Uploads assigned to an event are removed with that event,
+and Active Storage purges their blobs through its normal attachment lifecycle.
 
 The RSVP migration enforces supported response values on new writes using a
 PostgreSQL `NOT VALID` check constraint. It leaves historical records unchanged;

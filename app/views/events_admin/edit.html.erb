@@ -1,6 +1,7 @@
 <h1>Edit your event</h1>
 
 <%= simple_form_for @event, url: event_admin_path(@event, @event.admin_token) do |f| %>
+  <%= hidden_field_tag :image_upload_token, @image_upload_token %>
   <%= f.input :title %>
 
   <%= f.input :date,
@@ -12,7 +13,7 @@
 
   <%= f.label :body, 'More details (optional):' %>
   <%= f.input :body, as: :hidden %>
-  <trix-editor input="event_body"></trix-editor>
+  <trix-editor input="event_body" data-upload-token="<%= @image_upload_token %>"></trix-editor>
 
   <br>
 

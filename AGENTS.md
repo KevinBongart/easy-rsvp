@@ -64,8 +64,9 @@ eager-loading, asset-compilation, and RSpec checks.
   `RESPONSES = [:yes, :maybe, :no]`, with inclusion validation and a database check
   for new writes. Historical rows still need review before validating the constraint.
 - `ImageUpload`: one required PNG/JPEG/GIF/WebP image, at most 10 MB. The upload
-  endpoint detects MIME type from file bytes. Upload ownership remains independent
-  of event creation and needs a separate lifecycle design.
+  endpoint detects MIME type from file bytes and requires a per-editor capability.
+  Saved events claim only referenced uploads. Unclaimed managed uploads expire
+  after 24 hours; historical unowned rows are excluded from automated cleanup.
 - `EventsController`: event creation and public display.
 - `EventsAdminController`: organizer display, editing, deletion, publication.
 - `RsvpsController`: public response creation and session-owned deletion.
@@ -129,6 +130,10 @@ user's authorization.
 `events_development` after confirmation and a validated backup. Its usage and
 recovery files are documented in the [README](README.md). Adding or testing its
 code is separate from running an actual production import.
+
+Run `bin/rails image_uploads:purge_abandoned` from a production scheduler to
+remove managed uploads left unclaimed for 24 hours. The task refuses development
+execution because an imported database can still contain production blob records.
 
 Never commit, push, or deploy automatically. CircleCI deploys successful `main`
 builds, so a push to `main` has a production side effect.

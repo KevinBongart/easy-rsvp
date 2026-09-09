@@ -53,8 +53,12 @@ RSpec.describe 'Firefox JavaScript smoke', type: :system, js: true do
     expect(page).to have_css('trix-editor img[src*="/rails/active_storage/"]')
     expect_loaded_image('trix-editor img')
     expect(ImageUpload.count).to eq(1)
+    upload = ImageUpload.last
+    expect(upload.event_id).to be_nil
     expect(ActiveStorage::Blob.last.service_name).to eq('test')
     click_button 'Create your event, for free!'
+    expect(upload.reload.event).to eq(Event.last)
+    expect(upload.upload_session_digest).to be_nil
     expect_loaded_image('.trix-content img')
     click_link 'public-link'
     page.refresh

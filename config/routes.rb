@@ -1,4 +1,6 @@
 Rails.application.routes.draw do
+  post "/rails/active_storage/direct_uploads", to: "image_uploads#direct_upload_disabled"
+
   resources :events, path: '/', only: [:new, :create, :show] do
     resources :admin,
       controller: :events_admin,

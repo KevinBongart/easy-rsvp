@@ -1,6 +1,7 @@
 class EventsController < ApplicationController
   before_action :set_event, only: [:show]
   before_action :set_placeholders, only: [:new]
+  before_action :prepare_image_upload_token, only: [:new, :create]
 
   def show
     @rsvp = @event.rsvps.new
@@ -18,6 +19,7 @@ class EventsController < ApplicationController
     @event = Event.new(event_params)
 
     if @event.save
+      claim_image_uploads(@event)
       redirect_to event_admin_path(@event, @event.admin_token)
     else
       set_placeholders

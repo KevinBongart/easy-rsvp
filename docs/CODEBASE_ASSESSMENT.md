@@ -443,9 +443,19 @@ provided; Bon App's accepted risks do not transfer.
   Prove redaction with synthetic tokens and review logging configurations. Merely
   adding another filtered parameter does not fix raw path logging.
 
-- [ ] **2.4 P1 — Bound and own public uploads.** Presence, detected content types,
-  a 10 MB limit, and recoverable upload errors are implemented. Ownership/expiry,
-  direct-upload policy, and request-level abuse controls remain. Original finding:
+- [x] **2.4 P1 — Bound and own public uploads.** Completed 2026-09-09. Editor
+  uploads now require a per-form capability and retain only its digest. Saving an
+  event claims only uploads whose signed blob URL remains in that editor body;
+  deleting the event removes its upload records and schedules normal Active
+  Storage blob purges. Unclaimed managed uploads become ineligible for claiming
+  after 24 hours and a production-only cleanup task purges them. Historical rows
+  without a capability digest are excluded so imported data is never treated as
+  abandoned by age alone. The unused direct-upload endpoint returns 404. A Rack
+  middleware rejects declared upload requests above 11 MB before multipart
+  parsing, and Rails limits the endpoint to 20 attempts per IP per minute through
+  its configured controller cache. Model, request, task, and real Firefox tests
+  cover ownership, expiry, cleanup, throttling, and persisted editor uploads.
+  Original finding:
   `ImageUploadsController#create` permits any file and `ImageUpload` has no
   presence/type/size validation. A public JSON upload of a plain text file returned
   200 and persisted it. The app also exposes Rails direct-upload routes. Define

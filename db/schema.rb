@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_08_140000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_09_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -57,7 +57,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_08_140000) do
 
   create_table "image_uploads", force: :cascade do |t|
     t.datetime "created_at", precision: nil, null: false
+    t.bigint "event_id"
     t.datetime "updated_at", precision: nil, null: false
+    t.string "upload_session_digest"
+    t.index ["event_id"], name: "index_image_uploads_on_event_id"
+    t.index ["upload_session_digest"], name: "index_image_uploads_on_upload_session_digest"
   end
 
   create_table "rsvps", force: :cascade do |t|
@@ -72,5 +76,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_08_140000) do
   add_check_constraint "rsvps", "response IS NOT NULL AND (response::text = ANY (ARRAY['yes'::character varying, 'maybe'::character varying, 'no'::character varying]::text[]))", name: "rsvps_supported_response", validate: false
 
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "image_uploads", "events"
   add_foreign_key "rsvps", "events"
 end

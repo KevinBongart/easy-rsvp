@@ -9,6 +9,7 @@ require "active_storage/engine"
 require "action_controller/railtie"
 require "action_mailer/railtie"
 require "action_view/railtie"
+require_relative "../lib/upload_size_limiter"
 
 # require "action_cable/engine"
 # require "action_mailbox/engine"
@@ -39,6 +40,8 @@ module EasyRsvp
 
     # Don't generate system test files.
     config.generators.system_tests = nil
+
+    config.middleware.insert_before 0, UploadSizeLimiter
 
     config.action_mailer.default_url_options = { host: ENV['DOMAIN'] }
     config.action_mailer.delivery_method = :smtp

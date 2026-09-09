@@ -1,5 +1,6 @@
 class EventsAdminController < ApplicationController
   before_action :set_event
+  before_action :prepare_image_upload_token, only: [:edit, :update]
 
   def show
     @rsvps = @event.rsvps.persisted.order(created_at: :asc)
@@ -10,6 +11,7 @@ class EventsAdminController < ApplicationController
 
   def update
     if @event.update(event_params)
+      claim_image_uploads(@event)
       redirect_to event_admin_path(@event, @event.admin_token), notice: 'Your event was updated.'
     else
       render :edit
