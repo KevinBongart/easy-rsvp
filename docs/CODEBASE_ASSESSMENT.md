@@ -8,6 +8,15 @@ Status: **assessment and Phase 0 coverage complete; original pending regressions
 initial assessment brief. Standards: [Rails Engineering Playbook](RAILS_ENGINEERING_PLAYBOOK.md).
 Application reference: [AGENTS.md](../AGENTS.md).
 
+## Runtime patch remediation — 2026-09-09
+
+Ruby is updated from 3.3.4 to the current 3.3 security release, 3.3.12, across
+local, lockfile, CI, and deploy inputs. The pinned Dokku buildpack provides that
+runtime on Heroku stacks 22, 24, and 26, and CircleCI publishes the matching Node
+image. Because Ruby 3.3.12 predates the August resolver fixes, `resolv` 0.3.2 is
+explicitly locked and audited. Plan the next minor-runtime move before Ruby 3.3
+security maintenance ends in March 2027.
+
 ## RSVP response constraint validation — 2026-09-09
 
 The production-derived development database contained 88,330 RSVPs and no null
@@ -424,7 +433,10 @@ provided; Bon App's accepted risks do not transfer.
 
 ## Phase 2 — Security and privacy
 
-- [ ] **2.1 P1 — Patch relevant dependency exposures and add audit coverage.**
+- [x] **2.1 P1 — Patch relevant dependency exposures and add audit coverage.**
+  Rails, Rack, rubyzip, Trix, DOMPurify, Ruby, and its affected resolver gem are
+  patched. Locked Bundler, npm, and static-analysis checks run in local and hosted
+  CI. Original finding:
   Use the [deduplicated audit](assessment/2026-09-08-dependency-audit.md) as the
   worklist, prioritizing request parsing, HTML sanitization, Active Storage, and
   the web server before development-only tooling. Rails 8.0.2.1 predates the
@@ -581,15 +593,14 @@ provided; Bon App's accepted risks do not transfer.
 
 ## Phase 6 — Runtime and dependency maintenance
 
-- [ ] **6.1 P1 — Update patch levels, then plan supported runtime movement.**
-  Ruby is pinned to 3.3.4 in both `.ruby-version` and CircleCI. Ruby 3.3 is now in
-  [security maintenance](https://www.ruby-lang.org/en/downloads/branches/), and
-  [3.3.11](https://www.ruby-lang.org/en/news/2026/03/26/ruby-3-3-11-released/)
-  already contained a security-related bundled-gem update. Choose the current
-  compatible patched runtime and align local/CI/deploy versions. Do not assume
-  updating the Rails gem updates Ruby's bundled libraries or vendored JS.
-  Process the audit worklist in reviewable dependency groups; preserve the
-  current product and verify native-gem/asset compatibility.
+- [x] **6.1 P1 — Update patch levels, then plan supported runtime movement.**
+  Ruby 3.3.12 is aligned across `.ruby-version`, `Gemfile.lock`, CircleCI, and
+  Dokku. Its [security release](https://www.ruby-lang.org/en/news/2026/07/16/ruby-3-3-12-released/)
+  updates ERB and net-imap; the subsequently patched `resolv` 0.3.2 is explicit
+  in the bundle. Ruby 3.3 remains in
+  [security maintenance](https://www.ruby-lang.org/en/downloads/branches/), so
+  plan and test a move to a supported newer minor before March 2027. Original
+  finding: Ruby was pinned to 3.3.4 in local and CircleCI configuration.
 
 - [ ] **6.2 P2 — Finish framework-default adoption consciously.**
   `config/application.rb:25` still loads Rails 5.2 defaults. The 7.0, 7.2, and
@@ -598,13 +609,12 @@ provided; Bon App's accepted risks do not transfer.
   and assets. Resolve the observed Rails 8.1 timezone-preservation deprecation
   with a behavior test. Do not just delete the files and switch defaults blindly.
 
-- [ ] **6.3 P2 — Make browser/runtime dependency ownership explicit.**
-  `.node-version` pins 14.15.4 while `package.json` has no dependencies; JavaScript
-  is served from gems/vendor and Node may still be an ExecJS runtime for assets.
-  Decide its build role, update or remove the pin accordingly, and cover that
-  path in CI. Keep required mail adapter gems until their dependency/runtime
-  purpose is verified; absence of an application-level `Net::SMTP` call alone
-  does not prove the mail stack can remove them.
+- [x] **6.3 P2 — Make browser/runtime dependency ownership explicit.** Node 24 is
+  pinned for local work and selected by `package.json` during deploys. npm owns
+  the locked Trix, DOMPurify, and esbuild inputs; `bin/ci` installs, audits, and
+  builds them before Sprockets compilation. The Node buildpack runs before Ruby.
+  Original finding: `.node-version` pinned 14.15.4 while the empty package file
+  left Node's role unclear.
 
 ## Phase 7 — CI and operations follow-up
 
