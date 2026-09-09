@@ -8,6 +8,13 @@ Status: **assessment and Phase 0 coverage complete; original pending regressions
 initial assessment brief. Standards: [Rails Engineering Playbook](RAILS_ENGINEERING_PLAYBOOK.md).
 Application reference: [AGENTS.md](../AGENTS.md).
 
+## RSVP response constraint validation — 2026-09-09
+
+The production-derived development database contained 88,330 RSVPs and no null
+or unsupported response values. The existing `rsvps_supported_response` check is
+now validated for historical rows as well as enforced for new writes. No response
+data was rewritten or coerced. Validation completed locally in 18 milliseconds.
+
 ## Dependency security remediation — 2026-09-09
 
 Rails is updated to 8.1.3.1 and rubyzip to 3.6.0. The unused
@@ -44,12 +51,11 @@ upload followed by a successful upload, and injected transport failures followed
 by retries through the actual endpoint/storage. The database migration was tested
 up/down/up only against `events_test`. No production data was accessed or changed.
 
-The response constraint is intentionally `NOT VALID`: it protects new writes
-without scanning, rewriting, or silently coercing historical responses. Item 1.4
-remains partial until old invalid values are reviewed and the constraint is
-validated. Upload ownership/expiry, direct-upload route policy, and request-level
-abuse limits also remain in 2.4. Dependency patches, vendored Trix replacement,
-log redaction, and the other unchecked assessment items are separate work.
+The response constraint was initially added as `NOT VALID` so new writes were
+protected without scanning, rewriting, or silently coercing historical responses.
+Item 1.4 was completed after the aggregate review described above. Upload
+ownership/expiry, direct-upload route policy, and request-level abuse limits remain
+deferred in 2.4. Other unchecked assessment items remain separate work.
 
 Earlier sections below are dated evidence snapshots, including their historical
 pending counts and descriptions of defects before these fixes.
@@ -368,9 +374,10 @@ provided; Bon App's accepted risks do not transfer.
   Repeated use grows stale session data. Store the reduced array or delete an
   empty key; test both database state and subsequent session contents.
 
-- [ ] **1.4 P1 — Validate response membership.** Model validation and the check
-  constraint for new writes are implemented. Remaining: review historical invalid
-  responses and validate the constraint; no automatic data coercion. Original finding: `app/models/rsvp.rb:13` only
+- [x] **1.4 P1 — Validate response membership.** Model validation and the check
+  constraint protect new writes. An aggregate review found zero invalid responses
+  among 88,330 production-derived rows, and the constraint is now validated without
+  modifying historical data. Original finding: `app/models/rsvp.rb:13` only
   validates response presence. The organizer endpoint permits `response`
   (`app/controllers/admin/rsvps_controller.rb:26`). A PATCH with `unexpected`
   persists successfully; the public view only groups yes/maybe/no and omits
@@ -460,8 +467,9 @@ provided; Bon App's accepted risks do not transfer.
   adding another filtered parameter does not fix raw path logging.
 
 - [ ] **2.4 P1 — Bound and own public uploads.** Presence, detected content types,
-  a 10 MB limit, and recoverable upload errors are implemented. Ownership/expiry,
-  direct-upload policy, and request-level abuse controls remain. Original finding:
+  a 10 MB limit, and recoverable upload errors are implemented. The owner deferred
+  ownership/expiry and purge scheduling on 2026-09-09. Direct-upload policy and
+  request-level abuse controls remain separate follow-ups. Original finding:
   `ImageUploadsController#create` permits any file and `ImageUpload` has no
   presence/type/size validation. A public JSON upload of a plain text file returned
   200 and persisted it. The app also exposes Rails direct-upload routes. Define
