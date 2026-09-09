@@ -34,7 +34,7 @@ Prepare the local test database on first setup:
 RAILS_ENV=test bin/rails db:create db:schema:load
 ```
 
-Run the same checks as CircleCI (Rails eager loading, asset compilation, and the
+Run the same checks as CircleCI (Bundler-audit, Brakeman, Rails eager loading, asset compilation, and the
 entire randomized RSpec suite, including headless Firefox):
 
 ```sh
@@ -96,8 +96,7 @@ These are server-rendered SVGs with CSS tooltips and no charting dependency.
 
 `bin/ci` writes JUnit results to `tmp/test-results/rspec.xml`. Failed system tests
 save screenshots under `tmp/screenshots/`; CircleCI retains both. CircleCI deploys
-successful `main` builds to Dokku. Security scans and linting remain assessment
-follow-ups and are not yet part of `bin/ci`.
+successful `main` builds to Dokku. Bundler-audit and Brakeman are security gates in `bin/ci`; linting remains an assessment follow-up.
 
 ## Refresh development data from Dokku
 

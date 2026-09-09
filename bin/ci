@@ -9,6 +9,8 @@ fi
 export ADMIN_USER=spec-admin ADMIN_PASSWORD=spec-password
 export AWS_EC2_METADATA_DISABLED=true SCOUT_MONITOR=false
 
+bundle exec bundler-audit check --update
+bundle exec brakeman --no-pager
 bin/rails zeitwerk:check
 bin/rails assets:precompile
 mkdir -p tmp/test-results

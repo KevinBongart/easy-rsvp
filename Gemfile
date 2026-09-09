@@ -4,7 +4,7 @@ git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 
 ruby File.read('.ruby-version')
 
-gem 'rails', '~> 8.1.3'
+gem 'rails', '~> 8.1.3', '>= 8.1.3.1'
 
 gem "aws-sdk-s3", require: false
 gem 'bootsnap', require: false
@@ -29,6 +29,8 @@ gem 'turbolinks'
 gem 'uglifier'
 
 group :development, :test do
+  gem 'brakeman', '~> 8.0', require: false
+  gem 'bundler-audit', '~> 0.9', require: false
   gem 'byebug'
   gem 'capybara'
   gem 'dotenv-rails'
@@ -45,7 +47,6 @@ end
 
 group :development do
   gem 'listen'
-  gem 'rails_real_favicon'
   gem 'ruby-lsp'
   gem 'spring'
   gem 'spring-watcher-listen'
