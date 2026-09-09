@@ -17,9 +17,9 @@ bin/dev
 
 Configure the environment values needed by the flows you use. The dashboard
 uses `ADMIN_USER` and `ADMIN_PASSWORD`. Organizer-link emails use the `SMTP_*`
-settings and `DOMAIN`. Development uploads currently use the S3 service in
-`config/storage.yml`, so uploading or deleting attachments can affect real
-storage; organizer-link requests can send real email.
+settings and `DOMAIN`. Development uploads use `storage/development`, and organizer-link emails are
+written under `tmp/mail` for local inspection. No SMTP or S3 credentials are
+needed for those development flows.
 
 ## Tests
 
@@ -138,8 +138,11 @@ and archive mode `0600`. Keep the previous local archive until the import is
 verified, then delete unneeded copies containing real user data.
 
 After importing, apply any pending local migrations with `bin/rails db:migrate`.
-This task copies database rows only; it does not copy attachment files or isolate
-the app's configured S3 bucket and SMTP service.
+This task copies database rows only; it does not copy attachment files. In
+development, imported `amazon` blobs resolve to local disk, and email stays in
+`tmp/mail`. Imported images are unavailable until their files are copied into
+local storage through a separately authorized export. Never fall back to S3
+for missing local files. Unknown storage service names fail closed.
 
 The import tests use fake commands and never access Dokku or replace a database:
 

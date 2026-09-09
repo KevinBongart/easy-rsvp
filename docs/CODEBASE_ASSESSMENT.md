@@ -487,7 +487,12 @@ provided; Bon App's accepted risks do not transfer.
   introduced. The preceding documentation/import task is completed preparation,
   not evidence that the old product flows have been repaired.
 
-- [ ] **3.2 P1 — Isolate development storage and email.**
+- [x] **3.2 P1 — Isolate development storage and email.** Development uses a
+  dedicated disk root and file delivery under `tmp/mail`; imported `amazon` blobs
+  resolve to the same local disk service, preventing remote reads and purges. A
+  separate-environment regression proves external credentials and endpoints are
+  ignored. Existing imported files require an explicitly authorized local copy.
+  Original finding:
   `config/environments/development.rb:32` selects `:amazon`; production also uses
   that service, whose bucket is fixed in `config/storage.yml`. SMTP delivery is
   enabled in `config/application.rb`. The README now warns about these existing

@@ -45,8 +45,8 @@ Verified against the repository on 2026-09-08; the version files remain authorit
 | Database | PostgreSQL; `events_development`, `events_test`, `events_production` |
 | UI | ERB, Simple Form, Bootstrap 4.6.2.1 |
 | Assets | Sprockets, SassC, CoffeeScript, jQuery, Rails UJS, Turbolinks, Trix 2.1.19 built with npm/esbuild |
-| Storage | Active Storage; S3 in development/production, disk in test |
-| Mail | Action Mailer with SMTP; organizer-link delivery is synchronous |
+| Storage | Active Storage; disk in development/test, S3 in production |
+| Mail | Action Mailer; file delivery in development, test delivery in test, SMTP in production; organizer-link delivery is synchronous |
 | Tests | RSpec, FactoryBot, WebMock; Rack Test by default, Selenium/headless Firefox for `js: true` system specs |
 | CI/deploy | CircleCI; Dokku app `easy-rsvp`, server configured through `DOKKU_HOST` |
 
@@ -119,9 +119,10 @@ Do not add pending markers for new failures without reproducing and documenting
 the defect. Regression expectations must continue to execute after fixes. No application services exist under `app/services` today; the
 production-database utility and command runner are unit-tested under `spec/lib`.
 
-`bin/dev` runs the Rails server. Development uploads use the configured S3 bucket
-and organizer-link requests can send real SMTP email. Ordinary tests use local
-storage and test delivery. Do not exercise external side effects without the
+`bin/dev` runs the Rails server. Development uploads and imported `amazon` blobs resolve to local disk under
+`storage/development`; organizer-link emails are written to `tmp/mail`. Imported
+images require a separately authorized local file copy; no remote fallback exists.
+Ordinary tests use local storage and test delivery. Do not exercise external side effects without the
 user's authorization.
 
 `db:pull_production` exports production over SSH and replaces only local
