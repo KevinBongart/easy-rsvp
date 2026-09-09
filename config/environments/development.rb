@@ -32,7 +32,14 @@ Rails.application.configure do
   config.cache_store = :memory_store
 
   # Store uploaded files on the local file system (see config/storage.yml for options).
-  config.active_storage.service = :amazon
+  config.active_storage.service = :local
+  # Imported blobs retain service_name="amazon". Resolve that alias to disk too,
+  # so reads, uploads and purges in development never reach production S3.
+  local_storage = { service: "Disk", root: Rails.root.join("storage/development").to_s }
+  config.active_storage.service_configurations = { "local" => local_storage, "amazon" => local_storage }
+
+  config.action_mailer.delivery_method = :file
+  config.action_mailer.file_settings = { location: Rails.root.join("tmp/mail") }
 
   # Don't care if the mailer can't send.
   config.action_mailer.raise_delivery_errors = false
