@@ -59,4 +59,11 @@ RSpec.describe Rsvp, type: :model do
     end
   end
 
+  it 'has a validated database constraint for supported responses' do
+    constraint = ActiveRecord::Base.connection.check_constraints(:rsvps)
+      .find { |candidate| candidate.name == 'rsvps_supported_response' }
+
+    expect(constraint).to be_present
+    expect(constraint.options[:validate]).to be(true)
+  end
 end

@@ -78,10 +78,9 @@ PNG/JPEG/GIF/WebP content and a maximum size of 10 MB; failed Trix uploads show 
 error and permit another attempt. Production email links require `DOMAIN` (a host
 without a URL scheme) and use HTTPS.
 
-The RSVP migration enforces supported response values on new writes using a
-PostgreSQL `NOT VALID` check constraint. It leaves historical records unchanged;
-review any invalid values before validating the existing rows in a later migration.
-The migration has been applied and reversed only against the local test database.
+The RSVP migrations enforce supported response values with a validated PostgreSQL
+check constraint. An aggregate review of the production-derived development data
+found no invalid responses, so validation required no data cleanup or coercion.
 
 The admin dashboard shows the all-time total with its earliest creation date,
 current-year count and projection, and current-month count and projection alongside

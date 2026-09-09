@@ -62,7 +62,7 @@ eager-loading, asset-compilation, and RSpec checks.
   publication and RSVP-name visibility flags, dependent destruction of RSVPs.
 - `Rsvp`: belongs to an event, name/response presence validation,
   `RESPONSES = [:yes, :maybe, :no]`, with inclusion validation and a database check
-  for new writes. Historical rows still need review before validating the constraint.
+  that is validated against existing rows as well as enforced for new writes.
 - `ImageUpload`: one required PNG/JPEG/GIF/WebP image, at most 10 MB. The upload
   endpoint detects MIME type from file bytes. Upload ownership remains independent
   of event creation and needs a separate lifecycle design.
