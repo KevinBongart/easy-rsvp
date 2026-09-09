@@ -7,7 +7,7 @@ module Admin
   class EventStats
     include ActionView::Helpers::NumberHelper
 
-    DEFAULT_MONTHS_BACK = 6
+    DEFAULT_MONTHS_BACK = 12
 
     attr_reader :events, :now, :months_back
 
@@ -24,10 +24,21 @@ module Admin
       number_with_delimiter(events.size)
     end
 
+    def oldest_creation_date
+      events.map(&:created_at).min&.strftime('%B %-d, %Y')
+    end
+
+    def current_year_count
+      number_with_delimiter(creation_counts_by_year.fetch(now.year, 0))
+    end
+
+    def extrapolated_current_year_count
+      number_with_delimiter(yearly_chart.last[:projected_count])
+    end
+
     # Example: {2022=>"12", 2023=>"44"}
     def yearly_counts
-      years = events.group_by { |e| e.created_at.year }
-      years.sort.reverse.map { |year, evts| [year, number_with_delimiter(evts.size)] }.to_h
+      creation_counts_by_year.sort.reverse.map { |year, count| [year, number_with_delimiter(count)] }.to_h
     end
 
     # Example: "2022: 12, 2023: 44"
@@ -58,17 +69,58 @@ module Admin
 
     # Example: "15"
     def extrapolated_current_month_count
-      current_month_start = (now).beginning_of_month
-      days_in_month = current_month_start.end_of_month.day.to_f
-      days_so_far = now.day.to_f
+      number_with_delimiter(monthly_projection)
+    end
 
-      return current_month_count if days_so_far.zero?
+    def yearly_chart
+      return @yearly_chart if @yearly_chart
 
-      extrapolated = (monthly_counts.first.last.to_f / days_so_far * days_in_month).round
-      number_with_delimiter(extrapolated)
+      counts = creation_counts_by_year
+      first_year = [counts.keys.min || now.year, now.year - 1].min
+      actual = (first_year..now.year).map do |year|
+        label = year == now.year ? "#{year} through #{now.strftime('%B %-d')}" : year.to_s
+        { label: label, count: counts.fetch(year, 0) }
+      end
+      projection = (actual.last[:count].to_f / now.yday * now.end_of_year.yday).round
+      @yearly_chart = actual + [{ label: "#{now.year} through December 31", projected_count: projection }]
+    end
+
+    def monthly_chart
+      monthly_counts.reverse.map do |month, count|
+        point = { label: month.strftime('%B %Y'), count: count }
+        point[:projected_count] = monthly_projection if month == now.beginning_of_month
+        point
+      end
+    end
+
+    # Running totals make the last observed day and the month-end forecast
+    # comparable to the monthly count shown beside this chart.
+    def current_month_chart
+      daily_counts = events.select do |event|
+        event.created_at >= now.beginning_of_month && event.created_at < now.beginning_of_month + 1.month
+      end.group_by { |event| event.created_at.day }.transform_values(&:size)
+      total = 0
+      (1..now.end_of_month.day).map do |day|
+        point = { label: "#{now.strftime('%B')} #{day}" }
+        if day <= now.day
+          total += daily_counts.fetch(day, 0)
+          point[:count] = total
+        else
+          point[:projected_count] = (total.to_f / now.day * day).round
+        end
+        point
+      end
     end
 
     private
+
+    def creation_counts_by_year
+      @creation_counts_by_year ||= events.group_by { |event| event.created_at.year }.transform_values(&:size)
+    end
+
+    def monthly_projection
+      (monthly_counts.first.last.to_f / now.day * now.end_of_month.day).round
+    end
 
     def monthly_counts
       @monthly_counts ||= (0..months_back).map do |offset|

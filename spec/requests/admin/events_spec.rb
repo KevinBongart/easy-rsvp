@@ -49,8 +49,33 @@ RSpec.describe 'Site administrator dashboard', type: :request do
     create(:event, date: Date.new(2026, 9, 20), created_at: Time.zone.local(2026, 8, 2))
     get admin_events_path, headers: dashboard_headers
     text = Nokogiri::HTML(response.body).text.squish
-    expect(text).to include('Total events created: 3', 'August 2026: 1')
-    expect(text).to include('This month (September 2026) — events created: 2 so far, extrapolated: 6')
+    expect(text).to include('Total events created since August 2, 2026: 3', 'August 2026: 1')
+    expect(text).to include('September 2026: 2 so far, 6 extrapolated')
+    expect(text).to include('September 2026: 2 so far; 6 extrapolated')
+  end
+
+  it 'renders three compact charts with actual values and distinct forecasts' do
+    travel_to Time.zone.local(2026, 9, 10, 12) do
+      create(:event, created_at: Time.zone.local(2025, 1, 1))
+      create_list(:event, 2, created_at: Time.zone.local(2026, 9, 1))
+      get admin_events_path, headers: dashboard_headers
+      doc = Nokogiri::HTML(response.body)
+      expect(doc.css('.admin-sparkline svg[height="20"]').size).to eq(3)
+      expect(doc.css('.admin-sparkline .sparkline-projection').size).to eq(3)
+      expect(doc.css('.admin-sparkline polyline.sparkline-actual').size).to eq(3)
+      expect(doc.css('#monthly-chart button').last['aria-label']).to eq('September 2026: 2 so far; 6 extrapolated')
+      expect(doc.css('#current-month-chart button').last['aria-label']).to eq('September 30: 6 extrapolated')
+      expect(doc.css('#yearly-chart button').first['aria-label']).to eq('2025: 1')
+      expect(doc.css('#yearly-chart button')[-2]['aria-label']).to eq('2026 through September 10: 2')
+      expect(doc.css('#yearly-chart button').last['aria-label']).to eq('2026 through December 31: 3 extrapolated')
+      actual_points = doc.at_css('#yearly-chart polyline.sparkline-actual')['points'].split
+      forecast_points = doc.at_css('#yearly-chart polyline.sparkline-projection')['points'].split
+      expect(actual_points.size).to eq(2)
+      expect(forecast_points.size).to eq(2)
+      expect(forecast_points.first).to eq(actual_points.last)
+      expect(forecast_points.last).not_to eq(actual_points.last)
+      expect(doc.css('.admin-statistics').text).not_to match(/NaN|Infinity/)
+    end
   end
 
 end

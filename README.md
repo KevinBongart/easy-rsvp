@@ -50,7 +50,7 @@ bundle exec rspec --tag js                    # all Firefox smoke and failure-re
 bundle exec rspec --seed 18467                # reproduce a full-suite ordering
 ```
 
-The suite has 177 examples with no pending regressions and covers models,
+The suite has no pending regressions and covers models,
 presenter units, mailers, HTTP requests, independent
 organizer/guest sessions, database-import services, Rack Test form flows, and
 real browser interactions. Firefox actually drops a PNG into Trix, submits it
@@ -59,6 +59,11 @@ an event, reloads the public page, and edits text while preserving the image.
 Clipboard, RSVP-again, Bootstrap modals, and Rails UJS deletion also have smoke
 coverage. Firefox specs enable real CSRF protection, including for uploads.
 Browser specs resolve current asset source even if compiled files exist.
+Development also resolves current asset source so local CI precompilation cannot
+leave it serving stale styles or scripts. Restart an already running development
+server after changing environment configuration (`bin/rails restart` for Puma).
+Admin chart coverage checks real Firefox hover/focus tooltips, navigation, empty
+data, and narrow layouts, alongside unit tests for projections and chart scaling.
 
 Tests require local `events_test`. They use synthetic dashboard credentials,
 transactional records, a temporary disk storage directory removed after the
@@ -77,6 +82,17 @@ The RSVP migration enforces supported response values on new writes using a
 PostgreSQL `NOT VALID` check constraint. It leaves historical records unchanged;
 review any invalid values before validating the existing rows in a later migration.
 The migration has been applied and reversed only against the local test database.
+
+The admin dashboard shows the all-time total with its earliest creation date,
+current-year count and projection, and current-month count and projection alongside
+three compact blue charts: annual counts, the last 12 completed months plus this month,
+and this month's running daily total. Solid lines show actual counts; dashed
+segments show extrapolations at the current average per calendar day (including
+today). Hover, tap, or keyboard-focus a point for its count; the current endpoint
+of the monthly history includes both the actual count so far and the estimated final total.
+The yearly chart has separate points for this year's actual count through today
+and its December 31 projection, connected by a dashed segment.
+These are server-rendered SVGs with CSS tooltips and no charting dependency.
 
 `bin/ci` writes JUnit results to `tmp/test-results/rspec.xml`. Failed system tests
 save screenshots under `tmp/screenshots/`; CircleCI retains both. CircleCI deploys
