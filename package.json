@@ -6,11 +6,10 @@
     "trix": "2.1.19"
   },
   "engines": {
-    "node": ">=18"
+    "node": "24.x"
   },
   "scripts": {
-    "vendor:trix": "node bin/vendor-trix.js",
-    "check:trix": "node bin/vendor-trix.js --check"
+    "build": "node bin/build-trix.js"
   },
   "devDependencies": {
     "esbuild": "0.28.2"

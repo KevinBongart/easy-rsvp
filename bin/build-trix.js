@@ -28,19 +28,12 @@ execFileSync(path.join(root, 'node_modules/esbuild/bin/esbuild'), [
 ], { cwd: buildDirectory });
 
 const files = {
-  'vendor/assets/javascripts/trix.js': fs.readFileSync(javascript),
-  'vendor/assets/stylesheets/trix.css': fs.readFileSync(path.join(root, 'node_modules/trix/dist/trix.css')),
-  'vendor/trix-LICENSE': fs.readFileSync(path.join(root, 'node_modules/trix/LICENSE')),
-  'vendor/dompurify-LICENSE': fs.readFileSync(path.join(root, 'node_modules/dompurify/LICENSE'))
+  'app/assets/javascripts/trix.js': fs.readFileSync(javascript),
+  'app/assets/stylesheets/trix.css': fs.readFileSync(path.join(root, 'node_modules/trix/dist/trix.css'))
 };
 for (const [target, contents] of Object.entries(files)) {
   const destination = path.join(root, target);
-  if (process.argv.includes('--check')) {
-    if (!contents.equals(fs.readFileSync(destination))) {
-      throw new Error(`${target} differs from the locked Trix package; run npm run vendor:trix`);
-    }
-  } else {
-    fs.writeFileSync(destination, contents);
-  }
+  fs.mkdirSync(path.dirname(destination), { recursive: true });
+  fs.writeFileSync(destination, contents);
 }
 fs.rmSync(buildDirectory, { recursive: true });

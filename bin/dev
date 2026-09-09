@@ -1,2 +1,3 @@
 #!/usr/bin/env ruby
+abort "Trix build failed. Run npm ci and try again." unless system("npm", "run", "build")
 exec "./bin/rails", "server", *ARGV

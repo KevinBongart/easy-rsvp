@@ -14,7 +14,7 @@ bundle exec brakeman --no-pager
 bin/rails zeitwerk:check
 npm ci --ignore-scripts
 npm audit
-npm run check:trix
+npm run build
 bin/rails assets:precompile
 mkdir -p tmp/test-results
 bundle exec rspec --format progress --format RspecJunitFormatter --out tmp/test-results/rspec.xml "$@"
