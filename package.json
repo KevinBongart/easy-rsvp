@@ -1,5 +1,14 @@
 {
   "name": "easy-rsvp",
   "private": true,
-  "dependencies": {}
+  "dependencies": {
+    "trix": "2.1.19"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "vendor:trix": "node bin/vendor-trix.js",
+    "check:trix": "node bin/vendor-trix.js --check"
+  }
 }

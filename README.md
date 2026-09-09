@@ -152,3 +152,16 @@ bundle exec rspec spec/lib/production_database_pull_spec.rb
 - [Rails engineering playbook](docs/RAILS_ENGINEERING_PLAYBOOK.md), copied from Bon App
 - [Current application and agent reference](AGENTS.md)
 - [Codebase assessment and remediation plan](docs/CODEBASE_ASSESSMENT.md)
+
+## Updating the editor
+
+Trix 2.1.19 and its DOMPurify dependency are pinned through `package-lock.json`.
+Use a supported Node release (18 or later is required by Trix); the obsolete
+Node 14 pin has been removed. CircleCI's Ruby/Node image supplies Node for checks.
+Sprockets still serves checked-in assets; no browser bundler is introduced.
+
+After updating the package lock, run `npm ci --ignore-scripts` and
+`npm run vendor:trix`. Commit the lockfile, generated JS/CSS and license files
+together. `bin/ci` audits npm dependencies and rejects vendor drift or a bundled
+DOMPurify version that differs from the audited package. Keep the real Firefox
+paste/upload specs passing.

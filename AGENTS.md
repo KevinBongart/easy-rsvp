@@ -44,7 +44,7 @@ Verified against the repository on 2026-09-08; the version files remain authorit
 | Framework defaults | `config.load_defaults 5.2`, with later defaults initializers |
 | Database | PostgreSQL; `events_development`, `events_test`, `events_production` |
 | UI | ERB, Simple Form, Bootstrap 4.6.2.1 |
-| Assets | Sprockets, SassC, CoffeeScript, jQuery, Rails UJS, Turbolinks, vendored Trix |
+| Assets | Sprockets, SassC, CoffeeScript, jQuery, Rails UJS, Turbolinks, vendored Trix 2.1.19 |
 | Storage | Active Storage; S3 in development/production, disk in test |
 | Mail | Action Mailer with SMTP; organizer-link delivery is synchronous |
 | Tests | RSpec, FactoryBot, WebMock; Rack Test by default, Selenium/headless Firefox for `js: true` system specs |
@@ -131,3 +131,7 @@ code is separate from running an actual production import.
 
 Never commit, push, or deploy automatically. CircleCI deploys successful `main`
 builds, so a push to `main` has a production side effect.
+
+Trix is pinned in package-lock.json and copied with `npm run vendor:trix`.
+`bin/ci` installs locked npm dependencies, audits them, and verifies vendor files
+and the bundled DOMPurify version before compiling assets. Node 18+ is required.

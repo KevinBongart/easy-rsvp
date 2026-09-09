@@ -431,7 +431,10 @@ provided; Bon App's accepted risks do not transfer.
   Do not call every installed gem an exposed production feature: Action Cable,
   Action Text, IMAP clients, and development tooling have different reachability.
 
-- [ ] **2.2 P1 — Replace/update the unaudited vendored editor.**
+- [x] **2.2 P1 — Replace/update the unaudited vendored editor.**
+  Updated to Trix 2.1.19 with audited package lock, reproducible vendoring, and
+  a native Firefox clipboard regression that fails on 0.11.2 and passes on the
+  updated editor. The full suite has 195 passing examples. Original finding:
   `vendor/assets/javascripts/trix.js:2` declares Trix **0.11.2**. It falls within
   [CVE-2024-34341's affected range](https://github.com/basecamp/trix/security/advisories/GHSA-qjqp-xr96-cj99),
   which covers script execution through crafted pasted content. Public and

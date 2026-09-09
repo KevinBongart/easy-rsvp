@@ -12,6 +12,9 @@ export AWS_EC2_METADATA_DISABLED=true SCOUT_MONITOR=false
 bundle exec bundler-audit check --update
 bundle exec brakeman --no-pager
 bin/rails zeitwerk:check
+npm ci --ignore-scripts
+npm audit --omit=dev
+npm run check:trix
 bin/rails assets:precompile
 mkdir -p tmp/test-results
 bundle exec rspec --format progress --format RspecJunitFormatter --out tmp/test-results/rspec.xml "$@"
