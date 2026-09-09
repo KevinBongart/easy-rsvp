@@ -138,3 +138,7 @@ Sprockets compiles assets. The Node buildpack runs before the Ruby buildpack in
 `.buildpacks`; keep that order. `bin/ci` installs and audits the locked npm graph,
 builds Trix with the pinned DOMPurify version, and then compiles assets. Node 24
 is selected by `.node-version` locally and `package.json` during buildpack deploys.
+
+Application log formatters and Rollbar transforms redact organizer URL segments
+and UUID-shaped credentials. See `docs/ORGANIZER_LOG_PRIVACY.md` for proxy rollout;
+application redaction alone does not establish production proxy/log-collector privacy.
