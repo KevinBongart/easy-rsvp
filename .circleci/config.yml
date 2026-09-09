@@ -6,7 +6,7 @@ orbs:
 jobs:
   build:
     docker:
-      - image: cimg/ruby:3.3.4-node
+      - image: cimg/ruby:3.3.12-node
         environment:
           PGHOST: 127.0.0.1
           PGUSER: postgres
@@ -18,7 +18,18 @@ jobs:
     executor: ruby/default
     steps:
       - checkout
-      - ruby/install-deps
+      - restore_cache:
+          keys:
+            - gems-v2-{{ arch }}-{{ checksum "Gemfile.lock" }}
+            - gems-v2-{{ arch }}-
+            - gems-v1-{{ arch }}-main-
+      - ruby/install-deps:
+          with-cache: false
+          bundler-version: "2.7.2"
+      - save_cache:
+          key: gems-v2-{{ arch }}-{{ checksum "Gemfile.lock" }}
+          paths:
+            - vendor/bundle
       - run:
           name: Refresh browser package index
           command: sudo apt-get update
