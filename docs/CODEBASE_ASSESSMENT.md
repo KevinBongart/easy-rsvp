@@ -8,6 +8,15 @@ Status: **assessment and Phase 0 coverage complete; original pending regressions
 initial assessment brief. Standards: [Rails Engineering Playbook](RAILS_ENGINEERING_PLAYBOOK.md).
 Application reference: [AGENTS.md](../AGENTS.md).
 
+## Dependency security remediation — 2026-09-09
+
+Rails is updated to 8.1.3.1 and rubyzip to 3.6.0. The unused
+`rails_real_favicon` generator was removed because it pins rubyzip to 2.x;
+all generated favicon assets remain. Bundler-audit and Brakeman are locked
+development/test dependencies and run in `bin/ci`, including CircleCI.
+The updated audit reports no vulnerable gem matches; Brakeman reports no
+security warnings. Vendored JavaScript and runtime patching remain separate.
+
 ## Pending-regression remediation — 2026-09-08
 
 Starting from merged PR #868 (`1e516fd`), the 19 pending expectations were removed

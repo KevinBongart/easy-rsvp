@@ -40,7 +40,7 @@ Verified against the repository on 2026-09-08; the version files remain authorit
 
 | Concern | Current implementation |
 | --- | --- |
-| Runtime | Ruby 3.3.4; Rails 8.1.3 in `Gemfile.lock` |
+| Runtime | Ruby 3.3.4; Rails 8.1.3.1 in `Gemfile.lock` |
 | Framework defaults | `config.load_defaults 5.2`, with later defaults initializers |
 | Database | PostgreSQL; `events_development`, `events_test`, `events_production` |
 | UI | ERB, Simple Form, Bootstrap 4.6.2.1 |
@@ -100,8 +100,7 @@ passing Firefox smoke flows. The database pull specs run without
 booting Rails: `bundle exec rspec spec/lib/production_database_pull_spec.rb`.
 For autoloading changes, run `RAILS_ENV=test bin/rails zeitwerk:check`.
 CircleCI installs Firefox/geckodriver, creates and loads the test database, then
-runs `bin/ci`. JUnit results and failure screenshots are retained. Lint/security
-scans are not installed yet.
+runs `bin/ci`. JUnit results and failure screenshots are retained. Bundler-audit and Brakeman run before the application checks; lint remains a follow-up.
 
 Use factories, transactional data, and block-scoped time travel. The harness
 supplies synthetic dashboard credentials and blocks external Ruby HTTP with
