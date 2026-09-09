@@ -172,3 +172,6 @@ Dokku uses the pinned Node and Ruby buildpacks in `.buildpacks`, in that order.
 The Node buildpack runs `npm ci` and `npm run build`; the Ruby buildpack then
 compiles the generated files with the rest of the Rails assets. `BUILDPACK_URL`
 must not be set for the app because it overrides the ordered buildpack list.
+
+Organizer URL logging and proxy rollout are covered in
+[Organizer link privacy](docs/ORGANIZER_LOG_PRIVACY.md).

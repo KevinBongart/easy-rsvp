@@ -447,7 +447,10 @@ provided; Bon App's accepted risks do not transfer.
   2.0.0 too; no specific clipboard vulnerability was established here. Empty npm
   dependencies mean npm/Dependabot cannot track these checked-in JS copies.
 
-- [ ] **2.3 P1 — Keep organizer credentials out of URL logs.**
+- [ ] **2.3 P1 — Keep organizer credentials out of URL logs.** Application
+  logger and Rollbar redaction are implemented with 200 passing tests. Proxy
+  rollout and external collector verification remain; see
+  [Organizer link privacy](ORGANIZER_LOG_PRIVACY.md). Original finding:
   Routes embed the credential in the path (`config/routes.rb:4`), and Rails'
   request-start log includes that path verbatim. A local logger probe found the
   synthetic token even though parameter filtering includes `:token`. Redact these
