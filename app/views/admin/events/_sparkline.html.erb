@@ -1,0 +1,24 @@
+<% points = sparkline_points(series) %>
+<% forecast_start = points.index { |point| point.key?(:projected_count) } %>
+<% actual = forecast_start ? points.take(forecast_start) : points %>
+<% forecast = forecast_start ? points.drop([forecast_start - 1, 0].max) : [] %>
+<div class="admin-sparkline" id="<%= id %>" role="group" aria-label="<%= label %>">
+  <svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true" focusable="false">
+    <% if actual.any? %>
+      <polyline class="sparkline-actual" points="<%= sparkline_coordinates(actual) %>" />
+      <circle class="sparkline-actual" cx="<%= actual.last[:x] %>" cy="<%= actual.last[:y] %>" r="1.5" />
+    <% end %>
+    <% if forecast.any? %>
+      <polyline class="sparkline-projection" points="<%= sparkline_coordinates(forecast) %>" />
+      <circle class="sparkline-endpoint" cx="<%= forecast.last[:x] %>" cy="<%= forecast.last[:y] %>" r="1.5" />
+    <% end %>
+  </svg>
+  <% points.each_with_index do |point, index| %>
+    <% tooltip = sparkline_tooltip(point) %>
+    <span class="sparkline-point">
+      <button type="button" class="sparkline-hit-area" style="<%= sparkline_hit_area(points, index) %>"
+              aria-label="<%= tooltip %>" aria-describedby="<%= id %>-point-<%= index %>"></button>
+      <span role="tooltip" class="sparkline-tooltip" id="<%= id %>-point-<%= index %>"><%= tooltip %></span>
+    </span>
+  <% end %>
+</div>

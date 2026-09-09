@@ -13,6 +13,23 @@ RSpec.describe Admin::EventStats do
     expect(stats.yearly_counts).to eq({})
     expect(stats.current_month_count).to eq('0')
     expect(stats.extrapolated_current_month_count).to eq('0')
+    expect(stats.oldest_creation_date).to be_nil
+    expect(stats.current_year_count).to eq('0')
+    expect(stats.extrapolated_current_year_count).to eq('0')
+  end
+
+  it 'labels the first creation date regardless of event order or scheduled dates' do
+    rows = [entry(date: Date.new(2010, 1, 1), created_at: Time.zone.local(2025, 9, 8)),
+            entry(date: Date.new(2030, 1, 1), created_at: Time.zone.local(2018, 2, 3))]
+    expect(described_class.new(rows, now: now).oldest_creation_date).to eq('February 3, 2018')
+  end
+
+  it 'formats the current year count and projection from the same data as its chart' do
+    rows = Array.new(1234) { entry(date: Date.new(2030, 1, 1), created_at: now) }
+    rows << entry(date: Date.new(2030, 1, 1), created_at: Time.zone.local(2025, 1, 1))
+    stats = described_class.new(rows, now: now)
+    expect(stats.current_year_count).to eq('1,234')
+    expect(stats.extrapolated_current_year_count).to eq('1,780')
   end
 
   it 'formats totals with thousands separators' do
@@ -105,6 +122,78 @@ RSpec.describe Admin::EventStats do
       end
       rows << entry(date: Date.new(2026, 9, 25), created_at: Time.zone.local(2026, 8, 20))
       expect(described_class.new(rows, now: now).extrapolated_current_month_count).to eq('15')
+    end
+  end
+
+  describe 'chart series' do
+    it 'orders years chronologically, fills gaps, and projects only the current year' do
+      rows = [entry(date: Date.new(2030, 1, 1), created_at: Time.zone.local(2024, 2, 1)),
+              entry(date: Date.new(2030, 1, 1), created_at: Time.zone.local(2026, 2, 1))]
+      stats = described_class.new(rows, now: Time.zone.local(2026, 7, 1))
+      expect(stats.yearly_chart).to eq([
+        { label: '2024', count: 1 }, { label: '2025', count: 0 },
+        { label: '2026 through July 1', count: 1 },
+        { label: '2026 through December 31', projected_count: 2 }
+      ])
+    end
+
+    it 'adds the current month projection after the completed monthly history' do
+      rows = Array.new(5) { entry(date: Date.new(2030, 1, 1), created_at: Time.zone.local(2026, 9, 2)) }
+      stats = described_class.new(rows, now: now, months_back: 2)
+      expect(stats.monthly_chart).to eq([
+        { label: 'July 2026', count: 0 }, { label: 'August 2026', count: 0 },
+        { label: 'September 2026', count: 5, projected_count: 15 }
+      ])
+    end
+
+    it 'keeps large projections numeric and shares the displayed monthly estimate' do
+      stats = described_class.new(Array.new(1234) { entry(date: Date.new(2026, 9, 2)) }, now: now)
+      expect(stats.monthly_chart.last[:projected_count]).to eq(3702)
+      expect(stats.extrapolated_current_month_count).to eq('3,702')
+    end
+
+    it 'renders a zero baseline and forecast for an empty database' do
+      stats = described_class.new([], now: now)
+      expect(stats.yearly_chart).to eq([
+        { label: '2025', count: 0 }, { label: '2026 through September 10', count: 0 },
+        { label: '2026 through December 31', projected_count: 0 }
+      ])
+      expect(stats.monthly_chart.size).to eq(13)
+      expect(stats.monthly_chart.first[:label]).to eq('September 2025')
+      expect(stats.monthly_chart.last[:projected_count]).to eq(0)
+    end
+
+    it 'uses all 366 days when projecting a leap year' do
+      stats = described_class.new([entry(date: Date.new(2024, 1, 1))], now: Time.zone.local(2024, 1, 1))
+      expect(stats.yearly_chart.last[:projected_count]).to eq(366)
+    end
+
+    it 'shows cumulative daily creations through today, then a month-end forecast' do
+      rows = [entry(date: Date.new(2030, 1, 1), created_at: Time.zone.local(2026, 9, 1)),
+              entry(date: Date.new(2030, 1, 1), created_at: Time.zone.local(2026, 9, 3)),
+              entry(date: Date.new(2030, 1, 1), created_at: Time.zone.local(2026, 8, 31))]
+      stats = described_class.new(rows, now: Time.zone.local(2026, 9, 4))
+      expect(stats.current_month_chart.first(4)).to eq([
+        { label: 'September 1', count: 1 }, { label: 'September 2', count: 1 },
+        { label: 'September 3', count: 2 }, { label: 'September 4', count: 2 }
+      ])
+      expect(stats.current_month_chart[4]).to eq(label: 'September 5', projected_count: 3)
+      expect(stats.current_month_chart.last).to eq(label: 'September 30', projected_count: 15)
+      expect(stats.current_month_chart.size).to eq(30)
+    end
+
+    it 'has no future forecast on the last day of a leap-year February' do
+      stats = described_class.new([entry(date: Date.new(2024, 2, 29))], now: Time.zone.local(2024, 2, 29))
+      expect(stats.current_month_chart.size).to eq(29)
+      expect(stats.current_month_chart.last).to eq(label: 'February 29', count: 1)
+      expect(stats.current_month_chart).to all(satisfy { |point| !point.key?(:projected_count) })
+    end
+
+    it 'handles the first day of a month and keeps all charts query-free' do
+      stats = described_class.new([], now: Time.zone.local(2026, 1, 1))
+      expect(count_queries { stats.yearly_chart; stats.monthly_chart; stats.current_month_chart }).to eq(0)
+      expect(stats.current_month_chart.first).to eq(label: 'January 1', count: 0)
+      expect(stats.current_month_chart.last).to eq(label: 'January 31', projected_count: 0)
     end
   end
 

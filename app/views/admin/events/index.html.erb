@@ -1,15 +1,18 @@
-<div class="mb-3">
-  <div>
-    <strong>Total events created:</strong> <%= @event_stats.total_events %>
-    (<%= @event_stats.yearly_counts_display %>)
+<div class="admin-statistics mb-3">
+  <div class="mb-2">
+    <strong>Total events created<% if (oldest_date = @event_stats.oldest_creation_date) %> since <%= oldest_date %><% end %>:</strong> <%= @event_stats.total_events %>
   </div>
-  <div>
-    <strong>Last <%= @event_stats.months_back %> full months (events created):</strong> <%= @event_stats.full_months_display %>
+  <div class="admin-stat-row">
+    <span class="admin-stat-label">Yearly <%= @event_stats.now.year %>: <strong><%= @event_stats.current_year_count %> so far</strong>, <%= @event_stats.extrapolated_current_year_count %> extrapolated</span>
+    <%= render 'sparkline', id: 'yearly-chart', label: 'Events created by year', series: @event_stats.yearly_chart %>
   </div>
-  <div>
-    <strong>This month (<%= @event_stats.current_month_label %>) — events created:</strong>
-    <%= @event_stats.current_month_count %> so far,
-    extrapolated: <%= @event_stats.extrapolated_current_month_count %>
+  <div class="admin-stat-row">
+    <span class="admin-stat-label">Last <%= @event_stats.months_back %> months</span>
+    <%= render 'sparkline', id: 'monthly-chart', label: 'Events created by month', series: @event_stats.monthly_chart %>
+  </div>
+  <div class="admin-stat-row">
+    <span class="admin-stat-label"><%= @event_stats.current_month_label %>: <strong><%= @event_stats.current_month_count %> so far</strong>, <%= @event_stats.extrapolated_current_month_count %> extrapolated</span>
+    <%= render 'sparkline', id: 'current-month-chart', label: 'Running total of events created this month', series: @event_stats.current_month_chart %>
   </div>
 </div>
 

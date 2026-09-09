@@ -74,7 +74,17 @@ eager-loading, asset-compilation, and RSpec checks.
 - `Admin::EventsController` / `Admin::EventStats`: dashboard listing and stats.
   Owner-approved rule: yearly/monthly counts and projections measure event creation
   using `created_at`, independent of scheduled `date`. Monthly numeric counts are
-  computed once per presenter and formatted for display.
+  computed once per presenter and formatted for display. The dashboard uses
+  server-rendered 160 × 20 SVG sparklines with CSS hover/focus tooltips (no chart
+  JavaScript). The yearly chart includes a separate actual point through today
+  before its dashed December 31 projection. The monthly history ends with a dashed
+  current-period projection;
+  the current-month chart shows cumulative daily counts followed by a dashed
+  forecast. Projections use the average per elapsed calendar day, including today,
+  and account for month/year length. Missing periods are zero-filled. Monthly
+  history includes 12 completed months plus the current projection. The all-time
+  total includes the oldest creation date; current-year and current-month counts
+  and projections are visible beside their charts.
 - `ImageUploadsController`: JSON upload endpoint for the editor.
 
 Use `db/schema.rb` and `config/routes.rb` for exact constraints and paths.
@@ -99,6 +109,9 @@ WebMock, allowing localhost for WebDriver. Active Storage uses a dedicated
 temporary disk directory, mail uses test delivery, and jobs use the test adapter.
 System specs default to Rack Test; add `js: true` only for browser behavior.
 Firefox specs enable real CSRF protection and restore the setting afterward.
+Development and test resolve assets from current source, bypassing precompiled
+manifests left by local CI. The development asset regression boots that environment
+separately and checks stylesheet delivery without accessing application data.
 Trix smoke specs use the real editor and native file-drop events, with real local
 upload/download requests. Never replace them with a stubbed successful upload.
 
