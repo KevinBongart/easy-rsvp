@@ -152,3 +152,20 @@ bundle exec rspec spec/lib/production_database_pull_spec.rb
 - [Rails engineering playbook](docs/RAILS_ENGINEERING_PLAYBOOK.md), copied from Bon App
 - [Current application and agent reference](AGENTS.md)
 - [Codebase assessment and remediation plan](docs/CODEBASE_ASSESSMENT.md)
+
+## Updating the editor
+
+Trix 2.1.19 and DOMPurify 3.4.15 are pinned through `package-lock.json`. Node
+24.13.0 is selected locally by `.node-version`; buildpack deploys follow the
+`24.x` range in `package.json` so security patch releases remain available.
+
+Run `npm ci --ignore-scripts` after checking out or updating the lockfile.
+`bin/dev` builds Trix before starting Rails. `bin/ci` installs and audits the npm
+graph, rebuilds Trix with the pinned DOMPurify release, compiles the resulting
+files through Sprockets, and exercises the real Firefox paste/upload specs. The
+generated Trix JS/CSS files are ignored and are not committed.
+
+Dokku uses the pinned Node and Ruby buildpacks in `.buildpacks`, in that order.
+The Node buildpack runs `npm ci` and `npm run build`; the Ruby buildpack then
+compiles the generated files with the rest of the Rails assets. `BUILDPACK_URL`
+must not be set for the app because it overrides the ordered buildpack list.

@@ -44,7 +44,7 @@ Verified against the repository on 2026-09-08; the version files remain authorit
 | Framework defaults | `config.load_defaults 5.2`, with later defaults initializers |
 | Database | PostgreSQL; `events_development`, `events_test`, `events_production` |
 | UI | ERB, Simple Form, Bootstrap 4.6.2.1 |
-| Assets | Sprockets, SassC, CoffeeScript, jQuery, Rails UJS, Turbolinks, vendored Trix |
+| Assets | Sprockets, SassC, CoffeeScript, jQuery, Rails UJS, Turbolinks, Trix 2.1.19 built with npm/esbuild |
 | Storage | Active Storage; S3 in development/production, disk in test |
 | Mail | Action Mailer with SMTP; organizer-link delivery is synchronous |
 | Tests | RSpec, FactoryBot, WebMock; Rack Test by default, Selenium/headless Firefox for `js: true` system specs |
@@ -131,3 +131,9 @@ code is separate from running an actual production import.
 
 Never commit, push, or deploy automatically. CircleCI deploys successful `main`
 builds, so a push to `main` has a production side effect.
+
+Trix is pinned in `package-lock.json` and generated with `npm run build` before
+Sprockets compiles assets. The Node buildpack runs before the Ruby buildpack in
+`.buildpacks`; keep that order. `bin/ci` installs and audits the locked npm graph,
+builds Trix with the pinned DOMPurify version, and then compiles assets. Node 24
+is selected by `.node-version` locally and `package.json` during buildpack deploys.

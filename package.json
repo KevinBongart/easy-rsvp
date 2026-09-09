@@ -1,5 +1,17 @@
 {
   "name": "easy-rsvp",
   "private": true,
-  "dependencies": {}
+  "dependencies": {
+    "dompurify": "3.4.15",
+    "trix": "2.1.19"
+  },
+  "engines": {
+    "node": "24.x"
+  },
+  "scripts": {
+    "build": "node bin/build-trix.js"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
 }
