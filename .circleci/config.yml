@@ -2,6 +2,7 @@ version: 2.1
 orbs:
   ruby: circleci/ruby@2.1.1 # https://circleci.com/orbs/registry/orb/circleci/ruby
   browser-tools: circleci/browser-tools@2.4.2
+  node: circleci/node@7.2.1
 
 jobs:
   build:
@@ -18,6 +19,7 @@ jobs:
     executor: ruby/default
     steps:
       - checkout
+      - node/install
       - ruby/install-deps
       - run:
           name: Refresh browser package index
