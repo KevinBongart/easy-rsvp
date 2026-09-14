@@ -25,7 +25,9 @@ RSpec.describe 'Firefox JavaScript smoke', type: :system, js: true do
 
   def open_response_modal
     click_link 'edit'
-    expect(page).to have_css('.modal.show')
+    expect(page).to have_css('.modal.show') do |modal|
+      modal.evaluate_script('getComputedStyle(this.querySelector(".modal-dialog")).transform === "none"')
+    end
   end
 
   it 'creates and edits rich text through the actual Trix editor' do
@@ -54,6 +56,7 @@ RSpec.describe 'Firefox JavaScript smoke', type: :system, js: true do
     expect(ActiveStorage::Blob.last.service_name).to eq('test')
     click_button 'Create your event, for free!'
     expect_loaded_image('.trix-content img')
+    expect(find('.trix-content img')[:src]).not_to include('/representations/')
     click_link 'public-link'
     page.refresh
     expect_loaded_image('.trix-content img')
@@ -147,5 +150,19 @@ RSpec.describe 'Firefox JavaScript smoke', type: :system, js: true do
     page.refresh
     expect(page).to have_content('Original name')
     expect(rsvp.reload.name).to eq('Original name')
+  end
+
+  it 'cleans an open Bootstrap modal before Turbo caches its page' do
+    rsvp = create(:rsvp)
+    visit event_admin_path(rsvp.event, rsvp.event.admin_token)
+    open_response_modal
+    expect(page).to have_css('body.modal-open, .modal-backdrop')
+
+    page.execute_script('Turbo.visit(arguments[0])', event_path(rsvp.event))
+    expect(page).to have_current_path(event_path(rsvp.event))
+    page.go_back
+
+    expect(page).to have_current_path(event_admin_path(rsvp.event, rsvp.event.admin_token))
+    expect(page).to have_no_css('body.modal-open, .modal-backdrop, .modal.show')
   end
 end

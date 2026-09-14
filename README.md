@@ -57,8 +57,9 @@ organizer/guest sessions, database-import services, Rack Test form flows, and
 real browser interactions. Firefox actually drops a PNG into Trix, submits it
 through Active Storage's direct-upload endpoint, waits for the returned image to load, saves it with
 an event, reloads the public page, and edits text while preserving the image.
-Clipboard, RSVP-again, Bootstrap modals, and Turbo deletion also have smoke
-coverage. Firefox specs enable real CSRF protection, including for uploads.
+Clipboard, RSVP-again, Bootstrap modals, Turbo validation responses, modal cache
+cleanup, and Turbo deletion also have smoke coverage. Firefox specs enable real
+CSRF protection, including for uploads.
 Propshaft resolves current source in development, so local CI precompilation cannot
 leave it serving stale styles or scripts. Restart an already running development
 server after changing environment configuration (`bin/rails restart` for Puma).
@@ -73,10 +74,12 @@ operations are part of the suite.
 
 All 19 original pending expectations now pass. Guest RSVP additions/deletions are
 blocked on unpublished events while organizer editing remains available. Dashboard
-counts and projections use creation dates. The editor accepts
-PNG/JPEG/GIF/WebP files up to 10 MB; failed Trix uploads show an
-error and permit another attempt. Production email links require `DOMAIN` (a host
-without a URL scheme) and use HTTPS.
+counts and projections use creation dates. The editor and direct-upload endpoint
+accept declared PNG/JPEG/GIF/WebP files between 1 byte and 10 MB; failed Trix
+uploads show an error and permit another attempt. Because files upload directly
+to storage, the endpoint can enforce declared metadata and signed upload length
+but cannot inspect the bytes before issuing the storage URL. Production email
+links require `DOMAIN` (a host without a URL scheme) and use HTTPS.
 
 The RSVP migrations enforce supported response values with a validated PostgreSQL
 check constraint. An aggregate review of the production-derived development data
@@ -166,6 +169,10 @@ for small interactions, and cssbundling-rails for Bootstrap's Sass. The layout's
 Action Text owns event descriptions, Trix integration, rendering, and Active
 Storage direct uploads. Trix 2.1.19 comes from Rails' locked `action_text-trix`
 gem; there is no application-specific Trix build or generated editor asset.
+The migration retains the old `events.body` column while `Event` ignores it;
+remove that column in a later deploy after Action Text has run in production.
+Rich-text images render from their original blobs, so production does not need
+ImageMagick or libvips for this feature.
 Bootstrap remains at 4.6.2 during this pipeline migration and its browser-ready
 ES modules are checked into `vendor/javascript` through `bin/importmap`.
 

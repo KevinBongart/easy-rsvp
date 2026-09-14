@@ -5,7 +5,7 @@ const maximumImageSize = 10 * 1024 * 1024
 
 export default class extends Controller {
   connect() {
-    Trix.config.attachments.preview.caption = { name: false, size: false }
+    window.Trix.config.attachments.preview.caption = { name: false, size: false }
   }
 
   acceptFile(event) {

@@ -1,5 +1,6 @@
 Rails.application.routes.draw do
   get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
+  post "/rails/active_storage/direct_uploads" => "rich_text_direct_uploads#create", as: :rich_text_direct_uploads
 
   resources :events, path: '/', only: [:new, :create, :show] do
     resources :admin,

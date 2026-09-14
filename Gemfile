@@ -10,7 +10,6 @@ gem "aws-sdk-s3", require: false
 gem 'bootsnap', require: false
 gem 'cssbundling-rails'
 gem 'hashid-rails'
-gem 'image_processing', '~> 1.2'
 gem 'importmap-rails'
 gem 'jbuilder'
 gem 'kaminari'

@@ -56,6 +56,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_14_120000) do
 
   create_table "events", force: :cascade do |t|
     t.string "admin_token", null: false
+    t.text "body"
     t.datetime "created_at", precision: nil, null: false
     t.date "date", null: false
     t.boolean "published", default: true

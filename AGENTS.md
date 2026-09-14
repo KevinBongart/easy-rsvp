@@ -59,14 +59,18 @@ and RSpec checks.
 
 - `Event`: title/date validation, Action Text `body`, public hashid/slug,
   organizer token, publication and RSVP-name visibility flags, dependent
-  destruction of RSVPs.
+  destruction of RSVPs. The legacy `events.body` column is retained and ignored
+  for deploy compatibility; remove it in a later migration after production has
+  run on Action Text.
 - `Rsvp`: belongs to an event, name/response presence validation,
   `RESPONSES = [:yes, :maybe, :no]`, with inclusion validation and a database check
   that is validated against existing rows as well as enforced for new writes.
 - `ImageUpload`: legacy records retain old editor uploads and their Active
   Storage attachments. New editor uploads use Action Text direct uploads. The
-  editor accepts PNG/JPEG/GIF/WebP files up to 10 MB. Upload ownership remains
-  independent of event creation and needs a separate lifecycle design.
+  browser and server accept declared PNG/JPEG/GIF/WebP files from 1 byte through
+  10 MB before issuing a storage URL. Direct uploads cannot be byte-sniffed
+  before reaching storage. Upload ownership remains independent of event
+  creation and needs a separate lifecycle design.
 - `EventsController`: event creation and public display.
 - `EventsAdminController`: organizer display, editing, deletion, publication.
 - `RsvpsController`: public response creation and session-owned deletion.
@@ -111,7 +115,8 @@ Propshaft resolves development assets from current source. The development asset
 regression boots that environment separately and checks stylesheet delivery
 without accessing application data.
 Trix smoke specs use the real editor and native file-drop events, with real local
-upload/download requests. Never replace them with a stubbed successful upload.
+upload/download requests. They also cover Turbo validation responses and modal
+snapshot cleanup. Never replace them with a stubbed successful upload.
 
 All 19 original pending regressions are fixed; the suite has no pending examples.
 Do not add pending markers for new failures without reproducing and documenting

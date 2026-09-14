@@ -19,22 +19,9 @@ class MoveEventBodyToActionText < ActiveRecord::Migration[8.1]
       FROM events
       WHERE body IS NOT NULL AND body <> ''
     SQL
-
-    remove_column :events, :body, :text
   end
 
   def down
-    add_column :events, :body, :text
-
-    execute <<~SQL.squish
-      UPDATE events
-      SET body = action_text_rich_texts.body
-      FROM action_text_rich_texts
-      WHERE action_text_rich_texts.record_type = 'Event'
-        AND action_text_rich_texts.record_id = events.id
-        AND action_text_rich_texts.name = 'body'
-    SQL
-
     drop_table :action_text_rich_texts
   end
 end

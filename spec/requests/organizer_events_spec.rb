@@ -28,6 +28,7 @@ RSpec.describe 'Organizer events', type: :request do
     original = event.title
     patch event_admin_path(event, event.admin_token), params: { event: { title: '' } }
     expect(event.reload.title).to eq(original)
+    expect(response).to have_http_status(:unprocessable_content)
     expect(response.body).to include('can&#39;t be blank')
   end
 

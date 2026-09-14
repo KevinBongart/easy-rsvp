@@ -23,16 +23,25 @@ from the locked gems, and Active Storage handles direct uploads. The custom Trix
 download/esbuild script, generated editor assets, inline ClipboardJS setup, and
 custom editor upload transport are removed. Small Stimulus controllers cover
 copying, RSVP form reveal, accepted image types/size, and visible upload failure
-recovery. The now-unused public `ImageUploadsController` route is removed; legacy
-`ImageUpload` records remain readable. The layout emits Subresource
+recovery. A small direct-upload controller enforces declared image types and a
+1-byte-to-10-MB range before creating a blob or storage URL. It cannot inspect
+direct-to-storage bytes; byte-level policy, ownership, expiry, and rate controls
+remain follow-ups. The now-unused public `ImageUploadsController` route is
+removed; legacy `ImageUpload` records remain readable. The layout emits Subresource
 Integrity-protected module preload links
 and tracks the compiled stylesheet for Turbo reloads.
 
+The migration retains `events.body` for deploy compatibility and `Event` ignores
+the legacy column. Removing it is a later migration after Action Text has run in
+production. Rich-text images use original blob URLs, avoiding an undeclared
+ImageMagick/libvips runtime dependency and first-render variant processing.
+
 The Firefox suite covers Turbo navigation, rich-text creation/editing/paste,
 image persistence after save/reload/edit, invalid-file retry, direct-upload
-network/server failure recovery, Bootstrap modals, clipboard behavior, and
-Turbo delete links. `bin/ci --seed 46095` passes both security
-scans, eager loading, npm and import-map audits, Propshaft compilation, and **196 examples with
+network/server failure recovery, Turbo validation errors, Bootstrap modal
+transitions and snapshot cleanup, clipboard behavior, and Turbo delete links.
+`bin/ci --seed 70291` passes both security
+scans, eager loading, npm and import-map audits, Propshaft compilation, and **203 examples with
 0 failures and 0 pending**. The Action Text migration also passes a test-database
 down/up cycle. Upload ownership/expiry remains deferred under 2.4, and Bootstrap
 5 remains the unfinished part of 5.2.
@@ -495,10 +504,13 @@ provided; Bon App's accepted risks do not transfer.
   Prove redaction with synthetic tokens and review logging configurations. Merely
   adding another filtered parameter does not fix raw path logging.
 
-- [ ] **2.4 P1 — Bound and own public uploads.** Presence, detected content types,
-  a 10 MB limit, and recoverable upload errors are implemented. The owner deferred
-  ownership/expiry and purge scheduling on 2026-09-09. Direct-upload policy and
-  request-level abuse controls remain separate follow-ups. Original finding:
+- [ ] **2.4 P1 — Bound and own public uploads.** Browser checks and the
+  direct-upload controller enforce declared PNG/JPEG/GIF/WebP types and a
+  1-byte-to-10-MB range; storage verifies the signed byte length and checksum.
+  Direct upload cannot byte-sniff content before it reaches storage. The owner
+  deferred ownership/expiry and purge scheduling on 2026-09-09. Byte-level policy,
+  request-level abuse controls, and lifecycle remain separate follow-ups.
+  Original finding:
   `ImageUploadsController#create` permits any file and `ImageUpload` has no
   presence/type/size validation. A public JSON upload of a plain text file returned
   200 and persisted it. The app also exposes Rails direct-upload routes. Define

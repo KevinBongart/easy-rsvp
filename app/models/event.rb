@@ -1,6 +1,8 @@
 class Event < ApplicationRecord
   include Hashid::Rails
 
+  self.ignored_columns += [ "body" ]
+
   has_many :rsvps, dependent: :destroy
   has_rich_text :body
 

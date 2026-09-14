@@ -14,7 +14,7 @@ RSpec.describe 'Public events', type: :request do
     expect(page.at_css('link[rel="stylesheet"][data-turbo-track="reload"]')).to be_present
     expect(page.at_css('script[type="importmap"][data-turbo-track="reload"]')).to be_present
     expect(page.css('link[rel="modulepreload"][integrity^="sha256-"]')).not_to be_empty
-    expect(response.body).to include('@hotwired/turbo-rails', '@rails/actiontext', 'controllers/rich_text_controller')
+    expect(response.body).to include('@hotwired/turbo-rails', '@rails/actiontext', 'controllers/rich_text_controller', 'lib/turbo_cache')
   end
 
   it 'creates an event and redirects only its creator to the organizer URL' do
@@ -28,6 +28,7 @@ RSpec.describe 'Public events', type: :request do
 
   it 're-renders an invalid form without creating an event' do
     expect { post events_path, params: { event: { title: '', date: '' } } }.not_to change(Event, :count)
+    expect(response).to have_http_status(:unprocessable_content)
     expect(response.body).to include('can&#39;t be blank', '<trix-editor')
   end
 
