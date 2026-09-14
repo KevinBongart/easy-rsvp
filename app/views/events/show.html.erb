@@ -6,10 +6,6 @@
     <%= @event.date.to_formatted_s(:week_day_and_date) %>
   </small>
 
-  <% if Rails.env.development? %>
-    <small><%= link_to 'admin', event_admin_path(@event, @event.admin_token) %></small>
-  <% end %>
-
 </h1>
 
 <%= @event.body %>

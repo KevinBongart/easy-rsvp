@@ -89,6 +89,19 @@ RSpec.describe 'Firefox JavaScript smoke', type: :system, js: true do
     expect(event.rsvps).to be_empty
   end
 
+  it 'keeps organizer links off the public page when responding from the site dashboard' do
+    event = create(:event, title: 'Public event from dashboard')
+    visit "http://spec-admin:spec-password@#{Capybara.current_session.server.host}:#{Capybara.current_session.server.port}/admin/events"
+    click_link event.title
+
+    expect(page).to have_no_link('admin', href: event_admin_path(event, event.admin_token))
+    fill_in 'Your name:', with: 'Alex'
+    click_button 'Yes'
+
+    expect(page).to have_content('Thank you for responding!')
+    expect(page).to have_no_link('admin', href: event_admin_path(event, event.admin_token))
+  end
+
   it 'updates and deletes a response through the Bootstrap organizer modal' do
     rsvp = create(:rsvp, name: 'Alex')
     visit event_admin_path(rsvp.event, rsvp.event.admin_token)

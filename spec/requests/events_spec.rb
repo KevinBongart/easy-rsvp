@@ -48,6 +48,17 @@ RSpec.describe 'Public events', type: :request do
     get event_path(event)
     expect(response.body).to include(event.title)
     expect(response.body).not_to include(event.admin_token)
+    expect(response.body).not_to include(event_admin_path(event, event.admin_token))
+  end
+
+  it 'does not add an organizer link to the public page in development' do
+    event = create(:event)
+    allow(Rails).to receive(:env).and_return(ActiveSupport::EnvironmentInquirer.new('development'))
+
+    get event_path(event)
+
+    expect(response.body).not_to include(event.admin_token)
+    expect(response.body).not_to include(event_admin_path(event, event.admin_token))
   end
 
   it 'resolves an old title slug after the title changes' do
