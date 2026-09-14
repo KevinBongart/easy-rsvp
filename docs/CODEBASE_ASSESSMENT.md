@@ -8,6 +8,35 @@ Status: **assessment and Phase 0 coverage complete; original pending regressions
 initial assessment brief. Standards: [Rails Engineering Playbook](RAILS_ENGINEERING_PLAYBOOK.md).
 Application reference: [AGENTS.md](../AGENTS.md).
 
+## Modern Rails assets and rich text — 2026-09-14
+
+The asset portion of Phase 5.2 is implemented on
+`codex/modern-rails-assets-action-text`. Sprockets, SassC, CoffeeScript, Rails
+UJS, and Turbolinks are replaced by Propshaft, cssbundling-rails/Dart Sass,
+importmap-rails, Turbo, and Stimulus. Bootstrap remains at 4.6.2 as a separate
+compatibility step. Its JavaScript dependencies are browser-ready import-map
+pins, while its Sass is built by the standard CSS bundling task.
+
+Event descriptions now use Action Text. Existing `events.body` values are
+backfilled into `action_text_rich_texts`; Rails' Trix and Action Text assets load
+from the locked gems, and Active Storage handles direct uploads. The custom Trix
+download/esbuild script, generated editor assets, inline ClipboardJS setup, and
+custom editor upload transport are removed. Small Stimulus controllers cover
+copying, RSVP form reveal, accepted image types/size, and visible upload failure
+recovery. The now-unused public `ImageUploadsController` route is removed; legacy
+`ImageUpload` records remain readable. The layout emits Subresource
+Integrity-protected module preload links
+and tracks the compiled stylesheet for Turbo reloads.
+
+The Firefox suite covers Turbo navigation, rich-text creation/editing/paste,
+image persistence after save/reload/edit, invalid-file retry, direct-upload
+network/server failure recovery, Bootstrap modals, clipboard behavior, and
+Turbo delete links. `bin/ci --seed 46095` passes both security
+scans, eager loading, npm and import-map audits, Propshaft compilation, and **196 examples with
+0 failures and 0 pending**. The Action Text migration also passes a test-database
+down/up cycle. Upload ownership/expiry remains deferred under 2.4, and Bootstrap
+5 remains the unfinished part of 5.2.
+
 ## RSVP response constraint validation — 2026-09-09
 
 The production-derived development database contained 88,330 RSVPs and no null

@@ -18,8 +18,8 @@
 
 /node_modules
 /yarn-error.log
-/app/assets/javascripts/trix.js
-/app/assets/stylesheets/trix.css
+/app/assets/builds/*
+!/app/assets/builds/.keep
 
 /public/assets
 .byebug_history

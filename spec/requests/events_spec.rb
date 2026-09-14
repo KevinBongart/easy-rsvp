@@ -7,6 +7,16 @@ RSpec.describe 'Public events', type: :request do
     expect(response.body).to include('<trix-editor', 'event[title]', 'event[date(1i)]')
   end
 
+  it 'loads the modern asset entrypoints with Turbo tracking and integrity-protected preloads' do
+    get root_path
+    page = Nokogiri::HTML(response.body)
+
+    expect(page.at_css('link[rel="stylesheet"][data-turbo-track="reload"]')).to be_present
+    expect(page.at_css('script[type="importmap"][data-turbo-track="reload"]')).to be_present
+    expect(page.css('link[rel="modulepreload"][integrity^="sha256-"]')).not_to be_empty
+    expect(response.body).to include('@hotwired/turbo-rails', '@rails/actiontext', 'controllers/rich_text_controller')
+  end
+
   it 'creates an event and redirects only its creator to the organizer URL' do
     expect do
       post events_path, params: { event: { title: 'Dinner', date: '2026-10-10', body: '<div>At home</div>' } }

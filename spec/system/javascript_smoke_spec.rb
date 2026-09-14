@@ -24,10 +24,8 @@ RSpec.describe 'Firefox JavaScript smoke', type: :system, js: true do
   end
 
   def open_response_modal
-    # Bootstrap ignores Close during its opening transition. Wait for its public event.
-    page.execute_script("jQuery('.modal').one('shown.bs.modal', function() { this.dataset.specReady = 'true'; })")
     click_link 'edit'
-    expect(page).to have_css('.modal.show[data-spec-ready=true]')
+    expect(page).to have_css('.modal.show')
   end
 
   it 'creates and edits rich text through the actual Trix editor' do
@@ -52,7 +50,7 @@ RSpec.describe 'Firefox JavaScript smoke', type: :system, js: true do
     find('trix-editor').drop(Rails.root.join('spec/fixtures/files/party.png').to_s)
     expect(page).to have_css('trix-editor img[src*="/rails/active_storage/"]')
     expect_loaded_image('trix-editor img')
-    expect(ImageUpload.count).to eq(1)
+    expect(ActiveStorage::Blob.count).to eq(1)
     expect(ActiveStorage::Blob.last.service_name).to eq('test')
     click_button 'Create your event, for free!'
     expect_loaded_image('.trix-content img')
@@ -74,10 +72,10 @@ RSpec.describe 'Firefox JavaScript smoke', type: :system, js: true do
     click_button 'Update Event'
     expect(page).to have_css('.trix-content', text: 'More details after uploading.')
     expect_loaded_image('.trix-content img')
-    expect(ImageUpload.count).to eq(1)
+    expect(ActiveStorage::Blob.count).to eq(1)
   end
 
-  it 'reveals the RSVP form again and deletes an owned response using Rails UJS' do
+  it 'reveals the RSVP form again and deletes an owned response using Turbo' do
     event = create(:event)
     visit event_path(event)
     fill_in 'Your name:', with: 'Alex'
@@ -114,13 +112,13 @@ RSpec.describe 'Firefox JavaScript smoke', type: :system, js: true do
     visit event_admin_path(event, event.admin_token)
     public_url = find('#public-link')[:href]
     page.execute_script(<<~JS)
-      document.addEventListener('copy', function() {
-        const input = document.activeElement;
-        window.copiedPublicURL = input.tagName === 'TEXTAREA' ?
-          input.value.substring(input.selectionStart, input.selectionEnd) : window.getSelection().toString();
-      }, { once: true });
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: { writeText: async (text) => { window.copiedPublicURL = text; } }
+      });
     JS
     click_button 'Copy'
+    expect(page).to have_button('Copied')
     expect(page.evaluate_script('window.copiedPublicURL')).to eq(public_url)
   end
 
