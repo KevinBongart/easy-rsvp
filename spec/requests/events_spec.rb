@@ -14,7 +14,7 @@ RSpec.describe 'Public events', type: :request do
     page = Nokogiri::HTML(response.body)
 
     expect(page.at_css('link[rel="stylesheet"][data-turbo-track="reload"]')).to be_present
-    script = page.at_css('script[src*="/assets/application-"][data-turbo-track="reload"][defer]')
+    script = page.at_css('script[type="module"][src*="/assets/application-"][data-turbo-track="reload"]')
     expect(script).to be_present
     expect(script['integrity']).to start_with('sha256-')
   end
