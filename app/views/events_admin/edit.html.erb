@@ -11,8 +11,12 @@
 
 
   <%= f.label :body, 'More details (optional):' %>
-  <%= f.input :body, as: :hidden %>
-  <trix-editor input="event_body"></trix-editor>
+  <%= f.rich_text_area :body,
+    data: {
+      controller: 'rich-text',
+      action: 'trix-file-accept->rich-text#acceptFile direct-upload:error->rich-text#uploadFailed direct-upload:end->rich-text#uploadFinished'
+    }
+  %>
 
   <br>
 

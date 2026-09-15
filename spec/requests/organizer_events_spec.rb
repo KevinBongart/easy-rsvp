@@ -18,7 +18,9 @@ RSpec.describe 'Organizer events', type: :request do
   it 'updates editable fields without rotating the credential' do
     token = event.admin_token
     patch event_admin_path(event, token), params: { event: { title: 'New title', body: '<div>Updated</div>', show_rsvp_names: false, admin_token: 'chosen' } }
-    expect(event.reload).to have_attributes(title: 'New title', body: '<div>Updated</div>', show_rsvp_names: false, admin_token: token)
+    event.reload
+    expect(event).to have_attributes(title: 'New title', show_rsvp_names: false, admin_token: token)
+    expect(event.body.to_plain_text).to eq('Updated')
     expect(response).to redirect_to(event_admin_path(event, token))
   end
 
@@ -26,6 +28,7 @@ RSpec.describe 'Organizer events', type: :request do
     original = event.title
     patch event_admin_path(event, event.admin_token), params: { event: { title: '' } }
     expect(event.reload.title).to eq(original)
+    expect(response).to have_http_status(:unprocessable_content)
     expect(response.body).to include('can&#39;t be blank')
   end
 

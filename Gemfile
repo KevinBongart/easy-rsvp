@@ -8,11 +8,10 @@ gem 'rails', '~> 8.1.3', '>= 8.1.3.1'
 
 gem "aws-sdk-s3", require: false
 gem 'bootsnap', require: false
-gem 'bootstrap', '< 5'
-gem 'coffee-rails'
+gem 'cssbundling-rails'
 gem 'hashid-rails'
+gem 'importmap-rails'
 gem 'jbuilder'
-gem 'jquery-rails'
 gem 'kaminari'
 gem 'net-imap'
 gem 'net-pop'
@@ -20,13 +19,13 @@ gem 'net-smtp'
 gem 'octicons'
 gem 'octicons_helper'
 gem 'pg'
+gem 'propshaft'
 gem 'puma'
 gem 'rollbar'
-gem 'sass-rails'
 gem 'scout_apm'
 gem 'simple_form'
-gem 'turbolinks'
-gem 'uglifier'
+gem 'stimulus-rails'
+gem 'turbo-rails'
 
 group :development, :test do
   gem 'brakeman', '~> 8.0', require: false
