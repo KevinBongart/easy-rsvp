@@ -26,11 +26,7 @@
       'Copy',
       type: :button,
       class: ['btn', 'btn-sm', 'btn-outline-success', 'clipboard'],
-      data: {
-        controller: 'clipboard',
-        action: 'clipboard#copy',
-        clipboard_text_value: event_url(@event)
-      }
+      data: { clipboard_text: event_url(@event) }
     %>
 
     Everyone with the link can RSVP, no account required.
@@ -56,7 +52,7 @@
     <%= link_to "Add some details", edit_event_admin_path(@event, @event.admin_token) %>.
   </p>
 <% else %>
-  <%= @event.body %>
+  <div class='trix-content'><%= sanitize @event.body %></div>
   <br>
 <% end %>
 
@@ -108,8 +104,8 @@
             </div>
 
             <%= f.submit 'Update', class: 'btn btn-primary mr-2' %>
-            <button type='button' class='btn btn-link' data-dismiss='modal'>Close</button>
-            <%= link_to 'Delete…', event_admin_rsvp_path(@event, @event.admin_token, rsvp), class: 'btn btn-danger float-right', data: { turbo_method: :delete, turbo_confirm: 'Are you sure you want to delete this RSVP?' } %>
+            <button class='btn btn-link' data-dismiss='modal'>Close</button>
+            <%= link_to 'Delete…', event_admin_rsvp_path(@event, @event.admin_token, rsvp), method: :delete, class: 'btn btn-danger float-right', data: { confirm: 'Are you sure you want to delete this RSVP?' } %>
           <% end %>
         </div>
       </div>

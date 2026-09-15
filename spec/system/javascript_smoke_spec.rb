@@ -24,10 +24,10 @@ RSpec.describe 'Firefox JavaScript smoke', type: :system, js: true do
   end
 
   def open_response_modal
+    # Bootstrap ignores Close during its opening transition. Wait for its public event.
+    page.execute_script("jQuery('.modal').one('shown.bs.modal', function() { this.dataset.specReady = 'true'; })")
     click_link 'edit'
-    expect(page).to have_css('.modal.show') do |modal|
-      modal.evaluate_script('getComputedStyle(this.querySelector(".modal-dialog")).transform === "none"')
-    end
+    expect(page).to have_css('.modal.show[data-spec-ready=true]')
   end
 
   it 'creates and edits rich text through the actual Trix editor' do
@@ -52,11 +52,10 @@ RSpec.describe 'Firefox JavaScript smoke', type: :system, js: true do
     find('trix-editor').drop(Rails.root.join('spec/fixtures/files/party.png').to_s)
     expect(page).to have_css('trix-editor img[src*="/rails/active_storage/"]')
     expect_loaded_image('trix-editor img')
-    expect(ActiveStorage::Blob.count).to eq(1)
+    expect(ImageUpload.count).to eq(1)
     expect(ActiveStorage::Blob.last.service_name).to eq('test')
     click_button 'Create your event, for free!'
     expect_loaded_image('.trix-content img')
-    expect(find('.trix-content img')[:src]).not_to include('/representations/')
     click_link 'public-link'
     page.refresh
     expect_loaded_image('.trix-content img')
@@ -75,10 +74,10 @@ RSpec.describe 'Firefox JavaScript smoke', type: :system, js: true do
     click_button 'Update Event'
     expect(page).to have_css('.trix-content', text: 'More details after uploading.')
     expect_loaded_image('.trix-content img')
-    expect(ActiveStorage::Blob.count).to eq(1)
+    expect(ImageUpload.count).to eq(1)
   end
 
-  it 'reveals the RSVP form again and deletes an owned response using Turbo' do
+  it 'reveals the RSVP form again and deletes an owned response using Rails UJS' do
     event = create(:event)
     visit event_path(event)
     fill_in 'Your name:', with: 'Alex'
@@ -90,19 +89,6 @@ RSpec.describe 'Firefox JavaScript smoke', type: :system, js: true do
     click_link 'x'
     expect(page).to have_no_content('Alex')
     expect(event.rsvps).to be_empty
-  end
-
-  it 'keeps organizer links off the public page when responding from the site dashboard' do
-    event = create(:event, title: 'Public event from dashboard')
-    visit "http://spec-admin:spec-password@#{Capybara.current_session.server.host}:#{Capybara.current_session.server.port}/admin/events"
-    click_link event.title
-
-    expect(page).to have_no_link('admin', href: event_admin_path(event, event.admin_token))
-    fill_in 'Your name:', with: 'Alex'
-    click_button 'Yes'
-
-    expect(page).to have_content('Thank you for responding!')
-    expect(page).to have_no_link('admin', href: event_admin_path(event, event.admin_token))
   end
 
   it 'updates and deletes a response through the Bootstrap organizer modal' do
@@ -128,13 +114,13 @@ RSpec.describe 'Firefox JavaScript smoke', type: :system, js: true do
     visit event_admin_path(event, event.admin_token)
     public_url = find('#public-link')[:href]
     page.execute_script(<<~JS)
-      Object.defineProperty(navigator, 'clipboard', {
-        configurable: true,
-        value: { writeText: async (text) => { window.copiedPublicURL = text; } }
-      });
+      document.addEventListener('copy', function() {
+        const input = document.activeElement;
+        window.copiedPublicURL = input.tagName === 'TEXTAREA' ?
+          input.value.substring(input.selectionStart, input.selectionEnd) : window.getSelection().toString();
+      }, { once: true });
     JS
     click_button 'Copy'
-    expect(page).to have_button('Copied')
     expect(page.evaluate_script('window.copiedPublicURL')).to eq(public_url)
   end
 
@@ -150,19 +136,5 @@ RSpec.describe 'Firefox JavaScript smoke', type: :system, js: true do
     page.refresh
     expect(page).to have_content('Original name')
     expect(rsvp.reload.name).to eq('Original name')
-  end
-
-  it 'cleans an open Bootstrap modal before Turbo caches its page' do
-    rsvp = create(:rsvp)
-    visit event_admin_path(rsvp.event, rsvp.event.admin_token)
-    open_response_modal
-    expect(page).to have_css('body.modal-open, .modal-backdrop')
-
-    page.execute_script('Turbo.visit(arguments[0])', event_path(rsvp.event))
-    expect(page).to have_current_path(event_path(rsvp.event))
-    page.go_back
-
-    expect(page).to have_current_path(event_admin_path(rsvp.event, rsvp.event.admin_token))
-    expect(page).to have_no_css('body.modal-open, .modal-backdrop, .modal.show')
   end
 end

@@ -15,6 +15,9 @@ Rails.application.configure do
   # Enable server timing.
   config.server_timing = true
 
+  # Local CI precompiles assets; always resolve current source while developing.
+  config.assets.resolve_with = [:environment]
+
   # Enable/disable Action Controller caching. By default Action Controller caching is disabled.
   # Run rails dev:cache to toggle Action Controller caching.
   if Rails.root.join("tmp/caching-dev.txt").exist?
