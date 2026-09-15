@@ -3,12 +3,5 @@
 # Version of your assets, change this if you want to expire all your assets.
 Rails.application.config.assets.version = "1.0"
 
-# Add Subresource Integrity hashes to import-map module preload links.
-Rails.application.config.assets.integrity_hash_algorithm = "sha256"
-
-# Dart Sass consumes these source files; Propshaft should publish only the
-# compiled bundle under app/assets/builds.
-Rails.application.config.assets.excluded_paths << Rails.root.join("app/assets/stylesheets")
-
 # Add additional assets to the asset load path.
 # Rails.application.config.assets.paths << Emoji.images_path

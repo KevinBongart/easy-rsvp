@@ -36,41 +36,36 @@ documentation, logs, screenshots, or test fixtures.
 
 ## Current stack
 
-Verified against the repository on 2026-09-14; the version files remain authoritative.
+Verified against the repository on 2026-09-08; the version files remain authoritative.
 
 | Concern | Current implementation |
 | --- | --- |
 | Runtime | Ruby 3.3.4; Rails 8.1.3.1 in `Gemfile.lock` |
 | Framework defaults | `config.load_defaults 5.2`, with later defaults initializers |
 | Database | PostgreSQL; `events_development`, `events_test`, `events_production` |
-| UI | ERB, Simple Form, Bootstrap 4.6.2 |
-| Assets | Propshaft, cssbundling-rails/Dart Sass, importmap-rails, Turbo, Stimulus, Action Text/Trix 2.1.19; jQuery only for Bootstrap 4 |
+| UI | ERB, Simple Form, Bootstrap 4.6.2.1 |
+| Assets | Sprockets, SassC, CoffeeScript, jQuery, Rails UJS, Turbolinks, Trix 2.1.19 built with npm/esbuild |
 | Storage | Active Storage; disk in development/test, S3 in production |
 | Mail | Action Mailer; file delivery in development, test delivery in test, SMTP in production; organizer-link delivery is synchronous |
 | Tests | RSpec, FactoryBot, WebMock; Rack Test by default, Selenium/headless Firefox for `js: true` system specs |
 | CI/deploy | CircleCI; Dokku app `easy-rsvp`, server configured through `DOKKU_HOST` |
 
-The modern Rails asset pipeline is installed, while Bootstrap 4 remains a
-deliberate compatibility step. Modernize Bootstrap separately behind browser
-coverage. Easy RSVP's `bin/ci` runs its own eager-loading, asset-compilation,
-and RSpec checks.
+The legacy frontend is the current implementation, not a permanent exemption
+from the playbook. Modernize incrementally behind browser coverage. Do not use
+Bon App's importmap, Stimulus, Propshaft, or npm lint commands here:
+those components do not currently exist. Easy RSVP's `bin/ci` runs its own
+eager-loading, asset-compilation, and RSpec checks.
 
 ## Code map and domain rules
 
-- `Event`: title/date validation, Action Text `body`, public hashid/slug,
-  organizer token, publication and RSVP-name visibility flags, dependent
-  destruction of RSVPs. The legacy `events.body` column is retained and ignored
-  for deploy compatibility; remove it in a later migration after production has
-  run on Action Text.
+- `Event`: title/date validation, public hashid/slug, organizer token,
+  publication and RSVP-name visibility flags, dependent destruction of RSVPs.
 - `Rsvp`: belongs to an event, name/response presence validation,
   `RESPONSES = [:yes, :maybe, :no]`, with inclusion validation and a database check
   that is validated against existing rows as well as enforced for new writes.
-- `ImageUpload`: legacy records retain old editor uploads and their Active
-  Storage attachments. New editor uploads use Action Text direct uploads. The
-  browser and server accept declared PNG/JPEG/GIF/WebP files from 1 byte through
-  10 MB before issuing a storage URL. Direct uploads cannot be byte-sniffed
-  before reaching storage. Upload ownership remains independent of event
-  creation and needs a separate lifecycle design.
+- `ImageUpload`: one required PNG/JPEG/GIF/WebP image, at most 10 MB. The upload
+  endpoint detects MIME type from file bytes. Upload ownership remains independent
+  of event creation and needs a separate lifecycle design.
 - `EventsController`: event creation and public display.
 - `EventsAdminController`: organizer display, editing, deletion, publication.
 - `RsvpsController`: public response creation and session-owned deletion.
@@ -90,6 +85,8 @@ and RSpec checks.
   history includes 12 completed months plus the current projection. The all-time
   total includes the oldest creation date; current-year and current-month counts
   and projections are visible beside their charts.
+- `ImageUploadsController`: JSON upload endpoint for the editor.
+
 Use `db/schema.rb` and `config/routes.rb` for exact constraints and paths.
 Keep controllers focused on HTTP; share repeated event-ID parsing and access
 rules only after their different authorization boundaries are covered by tests.
@@ -111,19 +108,18 @@ WebMock, allowing localhost for WebDriver. Active Storage uses a dedicated
 temporary disk directory, mail uses test delivery, and jobs use the test adapter.
 System specs default to Rack Test; add `js: true` only for browser behavior.
 Firefox specs enable real CSRF protection and restore the setting afterward.
-Propshaft resolves development assets from current source. The development asset
-regression boots that environment separately and checks stylesheet delivery
-without accessing application data.
+Development and test resolve assets from current source, bypassing precompiled
+manifests left by local CI. The development asset regression boots that environment
+separately and checks stylesheet delivery without accessing application data.
 Trix smoke specs use the real editor and native file-drop events, with real local
-upload/download requests. They also cover Turbo validation responses and modal
-snapshot cleanup. Never replace them with a stubbed successful upload.
+upload/download requests. Never replace them with a stubbed successful upload.
 
 All 19 original pending regressions are fixed; the suite has no pending examples.
 Do not add pending markers for new failures without reproducing and documenting
 the defect. Regression expectations must continue to execute after fixes. No application services exist under `app/services` today; the
 production-database utility and command runner are unit-tested under `spec/lib`.
 
-`bin/dev` runs the Rails server and CSS watcher through Foreman. Development uploads and imported `amazon` blobs resolve to local disk under
+`bin/dev` runs the Rails server. Development uploads and imported `amazon` blobs resolve to local disk under
 `storage/development`; organizer-link emails are written to `tmp/mail`. Imported
 images require a separately authorized local file copy; no remote fallback exists.
 Ordinary tests use local storage and test delivery. Do not exercise external side effects without the
@@ -137,13 +133,11 @@ code is separate from running an actual production import.
 Never commit, push, or deploy automatically. CircleCI deploys successful `main`
 builds, so a push to `main` has a production side effect.
 
-Trix is provided by Rails' locked `action_text-trix` gem and loaded through the
-import map; do not add a separate application Trix build. Propshaft handles
-digests and Subresource Integrity, while cssbundling-rails compiles Bootstrap.
-The Node buildpack runs before the Ruby buildpack in `.buildpacks`; keep that
-order. `bin/ci` installs and audits the locked npm and import-map graphs, builds
-CSS, and then precompiles assets. Node 24 is selected by `.node-version` locally and
-`package.json` during buildpack deploys.
+Trix is pinned in `package-lock.json` and generated with `npm run build` before
+Sprockets compiles assets. The Node buildpack runs before the Ruby buildpack in
+`.buildpacks`; keep that order. `bin/ci` installs and audits the locked npm graph,
+builds Trix with the pinned DOMPurify version, and then compiles assets. Node 24
+is selected by `.node-version` locally and `package.json` during buildpack deploys.
 
 Application log formatters and Rollbar transforms redact organizer URL segments
 and UUID-shaped credentials. See `docs/ORGANIZER_LOG_PRIVACY.md` for proxy rollout;

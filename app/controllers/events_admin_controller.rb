@@ -12,7 +12,7 @@ class EventsAdminController < ApplicationController
     if @event.update(event_params)
       redirect_to event_admin_path(@event, @event.admin_token), notice: 'Your event was updated.'
     else
-      render :edit, status: :unprocessable_content
+      render :edit
     end
   end
 

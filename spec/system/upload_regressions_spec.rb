@@ -1,17 +1,16 @@
 require 'rails_helper'
-require 'tempfile'
 
 RSpec.describe 'Upload lifecycle regressions', type: :system, js: true do
-  it 'uploads once after repeated Turbo lifecycle events' do
+  it 'uploads once after repeated Turbolinks lifecycle events' do
     visit root_path
     page.execute_script(<<~JS)
       window.uploadStarts = 0;
       const originalOpen = XMLHttpRequest.prototype.open;
       XMLHttpRequest.prototype.open = function(method, url) {
-        if (method === 'POST' && String(url).includes('/rails/active_storage/direct_uploads')) window.uploadStarts += 1;
+        if (method === 'POST' && url === '/image_uploads') window.uploadStarts += 1;
         return originalOpen.apply(this, arguments);
       };
-      for (let i = 0; i < 3; i++) document.dispatchEvent(new Event('turbo:load'));
+      for (let i = 0; i < 3; i++) document.dispatchEvent(new Event('turbolinks:load'));
     JS
     find('trix-editor').drop(Rails.root.join('spec/fixtures/files/party.png').to_s)
     expect(page).to have_css('trix-editor img[src*="/rails/active_storage/"]')
@@ -33,7 +32,7 @@ RSpec.describe 'Upload lifecycle regressions', type: :system, js: true do
     expect(page.evaluate_script('window.specDocumentMarker')).to eq('same-document')
     find('trix-editor').drop(Rails.root.join('spec/fixtures/files/party.png').to_s)
     expect(page).to have_css('trix-editor img[src*="/rails/active_storage/"]')
-    expect(ActiveStorage::Blob.count).to eq(1)
+    expect(ImageUpload.count).to eq(1)
     expect(page.evaluate_script('typeof window.xhr')).to eq('undefined')
   end
 
@@ -41,30 +40,14 @@ RSpec.describe 'Upload lifecycle regressions', type: :system, js: true do
     visit root_path
     find('trix-editor').drop(Rails.root.join('spec/fixtures/files/notes.txt').to_s)
     expect(page).to have_css('[role=alert]', text: 'Image upload failed')
-    expect(ActiveStorage::Blob.count).to eq(0)
+    expect(ImageUpload.count).to eq(0)
     find('trix-editor').drop(Rails.root.join('spec/fixtures/files/party.png').to_s)
     expect(page).to have_css('trix-editor img[src*="/rails/active_storage/"]')
     expect(page).to have_no_css('.trix-upload-error')
-    expect(ActiveStorage::Blob.count).to eq(1)
+    expect(ImageUpload.count).to eq(1)
   end
 
-  it 'rejects an oversized image before starting a direct upload' do
-    visit root_path
-
-    Tempfile.create([ 'oversized', '.png' ]) do |file|
-      file.binmode
-      file.write(File.binread(Rails.root.join('spec/fixtures/files/party.png')))
-      file.truncate(10.megabytes + 1)
-      file.flush
-
-      find('trix-editor').drop(file.path)
-      expect(page).to have_css('[role=alert]', text: '10 MB maximum')
-    end
-
-    expect(ActiveStorage::Blob.count).to eq(0)
-  end
-
-  %w[network_error server_error].each do |failure|
+  %w[error timeout invalid_json].each do |failure|
     it "recovers from an upload #{failure} without leaving a stuck attachment" do
       visit root_path
       # Inject only the failed transport; the retry uses the real endpoint/storage.
@@ -73,29 +56,30 @@ RSpec.describe 'Upload lifecycle regressions', type: :system, js: true do
         const originalOpen = XMLHttpRequest.prototype.open;
         const originalSend = XMLHttpRequest.prototype.send;
         XMLHttpRequest.prototype.open = function(method, url) {
-          this.specUpload = method === 'POST' && String(url).includes('/rails/active_storage/direct_uploads');
+          this.specUpload = method === 'POST' && url === '/image_uploads';
           return originalOpen.apply(this, arguments);
         };
         XMLHttpRequest.prototype.send = function() {
           if (!this.specUpload) return originalSend.apply(this, arguments);
           XMLHttpRequest.prototype.open = originalOpen;
           XMLHttpRequest.prototype.send = originalSend;
-          if (failure === 'server_error') {
-            Object.defineProperty(this, 'status', { value: 500 });
+          if (failure === 'invalid_json') {
+            Object.defineProperty(this, 'status', { value: 200 });
+            Object.defineProperty(this, 'responseText', { value: 'broken json' });
             this.dispatchEvent(new Event('load'));
           } else {
-            this.dispatchEvent(new Event('error'));
+            this.dispatchEvent(new Event(failure));
           }
         };
       JS
       find('trix-editor').drop(Rails.root.join('spec/fixtures/files/party.png').to_s)
       expect(page).to have_css('[role=alert]', text: 'Image upload failed')
       expect(page).to have_no_css('trix-editor figure')
-      expect(ActiveStorage::Blob.count).to eq(0)
+      expect(ImageUpload.count).to eq(0)
       find('trix-editor').drop(Rails.root.join('spec/fixtures/files/party.png').to_s)
       expect(page).to have_css('trix-editor img[src*="/rails/active_storage/"]')
       expect(page).to have_no_css('.trix-upload-error')
-      expect(ActiveStorage::Blob.count).to eq(1)
+      expect(ImageUpload.count).to eq(1)
     end
   end
 

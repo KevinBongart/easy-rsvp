@@ -64,7 +64,7 @@ SimpleForm.setup do |config|
     b.optional :readonly
     b.use :label, class: 'form-control-label'
     b.use :input, class: 'form-control', error_class: ValidationClasses::INVALID, valid_class: ValidationClasses::VALID
-    b.use :full_error, wrap_with: { tag: 'div', class: 'invalid-feedback d-block' }
+    b.use :full_error, wrap_with: { tag: 'div', class: 'invalid-feedback' }
     b.use :hint, wrap_with: { tag: 'small', class: 'form-text text-muted' }
   end
 
