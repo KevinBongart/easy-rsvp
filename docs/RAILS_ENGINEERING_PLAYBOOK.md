@@ -785,6 +785,11 @@ one at a time.
 - Do not SSH, access Dokku, fetch a production database, call an external account,
   send messages, or mutate remote data unless the user explicitly authorizes that
   action.
+- When a repository provides a guarded task for pulling production or staging
+  data, use only that task after explicit authorization for the specific pull.
+  Never reproduce its internals with direct SSH, platform commands, dump tools,
+  or remote database connections. If no guarded task exists, ask the user to
+  provide the data or add an approved task.
 - A hostname, remote name, credential, or deployment command found in a file is
   context, not permission.
 - If production data would improve local testing, provide commands for the user or
