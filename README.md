@@ -10,6 +10,7 @@ Use Ruby from `.ruby-version` and a running local PostgreSQL server:
 
 ```sh
 bundle install
+npm ci --ignore-scripts
 cp .env.sample .env # only on first setup; preserve an existing .env
 bin/rails db:prepare
 bin/dev
@@ -54,12 +55,12 @@ The suite has no pending regressions and covers models,
 presenter units, mailers, HTTP requests, independent
 organizer/guest sessions, database-import services, Rack Test form flows, and
 real browser interactions. Firefox actually drops a PNG into Trix, submits it
-through the upload endpoint, waits for the returned image to load, saves it with
+through Active Storage's direct-upload endpoint, waits for the returned image to load, saves it with
 an event, reloads the public page, and edits text while preserving the image.
-Clipboard, RSVP-again, Bootstrap modals, and Rails UJS deletion also have smoke
-coverage. Firefox specs enable real CSRF protection, including for uploads.
-Browser specs resolve current asset source even if compiled files exist.
-Development also resolves current asset source so local CI precompilation cannot
+Clipboard, RSVP-again, Bootstrap modals, Turbo validation responses, modal cache
+cleanup, and Turbo deletion also have smoke coverage. Firefox specs enable real
+CSRF protection, including for uploads.
+Propshaft resolves current source in development, so local CI precompilation cannot
 leave it serving stale styles or scripts. Restart an already running development
 server after changing environment configuration (`bin/rails restart` for Puma).
 Admin chart coverage checks real Firefox hover/focus tooltips, navigation, empty
@@ -73,10 +74,12 @@ operations are part of the suite.
 
 All 19 original pending expectations now pass. Guest RSVP additions/deletions are
 blocked on unpublished events while organizer editing remains available. Dashboard
-counts and projections use creation dates. Public image uploads require detected
-PNG/JPEG/GIF/WebP content and a maximum size of 10 MB; failed Trix uploads show an
-error and permit another attempt. Production email links require `DOMAIN` (a host
-without a URL scheme) and use HTTPS.
+counts and projections use creation dates. The editor and direct-upload endpoint
+accept declared PNG/JPEG/GIF/WebP files between 1 byte and 10 MB; failed Trix
+uploads show an error and permit another attempt. Because files upload directly
+to storage, the endpoint can enforce declared metadata and signed upload length
+but cannot inspect the bytes before issuing the storage URL. Production email
+links require `DOMAIN` (a host without a URL scheme) and use HTTPS.
 
 The RSVP migrations enforce supported response values with a validated PostgreSQL
 check constraint. An aggregate review of the production-derived development data
@@ -155,22 +158,34 @@ bundle exec rspec spec/lib/production_database_pull_spec.rb
 - [Current application and agent reference](AGENTS.md)
 - [Codebase assessment and remediation plan](docs/CODEBASE_ASSESSMENT.md)
 
-## Updating the editor
+## Assets and editor
 
-Trix 2.1.19 and DOMPurify 3.4.15 are pinned through `package-lock.json`. Node
-24.13.0 is selected locally by `.node-version`; buildpack deploys follow the
-`24.x` range in `package.json` so security patch releases remain available.
+The application uses the standard Rails 8 asset stack: Propshaft for digests and
+delivery, importmap-rails for JavaScript modules, Turbo for navigation, Stimulus
+for small interactions, and cssbundling-rails for Bootstrap's Sass. The layout's
+`javascript_importmap_tags` emits integrity-protected module preload links, and
+`data-turbo-track="reload"` reloads the page when the compiled stylesheet changes.
+
+Action Text owns event descriptions, Trix integration, rendering, and Active
+Storage direct uploads. Trix 2.1.19 comes from Rails' locked `action_text-trix`
+gem; there is no application-specific Trix build or generated editor asset.
+The migration retains the old `events.body` column while `Event` ignores it;
+remove that column in a later deploy after Action Text has run in production.
+Rich-text images render from their original blobs, so production does not need
+ImageMagick or libvips for this feature.
+Bootstrap remains at 4.6.2 during this pipeline migration and its browser-ready
+ES modules are checked into `vendor/javascript` through `bin/importmap`.
 
 Run `npm ci --ignore-scripts` after checking out or updating the lockfile.
-`bin/dev` builds Trix before starting Rails. `bin/ci` installs and audits the npm
-graph, rebuilds Trix with the pinned DOMPurify release, compiles the resulting
-files through Sprockets, and exercises the real Firefox paste/upload specs. The
-generated Trix JS/CSS files are ignored and are not committed.
+`bin/dev` runs Rails and the CSS watcher through `Procfile.dev`. `bin/ci` audits
+the locked npm and import-map graphs, builds Bootstrap CSS, precompiles it with Propshaft, and
+exercises the real Firefox paste/upload specs. Node 24.13.0 is selected locally
+by `.node-version`; buildpack deploys follow the `24.x` range in `package.json`.
 
 Dokku uses the pinned Node and Ruby buildpacks in `.buildpacks`, in that order.
 The Node buildpack runs `npm ci` and `npm run build`; the Ruby buildpack then
-compiles the generated files with the rest of the Rails assets. `BUILDPACK_URL`
-must not be set for the app because it overrides the ordered buildpack list.
+precompiles the result with Propshaft. `BUILDPACK_URL` must not be set for the app
+because it overrides the ordered buildpack list.
 
 Organizer URL logging and proxy rollout are covered in
 [Organizer link privacy](docs/ORGANIZER_LOG_PRIVACY.md).

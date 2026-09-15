@@ -6,13 +6,9 @@
     <%= @event.date.to_formatted_s(:week_day_and_date) %>
   </small>
 
-  <% if Rails.env.development? %>
-    <small><%= link_to 'admin', event_admin_path(@event, @event.admin_token) %></small>
-  <% end %>
-
 </h1>
 
-<div class='trix-content'><%= sanitize @event.body %></div>
+<%= @event.body %>
 
 <br>
 
@@ -22,8 +18,8 @@
   <small>Guest names are hidden to other guests.</small>
 <% end %>
 
-<p>
-  <%= form_for [@event, @rsvp], html: { class: "form-inline #{'d-none' if @responded}" } do |f| %>
+<div data-controller="reveal">
+  <%= form_for [@event, @rsvp], html: { class: "form-inline #{'d-none' if @responded}", data: { reveal_target: 'content' } } do |f| %>
     <%= f.label :name, "Your name:", class: "mr-2" %>
     <%= f.text_field :name, class: 'form-control mr-2 mb-2 mb-md-0' %>
 
@@ -33,9 +29,9 @@
   <% end %>
 
   <% if @responded %>
-    <span id='rsvp-again'><%= link_to 'RSVP again', '#' %></span>
+    <span id='rsvp-again' data-reveal-target="trigger"><%= link_to 'RSVP again', '#', data: { action: 'reveal#show' } %></span>
   <% end %>
-</p>
+</div>
 
 <% Rsvp::RESPONSES.each do |response| %>
   <% rsvps = @rsvps.select { |rsvp| rsvp.response.to_sym == response } %>
@@ -51,7 +47,7 @@
 
             <% if rsvp.hashid.in? @user_rsvp_hashids %>
               <small>
-                [<%= link_to 'x', event_rsvp_path(@event, rsvp), method: :delete %>]
+                [<%= link_to 'x', event_rsvp_path(@event, rsvp), data: { turbo_method: :delete } %>]
               </small>
             <% end %>
           </li>
@@ -60,7 +56,7 @@
             <%= rsvp.name %>
 
             <small>
-              [<%= link_to 'x', event_rsvp_path(@event, rsvp), method: :delete %>]
+              [<%= link_to 'x', event_rsvp_path(@event, rsvp), data: { turbo_method: :delete } %>]
             </small>
           </li>
         <% end %>

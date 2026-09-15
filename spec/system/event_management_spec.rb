@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe 'Event management forms', type: :system do
-  it 'shows validation errors and preserves a submitted description' do
+  it 'shows validation errors and preserves a submitted description', js: true do
     visit root_path
     click_button 'Create your event, for free!'
     expect(page).to have_content("can't be blank")
@@ -24,7 +24,7 @@ RSpec.describe 'Event management forms', type: :system do
     expect(page).to have_no_content('Private guest')
   end
 
-  it 'preserves a valid event when an edit is invalid' do
+  it 'preserves a valid event when an edit is invalid', js: true do
     event = create(:event, title: 'Keep this title')
     visit edit_event_admin_path(event, event.admin_token)
     fill_in 'Title', with: ''

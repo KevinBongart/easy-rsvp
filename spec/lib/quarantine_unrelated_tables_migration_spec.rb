@@ -1,5 +1,6 @@
 require 'rails_helper'
 require Rails.root.join('db/migrate/20260915103000_quarantine_unrelated_tables')
+require Rails.root.join('db/migrate/20260915120000_move_event_body_to_action_text')
 require 'securerandom'
 
 class QuarantineTablesMigrationSpecRecord < ActiveRecord::Base
@@ -92,5 +93,32 @@ RSpec.describe QuarantineUnrelatedTables do
     expect { migration.suppress_messages { migration.up } }.not_to raise_error
     expect(connection.table_exists?(:events)).to be(true)
     expect(connection.tables.grep(/^quarantined_20260915_/)).to be_empty
+  end
+
+  it 'runs before Action Text is installed on a fresh database' do
+    migrations = ActiveRecord::MigrationContext.new(Rails.root.join('db/migrate')).migrations
+    quarantine_position = migrations.index { |item| item.name == described_class.name }
+    action_text_position = migrations.index { |item| item.name == MoveEventBodyToActionText.name }
+    connection.create_table(:events) do |t|
+      t.text :body
+      t.timestamps
+    end
+    connection.execute(<<~SQL)
+      INSERT INTO events (body, created_at, updated_at)
+      VALUES ('Welcome', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    SQL
+    action_text_migration = MoveEventBodyToActionText.new
+    action_text_migration.instance_variable_set(:@connection, connection)
+
+    migration.suppress_messages { migration.up }
+    action_text_migration.suppress_messages { action_text_migration.up }
+
+    expect(quarantine_position).to be < action_text_position
+    expect(connection.table_exists?(:action_text_rich_texts)).to be(true)
+    expect(connection.table_exists?(:quarantined_20260915_action_text_rich_texts)).to be(false)
+    expect(connection.select_value(<<~SQL)).to eq('Welcome')
+      SELECT body FROM action_text_rich_texts
+      WHERE record_type = 'Event' AND record_id = 1 AND name = 'body'
+    SQL
   end
 end

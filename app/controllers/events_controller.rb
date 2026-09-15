@@ -21,7 +21,7 @@ class EventsController < ApplicationController
       redirect_to event_admin_path(@event, @event.admin_token)
     else
       set_placeholders
-      render :new
+      render :new, status: :unprocessable_content
     end
   end
 
