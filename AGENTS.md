@@ -36,24 +36,24 @@ documentation, logs, screenshots, or test fixtures.
 
 ## Current stack
 
-Verified against the repository on 2026-09-14; the version files remain authoritative.
+Verified against the repository on 2026-09-15; the version files remain authoritative.
 
 | Concern | Current implementation |
 | --- | --- |
 | Runtime | Ruby 3.3.4; Rails 8.1.3.1 in `Gemfile.lock` |
 | Framework defaults | `config.load_defaults 5.2`, with later defaults initializers |
 | Database | PostgreSQL; `events_development`, `events_test`, `events_production` |
-| UI | ERB, Simple Form, Bootstrap 4.6.2 |
-| Assets | Propshaft, cssbundling-rails/Dart Sass, importmap-rails, Turbo, Stimulus, Action Text/Trix 2.1.19; jQuery only for Bootstrap 4 |
+| UI | ERB, Simple Form, Bootstrap 5.3.8 |
+| Assets | Propshaft, jsbundling-rails/esbuild, cssbundling-rails/Dart Sass, Turbo, Stimulus, Action Text/Trix 2.1.19; locked with npm |
 | Storage | Active Storage; disk in development/test, S3 in production |
 | Mail | Action Mailer; file delivery in development, test delivery in test, SMTP in production; organizer-link delivery is synchronous |
 | Tests | RSpec, FactoryBot, WebMock; Rack Test by default, Selenium/headless Firefox for `js: true` system specs |
 | CI/deploy | CircleCI; Dokku app `easy-rsvp`, server configured through `DOKKU_HOST` |
 
-The modern Rails asset pipeline is installed, while Bootstrap 4 remains a
-deliberate compatibility step. Modernize Bootstrap separately behind browser
-coverage. Easy RSVP's `bin/ci` runs its own eager-loading, asset-compilation,
-and RSpec checks.
+The modern Rails asset pipeline and Bootstrap 5 are installed. The JavaScript
+bundle imports only Bootstrap's Alert and Modal plugins; the application has no
+jQuery dependency. Easy RSVP's `bin/ci` runs its own eager-loading,
+asset-compilation, and RSpec checks.
 
 ## Code map and domain rules
 
@@ -147,13 +147,15 @@ user to provide it.
 Never commit, push, or deploy automatically. CircleCI deploys successful `main`
 builds, so a push to `main` has a production side effect.
 
-Trix is provided by Rails' locked `action_text-trix` gem and loaded through the
-import map; do not add a separate application Trix build. Propshaft handles
-digests and Subresource Integrity, while cssbundling-rails compiles Bootstrap.
+Trix and the matching Action Text JavaScript are locked npm dependencies and
+loaded through the jsbundling-rails entry point, following the Rails generator's
+Node-bundling path; do not add a separate application Trix build. Propshaft
+handles digests and Subresource Integrity, esbuild compiles JavaScript, and
+cssbundling-rails compiles Bootstrap Sass.
 The Node buildpack runs before the Ruby buildpack in `.buildpacks`; keep that
-order. `bin/ci` installs and audits the locked npm and import-map graphs, builds
-CSS, and then precompiles assets. Node 24 is selected by `.node-version` locally and
-`package.json` during buildpack deploys.
+order. `bin/ci` installs and audits the locked npm graph, then uses Rails'
+`assets:precompile` hooks to build JavaScript and CSS. Node 24 is selected by
+`.node-version` locally and `package.json` during buildpack deploys.
 
 Application log formatters and Honeybadger notice callbacks redact organizer URL
 segments and UUID-shaped credentials. Honeybadger session reporting and Insights

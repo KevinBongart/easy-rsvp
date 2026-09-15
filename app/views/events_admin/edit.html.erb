@@ -12,6 +12,7 @@
 
   <%= f.label :body, 'More details (optional):' %>
   <%= f.rich_text_area :body,
+    aria: { label: 'More details (optional)' },
     data: {
       controller: 'rich-text',
       action: 'trix-file-accept->rich-text#acceptFile direct-upload:error->rich-text#uploadFailed direct-upload:end->rich-text#uploadFinished'
@@ -24,6 +25,6 @@
 
   <br>
 
-  <%= f.button :submit, class: 'btn-primary mr-2' %>
+  <%= f.button :submit, class: 'btn-primary me-2' %>
   <%= link_to "Back", event_admin_path(@event, @event.admin_token), class: 'btn-link' %>
 <% end %>

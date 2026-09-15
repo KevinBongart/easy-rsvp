@@ -152,6 +152,16 @@ RSpec.describe 'Firefox JavaScript smoke', type: :system, js: true do
     expect(rsvp.reload.name).to eq('Original name')
   end
 
+  it 'dismisses a flash message through the Bootstrap alert plugin' do
+    event = create(:event, :unpublished)
+
+    visit event_path(event)
+    expect(page).to have_css('.alert.show', text: 'This event is no longer viewable.')
+    find('.alert .btn-close').click
+
+    expect(page).to have_no_css('.alert')
+  end
+
   it 'cleans an open Bootstrap modal before Turbo caches its page' do
     rsvp = create(:rsvp)
     visit event_admin_path(rsvp.event, rsvp.event.admin_token)

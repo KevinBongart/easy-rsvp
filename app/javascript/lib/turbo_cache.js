@@ -1,5 +1,8 @@
+import Modal from "bootstrap/js/dist/modal"
+
 document.addEventListener("turbo:before-cache", () => {
   document.querySelectorAll(".modal.show").forEach((modal) => {
+    Modal.getInstance(modal)?.dispose()
     modal.classList.remove("show")
     modal.style.display = "none"
     modal.setAttribute("aria-hidden", "true")

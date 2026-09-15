@@ -19,12 +19,12 @@
 <% end %>
 
 <div data-controller="reveal">
-  <%= form_for [@event, @rsvp], html: { class: "form-inline #{'d-none' if @responded}", data: { reveal_target: 'content' } } do |f| %>
-    <%= f.label :name, "Your name:", class: "mr-2" %>
-    <%= f.text_field :name, class: 'form-control mr-2 mb-2 mb-md-0' %>
+  <%= form_for [@event, @rsvp], html: { class: "d-flex flex-wrap align-items-center gap-2 #{'d-none' if @responded}", data: { reveal_target: 'content' } } do |f| %>
+    <%= f.label :name, "Your name:" %>
+    <%= f.text_field :name, class: 'form-control w-auto' %>
 
     <% Rsvp::RESPONSES.each do |response| %>
-      <%= f.submit value: response.to_s.titleize, class: 'btn btn-primary mr-2' %>
+      <%= f.submit value: response.to_s.titleize, class: 'btn btn-primary' %>
     <% end %>
   <% end %>
 

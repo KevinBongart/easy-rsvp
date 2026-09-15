@@ -1,11 +1,12 @@
 import { Controller } from "@hotwired/stimulus"
+import Trix from "trix"
 
 const acceptedImageTypes = ["image/png", "image/jpeg", "image/gif", "image/webp"]
 const maximumImageSize = 10 * 1024 * 1024
 
 export default class extends Controller {
   connect() {
-    window.Trix.config.attachments.preview.caption = { name: false, size: false }
+    Trix.config.attachments.preview.caption = { name: false, size: false }
   }
 
   acceptFile(event) {
