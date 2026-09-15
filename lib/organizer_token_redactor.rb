@@ -10,13 +10,29 @@ module OrganizerTokenRedactor
     value.gsub(ORGANIZER_PATH, '\\1[FILTERED]').gsub(UUID, '[FILTERED]')
   end
 
-  # Rollbar payloads include URLs in request metadata, frames and messages.
   def self.scrub(value)
     case value
     when Hash then value.transform_values { |item| scrub(item) }
     when Array then value.map { |item| scrub(item) }
     when String then redact(value)
     else value
+    end
+  end
+
+  HONEYBADGER_NOTICE_FIELDS = %i[
+    error_message
+    context
+    cgi_data
+    params
+    session
+    url
+    local_variables
+    details
+  ].freeze
+
+  def self.scrub_honeybadger_notice(notice)
+    HONEYBADGER_NOTICE_FIELDS.each do |field|
+      notice.public_send("#{field}=", scrub(notice.public_send(field)))
     end
   end
 

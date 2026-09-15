@@ -1,0 +1,7 @@
+{
+  "scripts": {
+    "dokku": {
+      "postdeploy": "bin/notify_honeybadger_deploy"
+    }
+  }
+}

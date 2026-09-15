@@ -1,4 +1,5 @@
 Rails.application.routes.draw do
+  get "up" => "rails/health#show", as: :rails_health_check
   get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
   post "/rails/active_storage/direct_uploads" => "rich_text_direct_uploads#create", as: :rich_text_direct_uploads
 
