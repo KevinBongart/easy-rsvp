@@ -1,0 +1,23 @@
+---
+api_key: <%= ENV["HONEYBADGER_API_KEY"] %>
+revision: <%= ENV["GIT_REV"] %>
+
+development_environments:
+  - test
+  - development
+  - cucumber
+
+request:
+  disable_session: true
+  filter_keys:
+    - admin_token
+    - password
+    - password_confirmation
+    - email
+    - token
+    - secret
+    - authorization
+    - cookie
+
+insights:
+  enabled: false

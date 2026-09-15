@@ -493,7 +493,8 @@ provided; Bon App's accepted risks do not transfer.
   dependencies mean npm/Dependabot cannot track these checked-in JS copies.
 
 - [ ] **2.3 P1 — Keep organizer credentials out of URL logs.** Application
-  logger and Rollbar redaction are implemented with 200 passing tests. Proxy
+  logger and Honeybadger notice redaction are implemented and covered by the
+  suite. Proxy
   rollout and external collector verification remain; see
   [Organizer link privacy](ORGANIZER_LOG_PRIVACY.md). Original finding:
   Routes embed the credential in the path (`config/routes.rb:4`), and Rails'
@@ -658,10 +659,12 @@ provided; Bon App's accepted risks do not transfer.
   Security scans should become real gates rather than occasional local tools.
 
 - [ ] **7.2 P2 — Add a real health route and deployment verification.**
-  Production config silences `/up`, but a local request returns 404 because it
-  is treated as an event ID. Add a lightweight explicit route and verify boot,
-  release migrations, health, and one read path after authorized deployment.
-  Keep the real Dokku `Procfile`; no additional queue/deployment platform is needed.
+  Rails' lightweight `/up` route and a request regression are implemented. A
+  Dokku `postdeploy` task now reports the exact `GIT_REV` to Honeybadger and
+  propagates configuration/API failures instead of hiding missed deploy markers.
+  Production still needs an authorized verification of release migrations,
+  health, one read path, and the resulting Honeybadger deploy marker. Keep the
+  real Dokku `Procfile`; no additional queue/deployment platform is needed.
 
 - [ ] **7.3 P2 — Extend backup/recovery verification when operationally needed.**
   The new `db:pull_production` has strict local-target/confirmation guards,
@@ -691,7 +694,7 @@ provided; Bon App's accepted risks do not transfer.
 - **Runtime/asset baseline:** Rails eager loading and test-environment asset
   compilation pass; the sampled real-browser product flows work.
 - **Test side effects:** test config uses disk storage and test mail delivery;
-  Rollbar is explicitly disabled in test.
+  Honeybadger reporting is disabled in test.
 - **Source secrets:** `.env`, the credentials master key, temp backups, and the
   existing `db.dump` are not tracked by this checkout. This was a current-tree
   check, not a full Git-history secret scan.

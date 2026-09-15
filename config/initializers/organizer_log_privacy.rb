@@ -7,9 +7,8 @@ Rails.application.config.after_initialize do
   end
 end
 
-Rollbar.configure do |config|
-  config.scrub_fields |= [:admin_token]
-  config.transform << lambda do |payload|
-    payload.replace(OrganizerTokenRedactor.scrub(payload))
+Honeybadger.configure do |config|
+  config.before_notify do |notice|
+    OrganizerTokenRedactor.scrub_honeybadger_notice(notice)
   end
 end

@@ -98,7 +98,12 @@ These are server-rendered SVGs with CSS tooltips and no charting dependency.
 
 `bin/ci` writes JUnit results to `tmp/test-results/rspec.xml`. Failed system tests
 save screenshots under `tmp/screenshots/`; CircleCI retains both. CircleCI deploys
-successful `main` builds to Dokku. Bundler-audit and Brakeman are security gates in `bin/ci`; linting remains an assessment follow-up.
+successful `main` builds to Dokku. The app exposes Rails' lightweight `/up`
+health endpoint. After Dokku switches to a successful release, its `app.json`
+postdeploy task reports Dokku's exact `GIT_REV` to Honeybadger. The task fails
+visibly when its configuration or request fails, so a missing deploy marker
+cannot be mistaken for success. Bundler-audit and Brakeman are security gates in
+`bin/ci`; linting remains an assessment follow-up.
 
 ## Refresh development data from Dokku
 
@@ -132,6 +137,13 @@ restore the previous local database automatically if replacement fails.
 Also set `DOKKU_HOST` in CircleCI project environment variables before deploying.
 The deploy job uses its hostname portion and connects as the `dokku` user; the
 import task uses the full SSH destination.
+
+Configure `HONEYBADGER_API_KEY` in the Dokku app environment before merging a
+deployment that includes monitoring. A key in the local `.env` configures only
+local processes and is not copied to Dokku. Honeybadger error reporting is
+disabled in development and test; production reports exceptions without session
+data or Insights telemetry. Organizer-token URL segments and UUID-shaped values
+are scrubbed from both application logs and Honeybadger notices.
 
 The production database is only exported. The remote temporary dump is removed
 after copying; a cleanup failure is reported. Production and pre-import local

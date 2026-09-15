@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+readonly REPOSITORY_URL="https://github.com/KevinBongart/easy-rsvp"
+readonly DEPLOY_ENVIRONMENT="production"
+readonly DEPLOY_USER="dokku"
+
+: "${HONEYBADGER_API_KEY:?HONEYBADGER_API_KEY must be configured for deploy notifications}"
+: "${GIT_REV:?GIT_REV must contain the deployed revision}"
+
+exec bundle exec honeybadger deploy \
+  --skip-rails-load \
+  --repository="${REPOSITORY_URL}" \
+  --revision="${GIT_REV}" \
+  --environment="${DEPLOY_ENVIRONMENT}" \
+  --user="${DEPLOY_USER}"

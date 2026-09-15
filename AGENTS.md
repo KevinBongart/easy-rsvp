@@ -155,6 +155,9 @@ order. `bin/ci` installs and audits the locked npm and import-map graphs, builds
 CSS, and then precompiles assets. Node 24 is selected by `.node-version` locally and
 `package.json` during buildpack deploys.
 
-Application log formatters and Rollbar transforms redact organizer URL segments
-and UUID-shaped credentials. See `docs/ORGANIZER_LOG_PRIVACY.md` for proxy rollout;
-application redaction alone does not establish production proxy/log-collector privacy.
+Application log formatters and Honeybadger notice callbacks redact organizer URL
+segments and UUID-shaped credentials. Honeybadger session reporting and Insights
+are disabled. Dokku's `app.json` postdeploy task reports its injected `GIT_REV`
+and fails visibly on missing configuration or notification errors. See
+`docs/ORGANIZER_LOG_PRIVACY.md` for proxy rollout; application redaction alone
+does not establish production proxy/log-collector privacy.

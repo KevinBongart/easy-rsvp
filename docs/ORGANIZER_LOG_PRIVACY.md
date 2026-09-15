@@ -2,8 +2,10 @@
 
 Organizer links are bearer credentials. The application logger filters organizer
 path segments and UUID-shaped values before writing messages, including request
-starts, redirects, SQL diagnostics and tagged messages. Rollbar payloads receive
-the same recursive filtering; its `admin_token` field is also scrubbed. Public
+starts, redirects, SQL diagnostics and tagged messages. Honeybadger notices receive
+the same recursive filtering across the request URL, message, parameters, context,
+session, CGI data, local variables and details; its `admin_token` field is also
+filtered by Honeybadger. Public
 routes, authorization and shareable organizer links are unchanged.
 
 This does not rewrite old logs or configure the production proxy. During an
@@ -17,7 +19,7 @@ omits query strings, referrers and user agents and masks organizer paths.
 Nginx error logs can also include full request URLs; route these through a
 redacting log processor before collection, or establish a proxy configuration
 that does not record raw request URLs. This repo cannot attest to external log
-collectors, APM configuration, or retention without deployment inspection.
+collectors, Scout APM configuration, or retention without deployment inspection.
 Use synthetic organizer links to verify each sink. Restrict and expire historical
 logs according to the operator's retention policy; do not copy real tokens into
 issues or test fixtures. No historical log deletion or token rotation is performed
