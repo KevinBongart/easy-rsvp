@@ -2,7 +2,7 @@
   "name": "easy-rsvp",
   "private": true,
   "dependencies": {
-    "bootstrap": "4.6.2"
+    "bootstrap": "5.3.8"
   },
   "devDependencies": {
     "autoprefixer": "10.6.0",
