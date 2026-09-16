@@ -32,7 +32,7 @@ RSpec.describe 'Public events', type: :request do
   it 're-renders an invalid form without creating an event' do
     expect { post events_path, params: { event: { title: '', date: '' } } }.not_to change(Event, :count)
     expect(response).to have_http_status(:unprocessable_content)
-    expect(response.body).to include('Please tell us what you&#39;re planning.', '<trix-editor')
+    expect(response.body).to include('Your event needs a name!', '<trix-editor')
   end
 
   it 'does not accept protected creation attributes' do

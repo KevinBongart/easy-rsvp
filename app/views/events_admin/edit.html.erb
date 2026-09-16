@@ -1,7 +1,7 @@
 <h1>Edit your event</h1>
 
 <%= simple_form_for @event, url: event_admin_path(@event, @event.admin_token) do |f| %>
-  <%= f.input :title, error: "Please tell us what you're planning." %>
+  <%= f.input :title, error: 'Your event needs a name!' %>
 
   <%= f.input :date,
     label: 'When is this happening?',

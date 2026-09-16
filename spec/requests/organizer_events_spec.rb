@@ -43,7 +43,7 @@ RSpec.describe 'Organizer events', type: :request do
     patch event_admin_path(event, event.admin_token), params: { event: { title: '' } }
     expect(event.reload.title).to eq(original)
     expect(response).to have_http_status(:unprocessable_content)
-    expect(response.body).to include('Please tell us what you&#39;re planning.')
+    expect(response.body).to include('Your event needs a name!')
   end
 
   it 'can access an unpublished event with its organizer token' do
