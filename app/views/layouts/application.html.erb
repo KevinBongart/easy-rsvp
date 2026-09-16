@@ -9,6 +9,7 @@
     <%= csp_meta_tag %>
 
     <%= stylesheet_link_tag 'application', media: 'all', integrity: true, 'data-turbo-track': 'reload' %>
+    <%# esbuild emits an ES module; module scope also prevents bundled helper names from replacing browser globals. %>
     <%= javascript_include_tag 'application', type: 'module', integrity: true, 'data-turbo-track': 'reload' %>
 
     <%= render 'application/favicon' %>

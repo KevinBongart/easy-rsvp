@@ -189,9 +189,10 @@ remove that column in a later deploy after Action Text has run in production.
 Rich-text images render from their original blobs, so production does not need
 ImageMagick or libvips for this feature.
 Bootstrap 5.3.8 is compiled from its locked npm package. The JavaScript bundle
-imports only the Alert and Modal plugins used by the app. Bootstrap's Popper peer
-dependency remains locked, while jQuery and the old vendored JavaScript copies
-are gone.
+imports only the Alert and Modal plugins used by the app and is minified for
+delivery. Bootstrap's required Popper peer remains locked but is excluded from
+the bundle because neither plugin uses it. jQuery and the old vendored
+JavaScript copies are gone.
 
 Run `npm ci` after checking out or updating the lockfile. `bin/dev` runs Rails and
 the JavaScript and CSS watchers through `Procfile.dev`. `bin/ci` audits the locked
@@ -201,8 +202,10 @@ by `.node-version`; buildpack deploys follow the `24.x` range in `package.json`.
 
 Dokku uses the pinned Node and Ruby buildpacks in `.buildpacks`, in that order.
 The Node buildpack runs `npm ci` and `npm run build`; the Ruby buildpack then
-builds the CSS and precompiles both bundles with Propshaft. `BUILDPACK_URL` must
-not be set for the app because it overrides the ordered buildpack list.
+reinstalls the locked build dependencies through Rails' bundling hooks, rebuilds
+JavaScript and CSS, and precompiles both bundles with Propshaft. This remains
+valid after the Node buildpack prunes development dependencies. `BUILDPACK_URL`
+must not be set for the app because it overrides the ordered buildpack list.
 
 Organizer URL logging and proxy rollout are covered in
 [Organizer link privacy](docs/ORGANIZER_LOG_PRIVACY.md).
