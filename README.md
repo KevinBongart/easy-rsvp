@@ -204,8 +204,10 @@ Dokku uses the pinned Node and Ruby buildpacks in `.buildpacks`, in that order.
 The Node buildpack runs `npm ci` and `npm run build`; the Ruby buildpack then
 reinstalls the locked build dependencies through Rails' bundling hooks, rebuilds
 JavaScript and CSS, and precompiles both bundles with Propshaft. This remains
-valid after the Node buildpack prunes development dependencies. `BUILDPACK_URL`
-must not be set for the app because it overrides the ordered buildpack list.
+valid after the Node buildpack prunes development dependencies. Do not set
+`SKIP_YARN_INSTALL` on Dokku: unlike CI, the Ruby stage needs those install hooks
+to restore the pruned build tools. `BUILDPACK_URL` must not be set for the app
+because it overrides the ordered buildpack list.
 
 Organizer URL logging and proxy rollout are covered in
 [Organizer link privacy](docs/ORGANIZER_LOG_PRIVACY.md).

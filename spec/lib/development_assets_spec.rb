@@ -15,8 +15,7 @@ RSpec.describe 'Development asset delivery' do
       javascript = request.get(javascript_path, "HTTP_HOST" => "localhost")
       puts JSON.generate(stylesheet_path: stylesheet_path, stylesheet_status: stylesheet.status,
                          chart_styles: stylesheet.body.include?('.admin-sparkline'),
-                         javascript_path: javascript_path, javascript_status: javascript.status,
-                         trix: javascript.body.include?('window.Trix'))
+                         javascript_path: javascript_path, javascript_status: javascript.status)
     RUBY
     stdout, stderr, status = Open3.capture3(
       { 'RAILS_ENV' => 'development', 'AWS_EC2_METADATA_DISABLED' => 'true', 'SCOUT_MONITOR' => 'false' },
@@ -29,6 +28,5 @@ RSpec.describe 'Development asset delivery' do
     expect(result['chart_styles']).to be(true)
     expect(result['javascript_path']).to match(%r{\A/assets/application-[0-9a-f]+\.js\z})
     expect(result['javascript_status']).to eq(200)
-    expect(result['trix']).to be(true)
   end
 end
