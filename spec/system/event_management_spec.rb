@@ -4,7 +4,7 @@ RSpec.describe 'Event management forms', type: :system do
   it 'shows validation errors and preserves a submitted description', js: true do
     visit root_path
     click_button 'Create your event, for free!'
-    expect(page).to have_content("can't be blank")
+    expect(page).to have_content("Please tell us what you're planning.")
     expect(page).to have_field('What are you planning?')
   end
 
@@ -29,7 +29,7 @@ RSpec.describe 'Event management forms', type: :system do
     visit edit_event_admin_path(event, event.admin_token)
     fill_in 'Title', with: ''
     click_button 'Update Event'
-    expect(page).to have_content("can't be blank")
+    expect(page).to have_content("Please tell us what you're planning.")
     expect(event.reload.title).to eq('Keep this title')
   end
 

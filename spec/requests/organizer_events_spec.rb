@@ -26,6 +26,7 @@ RSpec.describe 'Organizer events', type: :request do
     get edit_event_admin_path(event, event.admin_token)
     expect(response).to have_http_status(:ok)
     expect(response.body).to include('event[show_rsvp_names]', '<trix-editor')
+    expect(Nokogiri::HTML(response.body).at_css('label.form-label.mb-2[for="event_body"]')).to be_present
   end
 
   it 'updates editable fields without rotating the credential' do
@@ -42,7 +43,7 @@ RSpec.describe 'Organizer events', type: :request do
     patch event_admin_path(event, event.admin_token), params: { event: { title: '' } }
     expect(event.reload.title).to eq(original)
     expect(response).to have_http_status(:unprocessable_content)
-    expect(response.body).to include('can&#39;t be blank')
+    expect(response.body).to include('Please tell us what you&#39;re planning.')
   end
 
   it 'can access an unpublished event with its organizer token' do

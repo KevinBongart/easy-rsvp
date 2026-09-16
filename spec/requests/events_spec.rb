@@ -7,6 +7,7 @@ RSpec.describe 'Public events', type: :request do
     page = Nokogiri::HTML(response.body)
     expect(response.body).to include('<trix-editor', 'event[title]', 'event[date(1i)]')
     expect(page.at_css('trix-editor[aria-label="More details (optional)"]')).to be_present
+    expect(page.at_css('label.form-label.mb-2[for="event_body"]')).to be_present
   end
 
   it 'loads the compiled asset entrypoints with Turbo tracking and integrity protection' do
@@ -31,7 +32,7 @@ RSpec.describe 'Public events', type: :request do
   it 're-renders an invalid form without creating an event' do
     expect { post events_path, params: { event: { title: '', date: '' } } }.not_to change(Event, :count)
     expect(response).to have_http_status(:unprocessable_content)
-    expect(response.body).to include('can&#39;t be blank', '<trix-editor')
+    expect(response.body).to include('Please tell us what you&#39;re planning.', '<trix-editor')
   end
 
   it 'does not accept protected creation attributes' do

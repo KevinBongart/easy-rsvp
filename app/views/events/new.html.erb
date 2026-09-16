@@ -5,7 +5,12 @@
 <br>
 
 <%= simple_form_for @event do |f| %>
-  <%= f.input :title, required: false, label: 'What are you planning?', placeholder: @placeholders[:title] %>
+  <%= f.input :title,
+    required: false,
+    label: 'What are you planning?',
+    placeholder: @placeholders[:title],
+    error: "Please tell us what you're planning."
+  %>
 
   <%= f.input :date,
     required: false,
@@ -16,7 +21,7 @@
 
   <br>
 
-  <%= f.label :body, 'More details (optional):' %>
+  <%= f.label :body, 'More details (optional):', class: 'form-label mb-2' %>
   <%= f.rich_text_area :body,
     placeholder: @placeholders[:body],
     aria: { label: 'More details (optional)' },
