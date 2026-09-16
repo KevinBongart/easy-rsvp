@@ -127,8 +127,6 @@ GEM
       bigdecimal
       rexml
     crass (1.0.7)
-    cssbundling-rails (1.4.3)
-      railties (>= 6.0.0)
     date (3.5.1)
     diff-lcs (1.6.2)
     dotenv (3.2.0)
@@ -411,7 +409,6 @@ DEPENDENCIES
   bundler-audit (~> 0.9)
   byebug
   capybara
-  cssbundling-rails
   dotenv-rails
   factory_bot_rails (~> 6.4)
   hashid-rails

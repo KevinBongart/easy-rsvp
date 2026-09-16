@@ -9,23 +9,16 @@
     "trix": "2.1.19"
   },
   "devDependencies": {
-    "autoprefixer": "10.6.0",
-    "esbuild": "0.28.2",
-    "nodemon": "3.1.14",
-    "postcss": "8.5.28",
-    "postcss-cli": "12.0.0",
-    "sass": "1.104.1"
+    "esbuild": "0.28.2"
   },
   "engines": {
     "node": "24.x"
   },
   "scripts": {
-    "build": "esbuild app/javascript/application.js --bundle --minify --sourcemap --format=esm --outdir=app/assets/builds --public-path=/assets",
-    "build:css": "npm run build:css:compile && npm run build:css:prefix",
-    "build:css:compile": "sass ./app/assets/stylesheets/application.bootstrap.scss:./app/assets/builds/application.css --no-source-map --load-path=node_modules --quiet-deps --silence-deprecation=import",
-    "build:css:prefix": "postcss ./app/assets/builds/application.css --use=autoprefixer --output=./app/assets/builds/application.css",
-    "watch:css": "nodemon --watch ./app/assets/stylesheets/ --ext scss,css --exec \"npm run build:css\"",
-    "watch:js": "npm run build -- --watch"
+    "build": "npm run build:js && npm run build:bootstrap",
+    "build:js": "esbuild app/javascript/application.js --bundle --minify --sourcemap --format=esm --outdir=app/assets/builds --public-path=/assets",
+    "build:bootstrap": "esbuild node_modules/bootstrap/dist/css/bootstrap.min.css --minify --outfile=app/assets/builds/bootstrap.css",
+    "watch:js": "npm run build:bootstrap && npm run build:js -- --watch"
   },
   "browserslist": [
     "defaults"

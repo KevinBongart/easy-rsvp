@@ -44,7 +44,7 @@ Verified against the repository on 2026-09-15; the version files remain authorit
 | Framework defaults | `config.load_defaults 5.2`, with later defaults initializers |
 | Database | PostgreSQL; `events_development`, `events_test`, `events_production` |
 | UI | ERB, Simple Form, Bootstrap 5.3.8 |
-| Assets | Propshaft, jsbundling-rails/esbuild, cssbundling-rails/Dart Sass, Turbo, Stimulus, Action Text/Trix 2.1.19; locked with npm |
+| Assets | Propshaft with directly served CSS, jsbundling-rails/esbuild, Turbo, Stimulus, Action Text/Trix 2.1.19; locked with npm |
 | Storage | Active Storage; disk in development/test, S3 in production |
 | Mail | Action Mailer; file delivery in development, test delivery in test, SMTP in production; organizer-link delivery is synchronous |
 | Tests | RSpec, FactoryBot, WebMock; Rack Test by default, Selenium/headless Firefox for `js: true` system specs |
@@ -123,7 +123,10 @@ Do not add pending markers for new failures without reproducing and documenting
 the defect. Regression expectations must continue to execute after fixes. No application services exist under `app/services` today; the
 production-database utility and command runner are unit-tested under `spec/lib`.
 
-`bin/dev` runs the Rails server and CSS watcher through Foreman. Development uploads and imported `amazon` blobs resolve to local disk under
+`bin/dev` runs the Rails server and JavaScript watcher through Foreman. Plain
+application CSS is served directly by Propshaft and updates on browser refresh,
+including when using `bin/rails server`. Development uploads and imported
+`amazon` blobs resolve to local disk under
 `storage/development`; organizer-link emails are written to `tmp/mail`. Imported
 images require a separately authorized local file copy; no remote fallback exists.
 Ordinary tests use local storage and test delivery. Do not exercise external side effects without the
@@ -151,10 +154,11 @@ Trix and the matching Action Text JavaScript are locked npm dependencies and
 loaded through the jsbundling-rails entry point, following the Rails generator's
 Node-bundling path; do not add a separate application Trix build. Propshaft
 handles digests and Subresource Integrity, esbuild compiles JavaScript, and
-cssbundling-rails compiles Bootstrap Sass.
+esbuild copies and minifies Bootstrap's CSS from its locked npm package.
 The Node buildpack runs before the Ruby buildpack in `.buildpacks`; keep that
 order. `bin/ci` installs and audits the locked npm graph, then uses Rails'
-`assets:precompile` hooks to build JavaScript and CSS. Node 24 is selected by
+`assets:precompile` hooks to build browser dependencies and fingerprint CSS.
+Node 24 is selected by
 `.node-version` locally and `package.json` during buildpack deploys.
 
 Application log formatters and Honeybadger notice callbacks redact organizer URL

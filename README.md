@@ -172,10 +172,13 @@ bundle exec rspec spec/lib/production_database_pull_spec.rb
 
 ## Assets and editor
 
-The application uses the standard Rails 8 asset stack: Propshaft for digests and
-delivery, jsbundling-rails/esbuild for JavaScript, Turbo for navigation, Stimulus
-for small interactions, and cssbundling-rails for Bootstrap's Sass. The layout
-loads integrity-protected CSS and JavaScript bundles with
+The application uses the standard Rails 8 asset stack: Propshaft for CSS, digests
+and delivery, jsbundling-rails/esbuild for browser dependencies, Turbo for
+navigation, and Stimulus for small interactions. esbuild copies and minifies
+Bootstrap's CSS from its locked npm package during the normal asset build.
+Propshaft serves the application's plain CSS directly, so app CSS edits appear
+on refresh without a build command or watcher. The layout loads
+integrity-protected CSS and JavaScript with
 `data-turbo-track="reload"`, so Turbo reloads the page when either compiled asset
 changes.
 
@@ -188,22 +191,23 @@ The migration retains the old `events.body` column while `Event` ignores it;
 remove that column in a later deploy after Action Text has run in production.
 Rich-text images render from their original blobs, so production does not need
 ImageMagick or libvips for this feature.
-Bootstrap 5.3.8 is compiled from its locked npm package. The JavaScript bundle
+Bootstrap 5.3.8 is built from its locked npm package. The JavaScript bundle
 imports only the Alert and Modal plugins used by the app and is minified for
 delivery. Bootstrap's required Popper peer remains locked but is excluded from
 the bundle because neither plugin uses it. jQuery and the old vendored
 JavaScript copies are gone.
 
 Run `npm ci` after checking out or updating the lockfile. `bin/dev` runs Rails and
-the JavaScript and CSS watchers through `Procfile.dev`. `bin/ci` audits the locked
-npm graph, builds both bundles through Rails' `assets:precompile` hooks, and
+the JavaScript watcher through `Procfile.dev`; `bin/rails server` is enough when
+only editing Ruby, views, or CSS. `bin/ci` audits the locked npm graph, builds the
+browser dependencies through Rails' `assets:precompile` hook, and
 exercises the real Firefox paste/upload specs. Node 24.13.0 is selected locally
 by `.node-version`; buildpack deploys follow the `24.x` range in `package.json`.
 
 Dokku uses the pinned Node and Ruby buildpacks in `.buildpacks`, in that order.
 The Node buildpack runs `npm ci` and `npm run build`; the Ruby buildpack then
-reinstalls the locked build dependencies through Rails' bundling hooks, rebuilds
-JavaScript and CSS, and precompiles both bundles with Propshaft. This remains
+reinstalls the locked build dependencies through Rails' bundling hook, rebuilds
+the browser dependencies, and precompiles all assets with Propshaft. This remains
 valid after the Node buildpack prunes development dependencies. Do not set
 `SKIP_YARN_INSTALL` on Dokku: unlike CI, the Ruby stage needs those install hooks
 to restore the pruned build tools. `BUILDPACK_URL` must not be set for the app

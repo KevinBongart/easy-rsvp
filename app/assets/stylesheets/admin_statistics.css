@@ -1,0 +1,78 @@
+.admin-stat-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 16px;
+  margin-bottom: 8px;
+}
+
+.admin-stat-label {
+  flex: 0 1 360px;
+}
+
+.admin-sparkline {
+  position: relative;
+  flex: 0 0 160px;
+  width: 160px;
+  height: 20px;
+}
+
+.admin-sparkline svg {
+  display: block;
+  fill: none;
+  stroke: #0063dc;
+  stroke-width: 1.25;
+  stroke-linejoin: round;
+}
+
+.admin-sparkline circle.sparkline-actual {
+  fill: #0063dc;
+}
+
+.admin-sparkline .sparkline-endpoint {
+  fill: white;
+}
+
+.admin-sparkline .sparkline-projection {
+  stroke-dasharray: 3 3;
+}
+
+.admin-sparkline .sparkline-hit-area {
+  position: absolute;
+  top: -4px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  cursor: crosshair;
+}
+
+.admin-sparkline .sparkline-hit-area:hover,
+.admin-sparkline .sparkline-hit-area:focus {
+  outline: 1px solid rgba(0, 99, 220, .45);
+  background: rgba(0, 99, 220, .08);
+}
+
+.admin-sparkline .sparkline-tooltip {
+  position: absolute;
+  z-index: 10;
+  bottom: 28px;
+  left: 0;
+  width: max-content;
+  max-width: 250px;
+  padding: 5px 8px;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  background: white;
+  color: #222;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .1);
+  font-size: 12px;
+  line-height: 1.4;
+  visibility: hidden;
+}
+
+.admin-sparkline .sparkline-point:hover .sparkline-tooltip,
+.admin-sparkline .sparkline-point:focus-within .sparkline-tooltip {
+  visibility: visible;
+}
