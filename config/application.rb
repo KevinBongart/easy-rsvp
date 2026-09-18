@@ -24,8 +24,8 @@ module EasyRsvp
     # Initialize configuration defaults for originally generated Rails version.
     config.load_defaults 7.0
 
-    # Existing RSVP session cookies and persisted Action Text attachment SGIDs
-    # were signed with SHA-1. Keep them readable until they have a migration path.
+    # Keys for existing RSVP session cookies and persisted Action Text attachment
+    # SGIDs were derived with SHA-1. Keep them readable until they have a migration path.
     config.active_support.key_generator_hash_digest_class = OpenSSL::Digest::SHA1
 
     # Please, add to the `ignore` list any other `lib` subdirectories that do
