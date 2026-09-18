@@ -655,8 +655,8 @@ provided; Bon App's accepted risks do not transfer.
   and asset compatibility.
 
 - [ ] **6.2 P2 — Finish framework-default adoption consciously.**
-  Rails 6.0 defaults are adopted as the first incremental step from the original
-  5.2 baseline. Continue one framework version per reviewed PR, especially around
+  Rails 6.1 defaults are adopted incrementally from the original 5.2 baseline.
+  Continue one framework version per reviewed PR, especially around
   cookies/serialization, redirects, time handling, and assets. Resolve the
   observed Rails 8.1 timezone-preservation deprecation with a behavior test. Do
   not just delete the files and switch defaults blindly.
