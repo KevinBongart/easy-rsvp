@@ -4,7 +4,7 @@ RSpec.describe 'Framework defaults' do
   it 'loads the selected framework defaults' do
     config = Rails.application.config
 
-    expect(config.loaded_config_version).to eq(8.0)
+    expect(config.loaded_config_version).to eq(8.1)
   end
 
   it 'retains the Rails 6.0 cookie and Active Record defaults' do
@@ -56,7 +56,6 @@ RSpec.describe 'Framework defaults' do
   it 'adopts the Rails 7.2 PostgreSQL and Active Storage defaults' do
     config = Rails.application.config
 
-    expect(config.yjit).to be(true)
     expect(config.active_record.postgresql_adapter_decode_dates).to be(true)
     expect(config.active_record.validate_migration_timestamps).to be(true)
     expect(config.active_storage.web_image_content_types).to include('image/webp')
@@ -77,5 +76,21 @@ RSpec.describe 'Framework defaults' do
       expect(converted_time.zone).to eq(zoned_time.time_zone)
       expect(converted_time.utc_offset).to eq(zoned_time.utc_offset)
     end
+  end
+
+  it 'adopts the Rails 8.1 controller and runtime defaults' do
+    config = Rails.application.config
+
+    expect(config.yjit).to eq(!Rails.env.local?)
+    expect(config.action_controller.escape_json_responses).to be(false)
+    expect(config.action_controller.action_on_path_relative_redirect).to eq(:raise)
+  end
+
+  it 'adopts the Rails 8.1 Active Record and view defaults' do
+    config = Rails.application.config
+
+    expect(config.active_record.raise_on_missing_required_finder_order_columns).to be(true)
+    expect(config.action_view.render_tracker).to eq(:ruby)
+    expect(config.action_view.remove_hidden_field_autocomplete).to be(true)
   end
 end
