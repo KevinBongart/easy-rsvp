@@ -28,6 +28,10 @@ module EasyRsvp
     # SGIDs were derived with SHA-1. Keep them readable until they have a migration path.
     config.active_support.key_generator_hash_digest_class = OpenSSL::Digest::SHA1
 
+    # Rails enables YJIT in production. Keep a deploy-time off switch for hosts
+    # where its executable-memory overhead exceeds the available headroom.
+    config.yjit = false if ENV['RAILS_YJIT'] == 'false'
+
     # Please, add to the `ignore` list any other `lib` subdirectories that do
     # not contain `.rb` files, or that should not be reloaded or eager loaded.
     # Common ones are `templates`, `generators`, or `middleware`, for example.
