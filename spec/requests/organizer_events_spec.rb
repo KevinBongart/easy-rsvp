@@ -9,10 +9,24 @@ RSpec.describe 'Organizer events', type: :request do
     expect(response.body).to include(event.admin_token, 'id="public-link"')
   end
 
+  it 'renders Bootstrap 5 modal controls with unique form field IDs' do
+    create_list(:rsvp, 2, event: event)
+
+    get event_admin_path(event, event.admin_token)
+    page = Nokogiri::HTML(response.body)
+
+    expect(page.css('a[data-bs-toggle="modal"][data-bs-target^="#rsvp_"]').length).to eq(2)
+    expect(page.css('button[data-bs-dismiss="modal"]').length).to eq(2)
+    expect(page.css('[data-toggle], [data-target], [data-dismiss]')).to be_empty
+    name_ids = page.css('.modal input[name="rsvp[name]"]').map { |input| input['id'] }
+    expect(name_ids.uniq.length).to eq(2)
+  end
+
   it 'renders the edit form for the correct token' do
     get edit_event_admin_path(event, event.admin_token)
     expect(response).to have_http_status(:ok)
     expect(response.body).to include('event[show_rsvp_names]', '<trix-editor')
+    expect(Nokogiri::HTML(response.body).at_css('label.form-label.mb-2[for="event_body"]')).to be_present
   end
 
   it 'updates editable fields without rotating the credential' do
@@ -29,7 +43,7 @@ RSpec.describe 'Organizer events', type: :request do
     patch event_admin_path(event, event.admin_token), params: { event: { title: '' } }
     expect(event.reload.title).to eq(original)
     expect(response).to have_http_status(:unprocessable_content)
-    expect(response.body).to include('can&#39;t be blank')
+    expect(response.body).to include('Your event needs a name!')
   end
 
   it 'can access an unpublished event with its organizer token' do

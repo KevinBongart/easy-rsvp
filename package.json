@@ -2,24 +2,21 @@
   "name": "easy-rsvp",
   "private": true,
   "dependencies": {
-    "bootstrap": "4.6.2"
+    "@hotwired/stimulus": "3.2.2",
+    "@hotwired/turbo-rails": "8.0.23",
+    "@rails/actiontext": "8.1.301",
+    "bootstrap": "5.3.8",
+    "trix": "2.1.19"
   },
   "devDependencies": {
-    "autoprefixer": "10.6.0",
-    "nodemon": "3.1.14",
-    "postcss": "8.5.28",
-    "postcss-cli": "12.0.0",
-    "sass": "1.104.1"
+    "esbuild": "0.28.2"
   },
   "engines": {
     "node": "24.x"
   },
   "scripts": {
-    "build": "npm run build:css",
-    "build:css": "npm run build:css:compile && npm run build:css:prefix",
-    "build:css:compile": "sass ./app/assets/stylesheets/application.bootstrap.scss:./app/assets/builds/application.css --no-source-map --load-path=node_modules --quiet-deps --silence-deprecation=import",
-    "build:css:prefix": "postcss ./app/assets/builds/application.css --use=autoprefixer --output=./app/assets/builds/application.css",
-    "watch:css": "nodemon --watch ./app/assets/stylesheets/ --ext scss,css --exec \"npm run build:css\""
+    "build": "esbuild app/javascript/application.js --bundle --minify --sourcemap --format=esm --outdir=app/assets/builds --public-path=/assets",
+    "watch:js": "npm run build -- --watch"
   },
   "browserslist": [
     "defaults"

@@ -1,7 +1,7 @@
 <h1>Edit your event</h1>
 
 <%= simple_form_for @event, url: event_admin_path(@event, @event.admin_token) do |f| %>
-  <%= f.input :title %>
+  <%= f.input :title, error: 'Your event needs a name!' %>
 
   <%= f.input :date,
     label: 'When is this happening?',
@@ -10,8 +10,9 @@
   %>
 
 
-  <%= f.label :body, 'More details (optional):' %>
+  <%= f.label :body, 'More details (optional):', class: 'form-label mb-2' %>
   <%= f.rich_text_area :body,
+    aria: { label: 'More details (optional)' },
     data: {
       controller: 'rich-text',
       action: 'trix-file-accept->rich-text#acceptFile direct-upload:error->rich-text#uploadFailed direct-upload:end->rich-text#uploadFinished'
@@ -24,6 +25,6 @@
 
   <br>
 
-  <%= f.button :submit, class: 'btn-primary mr-2' %>
+  <%= f.button :submit, class: 'btn-primary me-2' %>
   <%= link_to "Back", event_admin_path(@event, @event.admin_token), class: 'btn-link' %>
 <% end %>

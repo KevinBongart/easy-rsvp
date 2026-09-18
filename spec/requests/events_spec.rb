@@ -4,17 +4,22 @@ RSpec.describe 'Public events', type: :request do
   it 'renders the creation form and editor' do
     get root_path
     expect(response).to have_http_status(:ok)
+    page = Nokogiri::HTML(response.body)
     expect(response.body).to include('<trix-editor', 'event[title]', 'event[date(1i)]')
+    expect(page.at_css('trix-editor[aria-label="More details (optional)"]')).to be_present
+    expect(page.at_css('label.form-label.mb-2[for="event_body"]')).to be_present
   end
 
-  it 'loads the modern asset entrypoints with Turbo tracking and integrity-protected preloads' do
+  it 'loads the compiled asset entrypoints with Turbo tracking and integrity protection' do
     get root_path
     page = Nokogiri::HTML(response.body)
 
-    expect(page.at_css('link[rel="stylesheet"][data-turbo-track="reload"]')).to be_present
-    expect(page.at_css('script[type="importmap"][data-turbo-track="reload"]')).to be_present
-    expect(page.css('link[rel="modulepreload"][integrity^="sha256-"]')).not_to be_empty
-    expect(response.body).to include('@hotwired/turbo-rails', '@rails/actiontext', 'controllers/rich_text_controller', 'lib/turbo_cache')
+    stylesheet = page.at_css('link[rel="stylesheet"][href*="/assets/application-"][data-turbo-track="reload"]')
+    expect(stylesheet).to be_present
+    expect(stylesheet['integrity']).to start_with('sha256-')
+    script = page.at_css('script[type="module"][src*="/assets/application-"][data-turbo-track="reload"]')
+    expect(script).to be_present
+    expect(script['integrity']).to start_with('sha256-')
   end
 
   it 'creates an event and redirects only its creator to the organizer URL' do
@@ -29,7 +34,7 @@ RSpec.describe 'Public events', type: :request do
   it 're-renders an invalid form without creating an event' do
     expect { post events_path, params: { event: { title: '', date: '' } } }.not_to change(Event, :count)
     expect(response).to have_http_status(:unprocessable_content)
-    expect(response.body).to include('can&#39;t be blank', '<trix-editor')
+    expect(response.body).to include('Your event needs a name!', '<trix-editor')
   end
 
   it 'does not accept protected creation attributes' do

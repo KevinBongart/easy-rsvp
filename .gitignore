@@ -17,7 +17,7 @@
 /storage/*
 
 /node_modules
-/yarn-error.log
+/npm-debug.log*
 /app/assets/builds/*
 !/app/assets/builds/.keep
 

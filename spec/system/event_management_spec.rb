@@ -3,8 +3,10 @@ require 'rails_helper'
 RSpec.describe 'Event management forms', type: :system do
   it 'shows validation errors and preserves a submitted description', js: true do
     visit root_path
+    expect(page.evaluate_script("getComputedStyle(document.querySelector('input[type=submit]')).color")).to eq('rgb(255, 255, 255)')
+    expect(page.evaluate_script("getComputedStyle(document.querySelector('input[type=submit]')).backgroundColor")).to eq('rgb(0, 123, 255)')
     click_button 'Create your event, for free!'
-    expect(page).to have_content("can't be blank")
+    expect(page).to have_content('Your event needs a name!')
     expect(page).to have_field('What are you planning?')
   end
 
@@ -29,7 +31,7 @@ RSpec.describe 'Event management forms', type: :system do
     visit edit_event_admin_path(event, event.admin_token)
     fill_in 'Title', with: ''
     click_button 'Update Event'
-    expect(page).to have_content("can't be blank")
+    expect(page).to have_content('Your event needs a name!')
     expect(event.reload.title).to eq('Keep this title')
   end
 

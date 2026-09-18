@@ -152,11 +152,22 @@ RSpec.describe 'Firefox JavaScript smoke', type: :system, js: true do
     expect(rsvp.reload.name).to eq('Original name')
   end
 
+  it 'dismisses a flash message through the Bootstrap alert plugin' do
+    event = create(:event, :unpublished)
+
+    visit event_path(event)
+    expect(page).to have_css('.alert.show', text: 'This event is no longer viewable.')
+    find('.alert .btn-close').click
+
+    expect(page).to have_no_css('.alert')
+  end
+
   it 'cleans an open Bootstrap modal before Turbo caches its page' do
     rsvp = create(:rsvp)
     visit event_admin_path(rsvp.event, rsvp.event.admin_token)
     open_response_modal
     expect(page).to have_css('body.modal-open, .modal-backdrop')
+    expect(page.evaluate_script('document.body.style.overflow')).to eq('hidden')
 
     page.execute_script('Turbo.visit(arguments[0])', event_path(rsvp.event))
     expect(page).to have_current_path(event_path(rsvp.event))
@@ -164,5 +175,11 @@ RSpec.describe 'Firefox JavaScript smoke', type: :system, js: true do
 
     expect(page).to have_current_path(event_admin_path(rsvp.event, rsvp.event.admin_token))
     expect(page).to have_no_css('body.modal-open, .modal-backdrop, .modal.show')
+    expect(page.evaluate_script('document.body.style.overflow')).to eq('')
+
+    modal = find('.modal', visible: :all)
+    expect(modal['aria-hidden']).to eq('true')
+    expect(modal['aria-modal']).to be_nil
+    expect(modal['role']).to be_nil
   end
 end

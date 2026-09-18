@@ -8,11 +8,11 @@ gem 'rails', '~> 8.1.3', '>= 8.1.3.1'
 
 gem "aws-sdk-s3", require: false
 gem 'bootsnap', require: false
-gem 'cssbundling-rails'
+gem 'dartsass-rails', '~> 0.5.1'
 gem 'hashid-rails'
 gem 'honeybadger', '~> 6.9'
-gem 'importmap-rails'
 gem 'jbuilder'
+gem 'jsbundling-rails'
 gem 'kaminari'
 gem 'net-imap'
 gem 'net-pop'

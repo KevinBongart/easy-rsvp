@@ -10,12 +10,11 @@ Application reference: [AGENTS.md](../AGENTS.md).
 
 ## Modern Rails assets and rich text — 2026-09-14
 
-The asset portion of Phase 5.2 is implemented on
-`codex/modern-rails-assets-action-text`. Sprockets, SassC, CoffeeScript, Rails
-UJS, and Turbolinks are replaced by Propshaft, cssbundling-rails/Dart Sass,
-importmap-rails, Turbo, and Stimulus. Bootstrap remains at 4.6.2 as a separate
-compatibility step. Its JavaScript dependencies are browser-ready import-map
-pins, while its Sass is built by the standard CSS bundling task.
+The asset portion of Phase 5.2 began on `codex/modern-rails-assets-action-text`.
+Sprockets, SassC, CoffeeScript, Rails UJS, and Turbolinks were replaced by
+Propshaft, Turbo, and Stimulus. Bootstrap initially remained at 4.6.2 as a
+compatibility step; the later Bootstrap 5 follow-up moved its JavaScript into
+the npm/esbuild bundle and its Sass into dartsass-rails.
 
 Event descriptions now use Action Text. Existing `events.body` values are
 backfilled into `action_text_rich_texts`; Rails' Trix and Action Text assets load
@@ -45,6 +44,24 @@ scans, eager loading, npm and import-map audits, Propshaft compilation, and **20
 0 failures and 0 pending**. The Action Text migration also passes a test-database
 down/up cycle. Upload ownership/expiry remains deferred under 2.4, and Bootstrap
 5 remains the unfinished part of 5.2.
+
+## Bootstrap 5 and JavaScript bundling — 2026-09-15
+
+Bootstrap is updated to 5.3.8 with its official Simple Form wrappers and renamed
+markup/data attributes. jQuery, legacy Popper, importmap-rails, and all vendored
+JavaScript copies are removed. jsbundling-rails now invokes esbuild through the
+standard `assets:precompile` hook; the single locked npm graph owns Turbo,
+Stimulus, Trix, Action Text, Bootstrap, and Bootstrap's current Popper peer.
+Only Bootstrap's Alert and Modal plugins enter the application bundle.
+
+The layout serves integrity-protected, Turbo-tracked CSS and JavaScript.
+`bin/dev` runs the Dart Sass and JavaScript watchers, so SCSS changes rebuild
+automatically without manual asset tasks. `bin/ci` installs and audits npm once
+before Rails builds both entrypoints and precompiles all assets. The official
+Stimulus controller manifest and Simple
+Form Bootstrap 5 template replace import-map loading and the legacy wrappers.
+Modal controls now have Bootstrap 5 attributes, unique form field IDs and an
+accessible label; Trix editors have explicit accessible names.
 
 ## RSVP response constraint validation — 2026-09-09
 
@@ -594,17 +611,18 @@ provided; Bon App's accepted risks do not transfer.
 ## Phase 5 — Frontend and accessibility
 
 - [ ] **5.1 P2 — Fix concrete markup issues before a redesign.**
-  `app/views/events_admin/show.html.erb:90` gives every modal an
-  `aria-labelledby="emailModalLabel"` reference, but no such label exists;
-  repeated RSVP fields reuse IDs. The Close button at line 107 has no explicit
-  `type="button"`. In the observed Firefox/Bootstrap interaction Close did
-  **not** persist a changed name, so this is markup hardening rather than a
-  reproduced unintended-save bug. Editor labels target a hidden field, while
-  `<trix-editor>` has no explicit accessible name; verify with accessibility
-  tooling and name the actual control. Add keyboard/focus and narrow-screen
-  checks to the browser suite, including the organizer's long secret-link text.
+  Bootstrap 5 migration fixed the missing modal name, repeated RSVP field IDs,
+  implicit Close-button type, and unnamed Trix controls. The Firefox suite proves
+  Close does not save changes and covers modal focus/opening behavior. A focused
+  accessibility-tool pass and narrow-screen check of the organizer's long secret
+  link remain.
 
-- [ ] **5.2 P2 — Modernize incrementally, with the current UI as a baseline.**
+- [x] **5.2 P2 — Modernize incrementally, with the current UI as a baseline.**
+  Completed with Propshaft, dartsass-rails, jsbundling-rails/esbuild, Turbo,
+  Stimulus, Action Text/Trix, and Bootstrap 5.3.8. Browser dependencies are owned
+  by one npm lockfile; jQuery and vendored JavaScript are removed. Firefox covers
+  editor, uploads, navigation, clipboard, RSVP actions, Bootstrap modals, and
+  Turbo snapshot cleanup. Original finding:
   Bootstrap 4, Sprockets/SassC, CoffeeScript, jQuery, UJS, and Turbolinks are real
   current dependencies. Plan a measured path toward the playbook's Bootstrap 5,
   modern Rails assets, and small Stimulus/Turbo enhancements. Do not simultaneously
@@ -640,13 +658,12 @@ provided; Bon App's accepted risks do not transfer.
   and assets. Resolve the observed Rails 8.1 timezone-preservation deprecation
   with a behavior test. Do not just delete the files and switch defaults blindly.
 
-- [ ] **6.3 P2 — Make browser/runtime dependency ownership explicit.**
-  `.node-version` pins 14.15.4 while `package.json` has no dependencies; JavaScript
-  is served from gems/vendor and Node may still be an ExecJS runtime for assets.
-  Decide its build role, update or remove the pin accordingly, and cover that
-  path in CI. Keep required mail adapter gems until their dependency/runtime
-  purpose is verified; absence of an application-level `Net::SMTP` call alone
-  does not prove the mail stack can remove them.
+- [x] **6.3 P2 — Make browser/runtime dependency ownership explicit.**
+  Node 24 is aligned across `.node-version`, `package.json`, CircleCI and the Node
+  buildpack. npm owns the browser graph, esbuild builds JavaScript, dartsass-rails
+  builds Bootstrap and application SCSS, and Propshaft fingerprints both outputs.
+  CI installs and audits the same lockfile before compiling.
+  Required mail adapter gems remain pending a separate runtime review.
 
 ## Phase 7 — CI and operations follow-up
 
