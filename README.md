@@ -185,7 +185,9 @@ are locked npm dependencies and imported by the application entry point, as the
 Action Text generator does for Node-bundled Rails apps. There is no custom Trix
 download or build script.
 The original `events.body` values were migrated into Action Text before the
-legacy column was removed in a later deployment.
+legacy column was removed in a later deployment. That removal backfills any
+missing Action Text rows and preserves divergent cutover values in
+`legacy_event_body_conflicts` for explicit review.
 Rich-text images render from their original blobs, so production does not need
 ImageMagick or libvips for this feature.
 Bootstrap 5.3.8 is built from its locked npm package. The JavaScript bundle

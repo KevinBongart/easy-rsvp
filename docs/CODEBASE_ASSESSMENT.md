@@ -32,9 +32,11 @@ and tracks the compiled stylesheet for Turbo reloads.
 
 The initial migration retained `events.body` while production moved to Action
 Text. After that compatibility period, a later migration removed the legacy
-column and its temporary `ignored_columns` declaration. Rich-text images use
-original blob URLs, avoiding an undeclared ImageMagick/libvips runtime dependency
-and first-render variant processing.
+column and its temporary `ignored_columns` declaration. The removal repairs
+missing Action Text rows and preserves divergent legacy values in
+`legacy_event_body_conflicts` rather than guessing which version is newer.
+Rich-text images use original blob URLs, avoiding an undeclared ImageMagick/libvips
+runtime dependency and first-render variant processing.
 
 The Firefox suite covers Turbo navigation, rich-text creation/editing/paste,
 image persistence after save/reload/edit, invalid-file retry, direct-upload

@@ -69,6 +69,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_18_153000) do
     t.datetime "updated_at", precision: nil, null: false
   end
 
+  create_table "legacy_event_body_conflicts", force: :cascade do |t|
+    t.datetime "action_text_updated_at", null: false
+    t.text "body", null: false
+    t.datetime "created_at", null: false
+    t.bigint "event_id", null: false
+    t.datetime "legacy_updated_at", null: false
+    t.index ["event_id"], name: "index_legacy_event_body_conflicts_on_event_id", unique: true
+  end
+
   create_table "rsvps", force: :cascade do |t|
     t.datetime "created_at", precision: nil, null: false
     t.bigint "event_id"
@@ -80,5 +89,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_18_153000) do
   end
 
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "legacy_event_body_conflicts", "events", on_delete: :cascade
   add_foreign_key "rsvps", "events"
 end
