@@ -6,7 +6,7 @@ class RemoveLegacyBodyFromEvents < ActiveRecord::Migration[8.1]
         index: { unique: true },
         foreign_key: { on_delete: :cascade }
       t.text :body, null: false
-      t.datetime :legacy_updated_at, null: false
+      t.datetime :event_updated_at, null: false
       t.datetime :action_text_updated_at, null: false
       t.datetime :created_at, null: false
     end
@@ -37,7 +37,7 @@ class RemoveLegacyBodyFromEvents < ActiveRecord::Migration[8.1]
     # value for explicit inspection instead of guessing which version is newer.
     execute <<~SQL.squish
       INSERT INTO legacy_event_body_conflicts
-        (event_id, body, legacy_updated_at, action_text_updated_at, created_at)
+        (event_id, body, event_updated_at, action_text_updated_at, created_at)
       SELECT
         events.id, events.body, events.updated_at,
         action_text_rich_texts.updated_at, CURRENT_TIMESTAMP

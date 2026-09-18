@@ -51,6 +51,8 @@ RSpec.describe RemoveLegacyBodyFromEvents do
     migration.suppress_messages { migration.up }
 
     expect(connection.column_exists?(:events, :body)).to be(false)
+    expect(connection.column_exists?(:legacy_event_body_conflicts, :event_updated_at)).to be(true)
+    expect(connection.column_exists?(:legacy_event_body_conflicts, :legacy_updated_at)).to be(false)
     expect(rich_text_body(missing_id)).to eq('<p>Missing <img src="legacy.png"></p>')
     expect(rich_text_body(equal_id)).to eq('<p>Equal</p>')
     expect(rich_text_body(divergent_id)).to eq('<p>Action Text version</p>')

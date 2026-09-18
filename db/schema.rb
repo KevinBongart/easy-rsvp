@@ -74,7 +74,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_18_153000) do
     t.text "body", null: false
     t.datetime "created_at", null: false
     t.bigint "event_id", null: false
-    t.datetime "legacy_updated_at", null: false
+    t.datetime "event_updated_at", null: false
     t.index ["event_id"], name: "index_legacy_event_body_conflicts_on_event_id", unique: true
   end
 
