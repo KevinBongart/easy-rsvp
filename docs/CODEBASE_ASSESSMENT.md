@@ -655,11 +655,11 @@ provided; Bon App's accepted risks do not transfer.
   and asset compatibility.
 
 - [ ] **6.2 P2 — Finish framework-default adoption consciously.**
-  `config/application.rb:25` still loads Rails 5.2 defaults. The 7.0, 7.2, and
-  8.0 defaults files contain only commented proposals. Choose and test defaults
-  incrementally, especially cookies/serialization, redirects, time handling,
-  and assets. Resolve the observed Rails 8.1 timezone-preservation deprecation
-  with a behavior test. Do not just delete the files and switch defaults blindly.
+  Rails 6.0 defaults are adopted as the first incremental step from the original
+  5.2 baseline. Continue one framework version per reviewed PR, especially around
+  cookies/serialization, redirects, time handling, and assets. Resolve the
+  observed Rails 8.1 timezone-preservation deprecation with a behavior test. Do
+  not just delete the files and switch defaults blindly.
 
 - [x] **6.3 P2 — Make browser/runtime dependency ownership explicit.**
   Node 24 is aligned across `.node-version`, `package.json`, CircleCI and the Node
