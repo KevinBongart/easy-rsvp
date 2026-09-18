@@ -8,6 +8,7 @@ gem 'rails', '~> 8.1.3', '>= 8.1.3.1'
 
 gem "aws-sdk-s3", require: false
 gem 'bootsnap', require: false
+gem 'dartsass-rails', '~> 0.5.1'
 gem 'hashid-rails'
 gem 'honeybadger', '~> 6.9'
 gem 'jbuilder'

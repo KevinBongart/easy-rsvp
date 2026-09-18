@@ -15,10 +15,8 @@
     "node": "24.x"
   },
   "scripts": {
-    "build": "npm run build:js && npm run build:bootstrap",
-    "build:js": "esbuild app/javascript/application.js --bundle --minify --sourcemap --format=esm --outdir=app/assets/builds --public-path=/assets",
-    "build:bootstrap": "esbuild node_modules/bootstrap/dist/css/bootstrap.min.css --minify --outfile=app/assets/builds/bootstrap.css",
-    "watch:js": "npm run build:bootstrap && npm run build:js -- --watch"
+    "build": "esbuild app/javascript/application.js --bundle --minify --sourcemap --format=esm --outdir=app/assets/builds --public-path=/assets",
+    "watch:js": "npm run build -- --watch"
   },
   "browserslist": [
     "defaults"

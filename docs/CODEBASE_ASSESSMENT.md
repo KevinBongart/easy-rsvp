@@ -14,7 +14,7 @@ The asset portion of Phase 5.2 began on `codex/modern-rails-assets-action-text`.
 Sprockets, SassC, CoffeeScript, Rails UJS, and Turbolinks were replaced by
 Propshaft, Turbo, and Stimulus. Bootstrap initially remained at 4.6.2 as a
 compatibility step; the later Bootstrap 5 follow-up moved its JavaScript into
-the npm/esbuild bundle and builds its packaged CSS through esbuild.
+the npm/esbuild bundle and its Sass into dartsass-rails.
 
 Event descriptions now use Action Text. Existing `events.body` values are
 backfilled into `action_text_rich_texts`; Rails' Trix and Action Text assets load
@@ -54,11 +54,11 @@ standard `assets:precompile` hook; the single locked npm graph owns Turbo,
 Stimulus, Trix, Action Text, Bootstrap, and Bootstrap's current Popper peer.
 Only Bootstrap's Alert and Modal plugins enter the application bundle.
 
-The layout serves integrity-protected, Turbo-tracked CSS and JavaScript. esbuild
-builds Bootstrap's packaged CSS, while Propshaft serves the application's plain
-CSS directly so app CSS edits need only a browser refresh. `bin/dev` watches
-JavaScript, while `bin/ci` installs and audits npm once before Rails builds the
-browser dependencies and precompiles all assets. The official Stimulus controller manifest and Simple
+The layout serves integrity-protected, Turbo-tracked CSS and JavaScript.
+`bin/dev` runs the Dart Sass and JavaScript watchers, so SCSS changes rebuild
+automatically without manual asset tasks. `bin/ci` installs and audits npm once
+before Rails builds both entrypoints and precompiles all assets. The official
+Stimulus controller manifest and Simple
 Form Bootstrap 5 template replace import-map loading and the legacy wrappers.
 Modal controls now have Bootstrap 5 attributes, unique form field IDs and an
 accessible label; Trix editors have explicit accessible names.
@@ -618,7 +618,7 @@ provided; Bon App's accepted risks do not transfer.
   link remain.
 
 - [x] **5.2 P2 — Modernize incrementally, with the current UI as a baseline.**
-  Completed with Propshaft, directly served CSS, jsbundling-rails/esbuild, Turbo,
+  Completed with Propshaft, dartsass-rails, jsbundling-rails/esbuild, Turbo,
   Stimulus, Action Text/Trix, and Bootstrap 5.3.8. Browser dependencies are owned
   by one npm lockfile; jQuery and vendored JavaScript are removed. Firefox covers
   editor, uploads, navigation, clipboard, RSVP actions, Bootstrap modals, and
@@ -660,9 +660,9 @@ provided; Bon App's accepted risks do not transfer.
 
 - [x] **6.3 P2 — Make browser/runtime dependency ownership explicit.**
   Node 24 is aligned across `.node-version`, `package.json`, CircleCI and the Node
-  buildpack. npm owns the browser graph, esbuild builds JavaScript through Rails
-  asset tasks, including Bootstrap's packaged CSS, while Propshaft serves directly
-  reloadable application CSS. CI installs/audits the same lockfile before compiling.
+  buildpack. npm owns the browser graph, esbuild builds JavaScript, dartsass-rails
+  builds Bootstrap and application SCSS, and Propshaft fingerprints both outputs.
+  CI installs and audits the same lockfile before compiling.
   Required mail adapter gems remain pending a separate runtime review.
 
 ## Phase 7 — CI and operations follow-up

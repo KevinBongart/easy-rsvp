@@ -172,13 +172,10 @@ bundle exec rspec spec/lib/production_database_pull_spec.rb
 
 ## Assets and editor
 
-The application uses the standard Rails 8 asset stack: Propshaft for CSS, digests
-and delivery, jsbundling-rails/esbuild for browser dependencies, Turbo for
-navigation, and Stimulus for small interactions. esbuild copies and minifies
-Bootstrap's CSS from its locked npm package during the normal asset build.
-Propshaft serves the application's plain CSS directly, so app CSS edits appear
-on refresh without a build command or watcher. The layout loads
-integrity-protected CSS and JavaScript with
+The application uses the standard Rails 8 asset stack: Propshaft for digests and
+delivery, dartsass-rails for Bootstrap and application SCSS,
+jsbundling-rails/esbuild for JavaScript, Turbo for navigation, and Stimulus for
+small interactions. The layout loads integrity-protected CSS and JavaScript with
 `data-turbo-track="reload"`, so Turbo reloads the page when either compiled asset
 changes.
 
@@ -197,18 +194,22 @@ delivery. Bootstrap's required Popper peer remains locked but is excluded from
 the bundle because neither plugin uses it. jQuery and the old vendored
 JavaScript copies are gone.
 
-Run `npm ci` after checking out or updating the lockfile. `bin/dev` runs Rails and
-the JavaScript watcher through `Procfile.dev`; `bin/rails server` is enough when
-only editing Ruby, views, or CSS. `bin/ci` audits the locked npm graph, builds the
-browser dependencies through Rails' `assets:precompile` hook, and
+Run `npm ci` after checking out or updating the lockfile. Use `bin/dev` for local
+development; it starts Rails plus the Dart Sass and JavaScript watchers. Saving
+an SCSS file rebuilds the stylesheet automatically, and Propshaft serves its new
+fingerprint on refresh. Normal development never requires `assets:clean`,
+`assets:clobber`, or a manual Sass build. Development deliberately ignores any
+precompiled manifest left in `public/assets`, so local CI output cannot pin the
+server to stale files. `bin/ci` audits the locked npm graph,
+builds both asset entrypoints through Rails' `assets:precompile` hooks, and
 exercises the real Firefox paste/upload specs. Node 24.13.0 is selected locally
 by `.node-version`; buildpack deploys follow the `24.x` range in `package.json`.
 
 Dokku uses the pinned Node and Ruby buildpacks in `.buildpacks`, in that order.
 The Node buildpack runs `npm ci` and `npm run build`; the Ruby buildpack then
-reinstalls the locked build dependencies through Rails' bundling hook, rebuilds
-the browser dependencies, and precompiles all assets with Propshaft. This remains
-valid after the Node buildpack prunes development dependencies. Do not set
+reinstalls the locked JavaScript build dependencies, builds Sass through its
+Ruby gem, and precompiles all assets with Propshaft. This remains valid after the
+Node buildpack prunes development dependencies. Do not set
 `SKIP_YARN_INSTALL` on Dokku: unlike CI, the Ruby stage needs those install hooks
 to restore the pruned build tools. `BUILDPACK_URL` must not be set for the app
 because it overrides the ordered buildpack list.

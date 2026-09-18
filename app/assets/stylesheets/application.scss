@@ -1,0 +1,41 @@
+@use "bootstrap/scss/bootstrap" with (
+  $primary: #007bff,
+  $success: #28a745,
+  $link-decoration: none,
+  $link-hover-decoration: underline
+);
+@use "actiontext";
+@use "admin_statistics";
+
+.btn-primary {
+  @include bootstrap.button-variant(
+    $background: bootstrap.$primary,
+    $border: bootstrap.$primary,
+    $color: bootstrap.$white,
+    $hover-color: bootstrap.$white,
+    $active-color: bootstrap.$white,
+    $disabled-color: bootstrap.$white
+  );
+}
+
+#main {
+  max-width: 960px;
+}
+
+.navbar {
+  padding-left: 0;
+
+  #logo {
+    max-height: 2rem;
+    vertical-align: bottom;
+  }
+}
+
+form.inline-btn-link {
+  display: inline-block;
+
+  .btn.btn-link {
+    padding: 0;
+    vertical-align: baseline;
+  }
+}

@@ -14,10 +14,9 @@ RSpec.describe 'Public events', type: :request do
     get root_path
     page = Nokogiri::HTML(response.body)
 
-    stylesheets = page.css('link[rel="stylesheet"][data-turbo-track="reload"]')
-    expect(stylesheets.map { |link| File.basename(link['href']).sub(/-[0-9a-f]+(?=\.css\z)/, '') }).to eq(
-      %w[bootstrap.css actiontext.css admin_statistics.css application.css]
-    )
+    stylesheet = page.at_css('link[rel="stylesheet"][href*="/assets/application-"][data-turbo-track="reload"]')
+    expect(stylesheet).to be_present
+    expect(stylesheet['integrity']).to start_with('sha256-')
     script = page.at_css('script[type="module"][src*="/assets/application-"][data-turbo-track="reload"]')
     expect(script).to be_present
     expect(script['integrity']).to start_with('sha256-')
