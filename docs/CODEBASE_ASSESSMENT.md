@@ -576,13 +576,14 @@ provided; Bon App's accepted risks do not transfer.
 
 ## Phase 4 — Architecture, duplication, and data integrity
 
-- [ ] **4.1 P2 — Bound dashboard work in SQL.**
-  `app/controllers/admin/events_controller.rb:4` uses
-  `Event.all.includes(:rsvps).order(...).to_a`; line 8 paginates afterward, at
-  1,000 rows per page. Preserve the two-query behavior where useful while using
-  database pagination, aggregate response counts, and count-based sorting.
-  Add a scale test that limits instantiated rows as well as query count; a
-  constant query count alone would let the present problem pass.
+- [x] **4.1 P2 — Bound dashboard work in SQL.** The listing is now paginated as
+  an Active Record relation before rows are instantiated. PostgreSQL computes
+  each displayed RSVP count and count-based ordering, with event ID as a stable
+  tie-breaker; the view never loads RSVP records. Chart totals, oldest creation
+  date, yearly/monthly buckets, and current-month daily counts use bounded SQL
+  aggregates over `created_at`. Request coverage checks page bounds, event and
+  RSVP instantiation, deterministic ordering, displayed counts, and constant
+  query count as off-page data grows.
 
 - [x] **4.2 P2 — Use creation timestamps consistently for dashboard counts.** Completed in the remediation above; original finding follows.
   `Admin::EventStats#yearly_counts` groups by `created_at.year` (line 29), but

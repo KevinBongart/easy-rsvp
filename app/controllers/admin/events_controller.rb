@@ -1,11 +1,24 @@
 module Admin
   class EventsController < AdminController
-    def index
-      all_events = Event.all.includes(:rsvps).order(id: :desc).to_a
-      all_events.sort_by! { |event| -event.rsvps.size } if params[:sort] == "rsvps"
+    EVENTS_PER_PAGE = 1000
+    RSVP_COUNT_SQL = <<~SQL.squish.freeze
+      (SELECT COUNT(*) FROM rsvps WHERE rsvps.event_id = events.id)
+    SQL
 
-      @event_stats = Admin::EventStats.new(all_events)
-      @events = Kaminari.paginate_array(all_events).page(params[:page]).per(1000)
+    def index
+      @event_stats = Admin::EventStats.new(Event.all)
+      @events = listed_events.page(params[:page]).per(EVENTS_PER_PAGE)
+    end
+
+    private
+
+    def listed_events
+      events = Event.select("events.*", "#{RSVP_COUNT_SQL} AS rsvps_count")
+      if params[:sort] == "rsvps"
+        events.order(Arel.sql("rsvps_count DESC"), id: :desc)
+      else
+        events.order(id: :desc)
+      end
     end
   end
 end

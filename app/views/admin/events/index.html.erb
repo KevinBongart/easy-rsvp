@@ -41,7 +41,7 @@
         <th scope="row" class="text-nowrap"><%= link_to event.id, event %></th>
         <td><%= link_to event.title, event %></td>
         <td class="text-nowrap"><%= event.date %></td>
-        <td class="text-nowrap"><code class="small"><%= event.rsvps.length %></code></td>
+        <td class="text-nowrap"><code class="small"><%= event.rsvps_count %></code></td>
         <td class="text-nowrap"><code class="small"><%= link_to event.admin_token.split('-').first, event_admin_path(event, event.admin_token), class: "text-body" %></code></td>
       </tr>
     <% end %>

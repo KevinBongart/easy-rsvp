@@ -20,11 +20,14 @@ RSpec.describe 'Site administrator dashboard', type: :request do
 
   it 'sorts events by RSVP count when requested' do
     popular = create(:event, title: 'Popular event')
-    quiet = create(:event, title: 'Quiet event')
+    older_quiet = create(:event, title: 'Older quiet event')
+    newer_quiet = create(:event, title: 'Newer quiet event')
     create_list(:rsvp, 3, event: popular)
     get admin_events_path, params: { sort: 'rsvps' }, headers: dashboard_headers
     doc = Nokogiri::HTML(response.body)
-    expect(doc.css('tbody tr td:nth-child(2)').map(&:text)).to eq([popular.title, quiet.title])
+    rows = doc.css('tbody tr')
+    expect(rows.map { |row| row.css('td')[0].text }).to eq([popular.title, newer_quiet.title, older_quiet.title])
+    expect(rows.map { |row| row.css('td')[2].text }).to eq(%w[3 0 0])
   end
 
   it 'renders an empty state without broken statistics' do
@@ -33,14 +36,27 @@ RSpec.describe 'Site administrator dashboard', type: :request do
     expect(response.body).to match(/Total events created:<\/strong>\s*0/)
   end
 
-  it 'does not introduce N+1 queries as the listing grows' do
-    create(:rsvp)
+  it 'bounds queries and instantiated records as the database grows past one page' do
+    insert_events(1001)
+    create(:rsvp, event: Event.order(:id).last)
     get admin_events_path, headers: dashboard_headers # warm templates and schema
-    small = count_queries { get admin_events_path, headers: dashboard_headers }
-    create_list(:rsvp, 10)
-    large = count_queries { get admin_events_path, headers: dashboard_headers }
-    expect(large).to eq(small)
-    expect(large).to be <= 3
+
+    first_page_queries = count_queries { get admin_events_path, headers: dashboard_headers }
+    insert_events(1000)
+    instantiated = Hash.new(0)
+    subscriber = lambda do |*, payload|
+      instantiated[payload[:class_name]] += payload[:record_count]
+    end
+    larger_database_queries = count_queries do
+      ActiveSupport::Notifications.subscribed(subscriber, 'instantiation.active_record') do
+        get admin_events_path, headers: dashboard_headers
+      end
+    end
+
+    expect(larger_database_queries).to eq(first_page_queries)
+    expect(larger_database_queries).to be <= 6
+    expect(instantiated['Event']).to eq(Admin::EventsController::EVENTS_PER_PAGE)
+    expect(instantiated['Rsvp']).to eq(0)
   end
 
   it 'shows creation counts even when all parties are scheduled in another month' do
@@ -76,6 +92,22 @@ RSpec.describe 'Site administrator dashboard', type: :request do
       expect(forecast_points.last).not_to eq(actual_points.last)
       expect(doc.css('.admin-statistics').text).not_to match(/NaN|Infinity/)
     end
+  end
+
+  def insert_events(count)
+    now = Time.current
+    rows = Array.new(count) do
+      {
+        admin_token: SecureRandom.uuid,
+        created_at: now,
+        date: Date.current + 7.days,
+        published: true,
+        show_rsvp_names: true,
+        title: "Scale event #{SecureRandom.hex(8)}",
+        updated_at: now
+      }
+    end
+    Event.insert_all!(rows)
   end
 
 end
