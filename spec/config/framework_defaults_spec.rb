@@ -4,7 +4,7 @@ RSpec.describe 'Framework defaults' do
   it 'loads the selected framework defaults' do
     config = Rails.application.config
 
-    expect(config.loaded_config_version).to eq(7.0)
+    expect(config.loaded_config_version).to eq(7.1)
   end
 
   it 'retains the Rails 6.0 cookie and Active Record defaults' do
@@ -36,5 +36,20 @@ RSpec.describe 'Framework defaults' do
 
     expect(config.active_support.hash_digest_class).to eq(OpenSSL::Digest::SHA256)
     expect(config.active_support.key_generator_hash_digest_class).to eq(OpenSSL::Digest::SHA1)
+  end
+
+  it 'adopts the Rails 7.1 serialization defaults with legacy message fallback' do
+    config = Rails.application.config
+
+    expect(config.active_support.message_serializer).to eq(:json_allow_marshal)
+    expect(config.active_support.use_message_serializer_for_metadata).to be(true)
+    expect(config.active_support.raise_on_invalid_cache_expiration_time).to be(true)
+  end
+
+  it 'adopts the Rails 7.1 loading and transaction defaults' do
+    config = Rails.application.config
+
+    expect(config.add_autoload_paths_to_load_path).to be(false)
+    expect(config.active_record.run_after_transaction_callbacks_in_order_defined).to be(true)
   end
 end
