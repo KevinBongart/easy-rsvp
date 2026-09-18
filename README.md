@@ -10,7 +10,7 @@ Use Ruby from `.ruby-version` and a running local PostgreSQL server:
 
 ```sh
 bundle install
-npm ci --ignore-scripts
+npm ci
 cp .env.sample .env # only on first setup; preserve an existing .env
 bin/rails db:prepare
 bin/dev

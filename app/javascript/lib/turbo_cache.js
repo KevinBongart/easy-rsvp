@@ -1,4 +1,5 @@
 import Modal from "bootstrap/js/dist/modal"
+import ScrollBarHelper from "bootstrap/js/src/util/scrollbar"
 
 document.addEventListener("turbo:before-cache", () => {
   document.querySelectorAll(".modal.show").forEach((modal) => {
@@ -8,9 +9,16 @@ document.addEventListener("turbo:before-cache", () => {
     modal.classList.remove("show")
     modal.style.display = "none"
     modal.setAttribute("aria-hidden", "true")
+    modal.removeAttribute("aria-modal")
+    modal.removeAttribute("role")
+    modal.style.removeProperty("padding-left")
+    modal.style.removeProperty("padding-right")
   })
 
   document.querySelectorAll(".modal-backdrop").forEach((backdrop) => backdrop.remove())
   document.body.classList.remove("modal-open")
-  document.body.style.removeProperty("padding-right")
+  // A normal modal close resets Bootstrap's saved scrollbar styles after the
+  // fade completes. Turbo snapshots synchronously, so reset them here instead.
+  new ScrollBarHelper().reset()
+  document.body.style.removeProperty("overflow")
 })
