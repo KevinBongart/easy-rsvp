@@ -41,7 +41,7 @@ Verified against the repository on 2026-09-18; the version files remain authorit
 | Concern | Current implementation |
 | --- | --- |
 | Runtime | Ruby 3.3.12; Rails 8.1.3.1 in `Gemfile.lock` |
-| Framework defaults | `config.load_defaults 6.1`, with later defaults initializers |
+| Framework defaults | `config.load_defaults 7.0`, with a SHA-1 key-generator compatibility hold |
 | Database | PostgreSQL; `events_development`, `events_test`, `events_production` |
 | UI | ERB, Simple Form, Bootstrap 5.3.8 |
 | Assets | Propshaft, dartsass-rails, jsbundling-rails/esbuild, Turbo, Stimulus, Action Text/Trix 2.1.19; browser packages locked with npm |

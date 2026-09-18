@@ -22,7 +22,11 @@ Bundler.require(*Rails.groups)
 module EasyRsvp
   class Application < Rails::Application
     # Initialize configuration defaults for originally generated Rails version.
-    config.load_defaults 6.1
+    config.load_defaults 7.0
+
+    # Keys for existing RSVP session cookies and persisted Action Text attachment
+    # SGIDs were derived with SHA-1. Keep them readable until they have a migration path.
+    config.active_support.key_generator_hash_digest_class = OpenSSL::Digest::SHA1
 
     # Please, add to the `ignore` list any other `lib` subdirectories that do
     # not contain `.rb` files, or that should not be reloaded or eager loaded.
