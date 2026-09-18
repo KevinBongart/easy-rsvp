@@ -11,7 +11,8 @@ module Admin
 
     attr_reader :events, :now, :months_back
 
-    # events: ActiveRecord::Relation or Array of Event objects
+    # events: ActiveRecord::Relation or Array of Event objects. Relations are
+    # aggregated in SQL so rendering the dashboard never instantiates its history.
     # months_back: Integer, number of full months to show (default: DEFAULT_MONTHS_BACK)
     def initialize(events, now: Time.zone.now, months_back: DEFAULT_MONTHS_BACK)
       @events = events
@@ -21,11 +22,11 @@ module Admin
 
     # Example: "1,234"
     def total_events
-      number_with_delimiter(events.size)
+      number_with_delimiter(summary.first)
     end
 
     def oldest_creation_date
-      events.map(&:created_at).min&.strftime('%B %-d, %Y')
+      summary.last&.strftime('%B %-d, %Y')
     end
 
     def current_year_count
@@ -96,9 +97,7 @@ module Admin
     # Running totals make the last observed day and the month-end forecast
     # comparable to the monthly count shown beside this chart.
     def current_month_chart
-      daily_counts = events.select do |event|
-        event.created_at >= now.beginning_of_month && event.created_at < now.beginning_of_month + 1.month
-      end.group_by { |event| event.created_at.day }.transform_values(&:size)
+      daily_counts = creation_counts_by_day
       total = 0
       (1..now.end_of_month.day).map do |day|
         point = { label: "#{now.strftime('%B')} #{day}" }
@@ -114,8 +113,20 @@ module Admin
 
     private
 
+    def summary
+      @summary ||= if relation?
+        events.reorder(nil).pick(Arel.sql("COUNT(*)"), Arel.sql("MIN(events.created_at)"))
+      else
+        [events.size, events.filter_map { |event| event&.created_at }.min]
+      end
+    end
+
     def creation_counts_by_year
-      @creation_counts_by_year ||= events.group_by { |event| event.created_at.year }.transform_values(&:size)
+      @creation_counts_by_year ||= if relation?
+        events.reorder(nil).group(Arel.sql("EXTRACT(YEAR FROM events.created_at)::integer")).count
+      else
+        events.group_by { |event| event.created_at.year }.transform_values(&:size)
+      end
     end
 
     def monthly_projection
@@ -123,11 +134,44 @@ module Admin
     end
 
     def monthly_counts
+      return @monthly_counts if defined?(@monthly_counts)
+
+      counts = creation_counts_by_month
       @monthly_counts ||= (0..months_back).map do |offset|
         month = (now - offset.months).beginning_of_month
-        count = events.count { |event| event.created_at >= month && event.created_at < month + 1.month }
-        [month, count]
+        [month, counts.fetch(month.to_date, 0)]
       end
+    end
+
+    def creation_counts_by_month
+      return @creation_counts_by_month if defined?(@creation_counts_by_month)
+
+      @creation_counts_by_month = if relation?
+        first_month = (now - months_back.months).beginning_of_month
+        events.where(created_at: first_month...(now.beginning_of_month + 1.month))
+          .reorder(nil)
+          .group(Arel.sql("DATE_TRUNC('month', events.created_at)::date"))
+          .count
+      else
+        events.group_by { |event| event.created_at.to_date.beginning_of_month }.transform_values(&:size)
+      end
+    end
+
+    def creation_counts_by_day
+      if relation?
+        events.where(created_at: now.beginning_of_month...(now.beginning_of_month + 1.month))
+          .reorder(nil)
+          .group(Arel.sql("EXTRACT(DAY FROM events.created_at)::integer"))
+          .count
+      else
+        events.select do |event|
+          event.created_at >= now.beginning_of_month && event.created_at < now.beginning_of_month + 1.month
+        end.group_by { |event| event.created_at.day }.transform_values(&:size)
+      end
+    end
+
+    def relation?
+      events.is_a?(ActiveRecord::Relation)
     end
   end
 end
