@@ -4,7 +4,7 @@ RSpec.describe 'Framework defaults' do
   it 'loads the selected framework defaults' do
     config = Rails.application.config
 
-    expect(config.loaded_config_version).to eq(7.1)
+    expect(config.loaded_config_version).to eq(7.2)
   end
 
   it 'retains the Rails 6.0 cookie and Active Record defaults' do
@@ -51,5 +51,14 @@ RSpec.describe 'Framework defaults' do
 
     expect(config.add_autoload_paths_to_load_path).to be(false)
     expect(config.active_record.run_after_transaction_callbacks_in_order_defined).to be(true)
+  end
+
+  it 'adopts the Rails 7.2 PostgreSQL and Active Storage defaults' do
+    config = Rails.application.config
+
+    expect(config.yjit).to be(true)
+    expect(config.active_record.postgresql_adapter_decode_dates).to be(true)
+    expect(config.active_record.validate_migration_timestamps).to be(true)
+    expect(config.active_storage.web_image_content_types).to include('image/webp')
   end
 end
