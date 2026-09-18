@@ -655,12 +655,11 @@ provided; Bon App's accepted risks do not transfer.
   and asset compatibility.
 
 - [ ] **6.2 P2 — Finish framework-default adoption consciously.**
-  Rails 7.2 defaults are adopted incrementally from the original 5.2 baseline.
+  Rails 8.0 defaults are adopted incrementally from the original 5.2 baseline.
   The key-generator digest remains SHA-1 so existing RSVP session cookies and
   persisted Action Text attachment SGIDs stay valid. Continue one framework
-  version per reviewed PR, especially around serialization, time handling, and
-  assets. Resolve the observed Rails 8.1 timezone-preservation deprecation with
-  a behavior test.
+  version per reviewed PR, especially around serialization and assets. Time-zone
+  preservation is covered by behavior rather than the deprecated Rails setting.
 
 - [x] **6.3 P2 — Make browser/runtime dependency ownership explicit.**
   Node 24 is aligned across `.node-version`, `package.json`, CircleCI and the Node

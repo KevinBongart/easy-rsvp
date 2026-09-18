@@ -22,7 +22,7 @@ Bundler.require(*Rails.groups)
 module EasyRsvp
   class Application < Rails::Application
     # Initialize configuration defaults for originally generated Rails version.
-    config.load_defaults 7.2
+    config.load_defaults 8.0
 
     # Keys for existing RSVP session cookies and persisted Action Text attachment
     # SGIDs were derived with SHA-1. Keep them readable until they have a migration path.
