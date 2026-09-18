@@ -4,7 +4,7 @@ RSpec.describe 'Framework defaults' do
   it 'loads the selected framework defaults' do
     config = Rails.application.config
 
-    expect(config.loaded_config_version).to eq(7.2)
+    expect(config.loaded_config_version).to eq(8.0)
   end
 
   it 'retains the Rails 6.0 cookie and Active Record defaults' do
@@ -60,5 +60,22 @@ RSpec.describe 'Framework defaults' do
     expect(config.active_record.postgresql_adapter_decode_dates).to be(true)
     expect(config.active_record.validate_migration_timestamps).to be(true)
     expect(config.active_storage.web_image_content_types).to include('image/webp')
+  end
+
+  it 'adopts the Rails 8.0 conditional-request and regular-expression defaults' do
+    config = Rails.application.config
+
+    expect(config.action_dispatch.strict_freshness).to be(true)
+    expect(Regexp.timeout).to eq(1)
+  end
+
+  it 'preserves a time zone when converting a zoned time to Time' do
+    Time.use_zone('America/New_York') do
+      zoned_time = Time.zone.local(2026, 7, 1, 12)
+      converted_time = zoned_time.to_time
+
+      expect(converted_time.zone).to eq(zoned_time.time_zone)
+      expect(converted_time.utc_offset).to eq(zoned_time.utc_offset)
+    end
   end
 end
