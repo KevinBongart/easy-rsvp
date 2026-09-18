@@ -41,7 +41,10 @@ RSpec.describe 'Administrator charts', type: :system, js: true do
 
       click_link 'Sort by RSVP count'
       within('#monthly-chart') do
-        all('button').last.hover
+        # Clicking gives the newly rendered Turbo page a deterministic focus target.
+        # Firefox can leave the pointer over the chart from the previous page and
+        # skip a same-position WebDriver hover after Turbo replaces the elements.
+        all('button').last.click
         expect(page).to have_css('[role="tooltip"]', text: 'September 2026: 2 so far; 6 extrapolated', visible: true)
       end
       FileUtils.mkdir_p(Capybara.save_path)
