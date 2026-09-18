@@ -17,10 +17,9 @@ RSpec.describe Event, type: :model do
     expect(build(:event, body: nil)).to be_valid
   end
 
-  it 'uses Action Text while retaining the ignored legacy body column for a safe deploy' do
-    expect(described_class.ignored_columns).to include('body')
-    expect(described_class.connection.column_exists?(:events, :body)).to be(true)
-    expect(described_class.column_names).not_to include('body')
+  it 'stores descriptions in Action Text without a legacy events column' do
+    expect(described_class.connection.column_exists?(:events, :body)).to be(false)
+    expect(described_class.reflect_on_association(:rich_text_body)).to be_present
   end
 
   it 'publishes new events and shows guest names by default' do

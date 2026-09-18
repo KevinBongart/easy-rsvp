@@ -59,9 +59,8 @@ asset-compilation, and RSpec checks.
 
 - `Event`: title/date validation, Action Text `body`, public hashid/slug,
   organizer token, publication and RSVP-name visibility flags, dependent
-  destruction of RSVPs. The legacy `events.body` column is retained and ignored
-  for deploy compatibility; remove it in a later migration after production has
-  run on Action Text.
+  destruction of RSVPs. The legacy `events.body` values were backfilled into
+  Action Text before that column was removed in a later deployment.
 - `Rsvp`: belongs to an event, name/response presence validation,
   `RESPONSES = [:yes, :maybe, :no]`, with inclusion validation and a database check
   that is validated against existing rows as well as enforced for new writes.
