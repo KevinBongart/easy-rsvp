@@ -145,6 +145,10 @@ disabled in development and test; production reports exceptions without session
 data or Insights telemetry. Organizer-token URL segments and UUID-shaped values
 are scrubbed from both application logs and Honeybadger notices.
 
+Rails enables YJIT in production. If its memory overhead is unsuitable for the
+Dokku host, set `RAILS_YJIT=false` on the app and restart it; the application
+will boot without enabling YJIT. Removing the setting restores the Rails default.
+
 The production database is only exported. The remote temporary dump is removed
 after copying; a cleanup failure is reported. Production and pre-import local
 archives remain under ignored `tmp/database_backups/`, with directory mode `0700`

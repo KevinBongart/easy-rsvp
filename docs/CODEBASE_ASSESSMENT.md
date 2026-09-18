@@ -655,7 +655,7 @@ provided; Bon App's accepted risks do not transfer.
   and asset compatibility.
 
 - [ ] **6.2 P2 — Finish framework-default adoption consciously.**
-  Rails 7.1 defaults are adopted incrementally from the original 5.2 baseline.
+  Rails 7.2 defaults are adopted incrementally from the original 5.2 baseline.
   The key-generator digest remains SHA-1 so existing RSVP session cookies and
   persisted Action Text attachment SGIDs stay valid. Continue one framework
   version per reviewed PR, especially around serialization, time handling, and
