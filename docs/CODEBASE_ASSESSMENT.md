@@ -641,15 +641,15 @@ provided; Bon App's accepted risks do not transfer.
 
 ## Phase 6 — Runtime and dependency maintenance
 
-- [ ] **6.1 P1 — Update patch levels, then plan supported runtime movement.**
-  Ruby is pinned to 3.3.4 in both `.ruby-version` and CircleCI. Ruby 3.3 is now in
-  [security maintenance](https://www.ruby-lang.org/en/downloads/branches/), and
-  [3.3.11](https://www.ruby-lang.org/en/news/2026/03/26/ruby-3-3-11-released/)
-  already contained a security-related bundled-gem update. Choose the current
-  compatible patched runtime and align local/CI/deploy versions. Do not assume
-  updating the Rails gem updates Ruby's bundled libraries or vendored JS.
-  Process the audit worklist in reviewable dependency groups; preserve the
-  current product and verify native-gem/asset compatibility.
+- [x] **6.1 P1 — Update patch levels, then plan supported runtime movement.**
+  [Ruby 3.3.12](https://www.ruby-lang.org/en/news/2026/07/16/ruby-3-3-12-released/)
+  is pinned in `.ruby-version`, `Gemfile.lock`, and CircleCI; the Ruby buildpack
+  reads the same lockfile version for deploys. This is the latest Ruby 3.3
+  security-maintenance release as of 2026-09-18 and includes security fixes in
+  ERB and net-imap. Plan a move to a newer supported Ruby series before Ruby 3.3
+  reaches end of life in March 2027. Process the remaining audit worklist in
+  reviewable dependency groups; preserve the current product and verify native-gem
+  and asset compatibility.
 
 - [ ] **6.2 P2 — Finish framework-default adoption consciously.**
   `config/application.rb:25` still loads Rails 5.2 defaults. The 7.0, 7.2, and
