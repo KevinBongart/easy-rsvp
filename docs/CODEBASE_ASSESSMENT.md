@@ -30,10 +30,13 @@ removed; legacy `ImageUpload` records remain readable. The layout emits Subresou
 Integrity-protected module preload links
 and tracks the compiled stylesheet for Turbo reloads.
 
-The migration retains `events.body` for deploy compatibility and `Event` ignores
-the legacy column. Removing it is a later migration after Action Text has run in
-production. Rich-text images use original blob URLs, avoiding an undeclared
-ImageMagick/libvips runtime dependency and first-render variant processing.
+The initial migration retained `events.body` while production moved to Action
+Text. After that compatibility period, a later migration removed the legacy
+column and its temporary `ignored_columns` declaration. The removal repairs
+missing Action Text rows and preserves divergent legacy values in
+`legacy_event_body_conflicts` rather than guessing which version is newer.
+Rich-text images use original blob URLs, avoiding an undeclared ImageMagick/libvips
+runtime dependency and first-render variant processing.
 
 The Firefox suite covers Turbo navigation, rich-text creation/editing/paste,
 image persistence after save/reload/edit, invalid-file retry, direct-upload
