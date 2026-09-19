@@ -109,7 +109,7 @@ runs `bin/ci`. JUnit results and failure screenshots are retained. Bundler-audit
 Use factories, transactional data, and block-scoped time travel. The harness
 supplies synthetic dashboard credentials and blocks external Ruby HTTP with
 WebMock, allowing localhost for WebDriver. Active Storage uses a dedicated
-temporary disk directory, mail uses test delivery, and jobs use the test adapter.
+temporary disk directory, and jobs use the test adapter.
 System specs default to Rack Test; add `js: true` only for browser behavior.
 Firefox specs enable real CSRF protection and restore the setting afterward.
 Propshaft resolves development assets from current source. The development asset
