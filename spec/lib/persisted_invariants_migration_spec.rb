@@ -44,20 +44,31 @@ RSpec.describe 'Persisted invariant migrations' do
     expect_check_violation { connection.execute("INSERT INTO events (published) VALUES (NULL)") }
     expect_check_violation { connection.execute("INSERT INTO rsvps (event_id, name) VALUES (NULL, 'Guest')") }
     expect_check_violation { connection.execute("INSERT INTO rsvps (event_id, name) VALUES (1, '   ')") }
+    expect_check_violation do
+      connection.execute("INSERT INTO rsvps (event_id, name) VALUES (1, #{connection.quote("\t\n")})")
+    end
   end
 
-  it 'fails validation rather than coercing invalid historical data' do
-    connection.execute("INSERT INTO events (published) VALUES (NULL)")
+  it 'fails validation for a historical RSVP without an event' do
+    connection.execute("INSERT INTO events (published) VALUES (TRUE)")
     connection.execute("INSERT INTO rsvps (event_id, name) VALUES (NULL, 'Guest')")
-    migrate(AddPersistedInvariantChecks)
 
-    validate_migration = migration(ValidatePersistedInvariantChecks)
-    expect do
-      connection.transaction(requires_new: true) do
-        validate_migration.suppress_messages { validate_migration.up }
-      end
+    expect_validation_failure
+  end
+
+  ['', '   ', "\t\n"].each do |name|
+    it "fails validation for a historical RSVP named #{name.inspect}" do
+      connection.execute("INSERT INTO events (published) VALUES (TRUE)")
+      connection.execute("INSERT INTO rsvps (event_id, name) VALUES (1, #{connection.quote(name)})")
+
+      expect_validation_failure
     end
-      .to raise_error(ActiveRecord::StatementInvalid) { |error| expect(error.cause).to be_a(PG::CheckViolation) }
+  end
+
+  it 'fails validation for a historical event without a publication state' do
+    connection.execute("INSERT INTO events (published) VALUES (NULL)")
+
+    expect_validation_failure
   end
 
   it 'validates clean data before making columns non-null' do
@@ -79,6 +90,18 @@ RSpec.describe 'Persisted invariant migrations' do
   end
 
   private
+
+  def expect_validation_failure
+    migrate(AddPersistedInvariantChecks)
+
+    validate_migration = migration(ValidatePersistedInvariantChecks)
+    expect do
+      connection.transaction(requires_new: true) do
+        validate_migration.suppress_messages { validate_migration.up }
+      end
+    end
+      .to raise_error(ActiveRecord::StatementInvalid) { |error| expect(error.cause).to be_a(PG::CheckViolation) }
+  end
 
   def create_tables
     connection.create_table(:events) { |table| table.boolean :published }
