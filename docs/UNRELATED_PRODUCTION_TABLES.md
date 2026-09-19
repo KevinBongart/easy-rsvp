@@ -45,6 +45,8 @@ the drop instead of deleting that relationship implicitly.
 
 The drop is irreversible. Before merging or deploying it, confirm that the
 quarantine migration has been running for the agreed retention period, no other
-application needs the data, and create a fresh validated local archive with
-`bin/rails db:backup_production`. Restoring the tables afterward requires
+application needs the data, and create a fresh locally checked archive with
+`bin/rails db:backup_production`. Restore that archive into a disposable local
+database and verify that all 19 quarantined tables and their expected row counts
+are present before deploying this drop. Restoring the tables afterward requires
 restoring that backup; `db:rollback` cannot recreate their rows.

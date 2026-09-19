@@ -119,11 +119,16 @@ bin/rails db:backup_production
 
 The task requires `DOKKU_HOST` and `DOKKU_PG_SERVICE`, using the same settings
 as the development database import below. It creates a temporary export on
-Dokku, downloads it through a local partial file, validates it with
-`pg_restore --list`, publishes it with owner-only permissions, and removes the
-remote temporary file. It does not change either the production or development
-database. Treat every downloaded archive as production user data and keep it
-out of source control.
+Dokku, downloads it through a uniquely named local partial file, checks the
+archive catalog and reads the complete archive with `pg_restore`, publishes it
+with owner-only permissions, and removes the remote temporary file. Cleanup
+failure makes the task fail and reports the exact remote path. It does not
+change either the production or development database. Treat every downloaded
+archive as production user data and keep it out of source control.
+
+These checks catch truncation and archive read errors, but only a successful
+restore proves that a backup is usable. Before an irreversible migration,
+restore the new archive into a disposable local database and inspect the data.
 
 ## Refresh development data from Dokku
 
