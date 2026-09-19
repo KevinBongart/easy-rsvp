@@ -100,6 +100,63 @@ RSpec.describe ProductionDatabasePull do
     ).call
   end
 
+  def backup(**overrides)
+    described_class.new(
+      database_config:,
+      rails_environment: "development",
+      rails_command: "/app/bin/rails",
+      backup_dir:,
+      disconnect:,
+      env: environment,
+      output:,
+      runner:,
+      clock: class_double(Time, now: Time.utc(2026, 8, 21, 12)),
+      process_id: 123,
+      **overrides
+    ).backup
+  end
+
+  it "creates and validates a timestamped production backup without changing either database" do
+    result = backup
+
+    expect(result).to eq(backup_dir.join("easy-rsvp-production-20260821T120000Z.pgdump"))
+    expect(result).to exist
+    expect(File.stat(result).mode & 0o777).to eq(0o600)
+    expect(backup_dir.join(".easy-rsvp-production-20260821T120000Z.pgdump.partial")).not_to exist
+
+    commands = runner.calls.map { |call| call.fetch(:command) }
+    expect(commands[0]).to eq([
+      "ssh", "root@example.test",
+      "umask 077 && dokku postgres:export easy-rsvp-db > /tmp/easy-rsvp-production-20260821T120000Z-123.pgdump"
+    ])
+    expect(commands[1]).to eq([
+      "scp", "--",
+      "root@example.test:/tmp/easy-rsvp-production-20260821T120000Z-123.pgdump",
+      backup_dir.join(".easy-rsvp-production-20260821T120000Z.pgdump.partial").to_s
+    ])
+    expect(commands[2]).to eq([
+      "ssh", "root@example.test",
+      "rm -f -- /tmp/easy-rsvp-production-20260821T120000Z-123.pgdump"
+    ])
+    expect(commands[3]).to eq([
+      postgres_bin.join("pg_restore").to_s,
+      "--list",
+      backup_dir.join(".easy-rsvp-production-20260821T120000Z.pgdump.partial").to_s
+    ])
+    expect(commands.map { |command| File.basename(command.first) }).not_to include(
+      "pg_dump", "dropdb", "createdb", "rails"
+    )
+    expect(disconnect).not_to have_received(:call)
+  end
+
+  it "does not publish an invalid production backup" do
+    runner.small_production_dump = true
+
+    expect { backup }.to raise_error(described_class::Error, /suspiciously small/)
+    expect(backup_dir.glob("*.pgdump")).to be_empty
+    expect(backup_dir.join(".easy-rsvp-production-20260821T120000Z.pgdump.partial")).not_to exist
+  end
+
   it "stages, copies, validates, and restores production after backing up development" do
     result = pull
 

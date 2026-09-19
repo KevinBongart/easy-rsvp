@@ -705,7 +705,9 @@ provided; Bon App's accepted risks do not transfer.
 - [ ] **7.3 P2 — Extend backup/recovery verification when operationally needed.**
   The new `db:pull_production` has strict local-target/confirmation guards,
   validated archives, backup retention, and fake-command recovery tests. Those
-  are a useful foundation. A real export/restore/recovery drill, PostgreSQL
+  are a useful foundation. `db:backup_production` now creates and downloads a
+  validated timestamped archive without changing either database. A real
+  export/restore/recovery drill, PostgreSQL
   client/server compatibility, and concurrent local connection handling were
   not tested in this assessment. Run such checks only against deliberately
   disposable local databases and authorized production exports. Do not weaken

@@ -108,6 +108,23 @@ visibly when its configuration or request fails, so a missing deploy marker
 cannot be mistaken for success. Bundler-audit and Brakeman are security gates in
 `bin/ci`; linting remains an assessment follow-up.
 
+## Back up the production database
+
+Create a private, timestamped PostgreSQL archive and download it to the ignored
+`db/backups/` directory:
+
+```sh
+bin/rails db:backup_production
+```
+
+The task requires `DOKKU_HOST` and `DOKKU_PG_SERVICE`, using the same settings
+as the development database import below. It creates a temporary export on
+Dokku, downloads it through a local partial file, validates it with
+`pg_restore --list`, publishes it with owner-only permissions, and removes the
+remote temporary file. It does not change either the production or development
+database. Treat every downloaded archive as production user data and keep it
+out of source control.
+
 ## Refresh development data from Dokku
 
 Stop local Rails servers/consoles holding database connections, and ensure
@@ -134,7 +151,7 @@ restore the previous local database automatically if replacement fails.
 | --- | --- |
 | `DOKKU_PG_SERVICE` | Required linked PostgreSQL service name; no guessed default |
 | `DOKKU_HOST` | Required SSH destination, e.g. `root@your-dokku-host`; no default |
-| `PG_BIN` | Directory containing all four PostgreSQL tools, if automatic discovery selects the wrong version or finds none |
+| `PG_BIN` | Directory containing PostgreSQL tools, if automatic discovery selects the wrong version or finds none |
 | `CONFIRM_PULL_PRODUCTION` | Set to exactly `events_development` for an intentional noninteractive replacement |
 
 Also set `DOKKU_HOST` in CircleCI project environment variables before deploying.

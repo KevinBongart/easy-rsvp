@@ -101,6 +101,31 @@ class ProductionDatabasePull
     raise error
   end
 
+  def backup
+    validate_local_target!
+    service = required_setting("DOKKU_PG_SERVICE")
+    host = required_setting("DOKKU_HOST")
+    validate_remote_setting!(host, service)
+    postgres_bin = resolve_postgres_bin(required_executables: %w[pg_restore])
+
+    prepare_backup_directory
+    timestamp = clock.now.utc.strftime("%Y%m%dT%H%M%SZ")
+    filename = "easy-rsvp-production-#{timestamp}.pgdump"
+    production_dump = backup_dir.join(filename)
+    raise Error, "Backup already exists: #{production_dump}" if production_dump.exist?
+
+    partial_dump = backup_dir.join(".#{filename}.partial")
+    remote_dump = "/tmp/easy-rsvp-production-#{timestamp}-#{process_id}.pgdump"
+    copy_production_dump(host:, service:, remote_dump:, production_dump: partial_dump)
+    validate_archive!(partial_dump, postgres_bin:)
+    FileUtils.mv(partial_dump, production_dump)
+
+    output.puts "Production backup downloaded and validated: #{production_dump}"
+    production_dump
+  ensure
+    FileUtils.rm_f(partial_dump) if partial_dump
+  end
+
   private
 
   attr_reader :database_config, :rails_environment, :rails_command, :backup_dir,
@@ -123,7 +148,7 @@ class ProductionDatabasePull
 
   def required_setting(name)
     value = env[name].to_s.strip
-    raise Error, "Set #{name} before importing the production database." if value.empty?
+    raise Error, "Set #{name} before accessing the production database." if value.empty?
 
     value
   end
@@ -261,7 +286,7 @@ class ProductionDatabasePull
     database_config.configuration_hash[name]
   end
 
-  def resolve_postgres_bin
+  def resolve_postgres_bin(required_executables: POSTGRES_EXECUTABLES)
     candidates = []
     candidates << env["PG_BIN"] unless env["PG_BIN"].to_s.empty?
     candidates.concat([
@@ -272,10 +297,10 @@ class ProductionDatabasePull
     candidates.concat(env.fetch("PATH", "").split(File::PATH_SEPARATOR))
 
     directory = candidates.compact.map { |candidate| Pathname(candidate) }.find do |candidate|
-      POSTGRES_EXECUTABLES.all? { |executable| File.executable?(candidate.join(executable)) }
+      required_executables.all? { |executable| File.executable?(candidate.join(executable)) }
     end
     return directory if directory
 
-    raise Error, "Could not find pg_dump, pg_restore, dropdb, and createdb in one directory. Set PG_BIN."
+    raise Error, "Could not find #{required_executables.join(', ')} in one directory. Set PG_BIN."
   end
 end
