@@ -14,9 +14,6 @@ Rails.application.routes.draw do
 
       post :toggle_publish, on: :member
 
-      # Organizer-link email delivery is currently unavailable. Re-enable it with
-      # verified delivery configuration, or remove the dormant email feature.
-      # resources :email_requests, controller: :organizer_email_requests, only: [:create]
       resources :rsvps, controller: :organizer_rsvps, only: [:update, :destroy]
     end
 
