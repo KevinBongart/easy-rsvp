@@ -39,21 +39,24 @@ RSpec.describe 'Site administrator dashboard', type: :request do
     expect(rows.map { |row| row.css('td')[2].text }).to eq(%w[3 0 0])
   end
 
-  it 'shows and filters events with persisted rich-text attachments' do
+  it 'shows and filters events with current and legacy rich-text attachments' do
     attached = create(:event, title: 'Event with a photo')
+    legacy = create(:event, title: 'Event with a legacy photo')
     plain = create(:event, title: 'Text-only event')
     attach_image(attached)
+    attach_legacy_image(legacy)
 
     get admin_events_path, headers: dashboard_headers
     rows = Nokogiri::HTML(response.body).css('tbody tr').index_by { |row| row.css('td')[0].text }
     expect(rows.fetch(attached.title).css('td')[3].text).to eq('Yes')
+    expect(rows.fetch(legacy.title).css('td')[3].text).to eq('Yes')
     expect(rows.fetch(plain.title).css('td')[3].text).to eq('No')
 
     get admin_events_path,
       params: { attachments: '1', sort: 'rsvps' },
       headers: dashboard_headers
     doc = Nokogiri::HTML(response.body)
-    expect(doc.css('tbody tr').map { |row| row.css('td')[0].text }).to eq([attached.title])
+    expect(doc.css('tbody tr').map { |row| row.css('td')[0].text }).to eq([legacy.title, attached.title])
     links = doc.css('a').index_by(&:text)
     expect(links.fetch('Sort by ID')['href']).to include('attachments=1')
     expect(links.fetch('Show all events')['href']).to include('sort=rsvps')
@@ -153,6 +156,21 @@ RSpec.describe 'Site administrator dashboard', type: :request do
     event.update!(
       body: %(<action-text-attachment sgid="#{blob.attachable_sgid}"></action-text-attachment>)
     )
+  end
+
+  def attach_legacy_image(event)
+    event.update!(body: 'Legacy photo')
+    legacy_body = <<~HTML
+      <figure data-trix-attachment="{&quot;contentType&quot;:&quot;image/png&quot;,&quot;url&quot;:&quot;/rails/active_storage/blobs/legacy/photo.png&quot;}">
+        <img src="/rails/active_storage/blobs/legacy/photo.png">
+      </figure>
+    HTML
+    connection = ActionText::RichText.connection
+    connection.execute(<<~SQL)
+      UPDATE action_text_rich_texts
+      SET body = #{connection.quote(legacy_body)}
+      WHERE id = #{connection.quote(event.rich_text_body.id)}
+    SQL
   end
 
 end

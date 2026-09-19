@@ -10,13 +10,18 @@ module Admin
       EXISTS (
         SELECT 1
         FROM action_text_rich_texts
-        INNER JOIN active_storage_attachments
+        LEFT JOIN active_storage_attachments
           ON active_storage_attachments.record_type = 'ActionText::RichText'
           AND active_storage_attachments.record_id = action_text_rich_texts.id
           AND active_storage_attachments.name = 'embeds'
         WHERE action_text_rich_texts.record_type = 'Event'
           AND action_text_rich_texts.record_id = events.id
           AND action_text_rich_texts.name = 'body'
+          AND (
+            active_storage_attachments.id IS NOT NULL
+            /* The Action Text migration preserved Trix's legacy attachment HTML. */
+            OR action_text_rich_texts.body LIKE '%data-trix-attachment=%'
+          )
       )
     SQL
 
