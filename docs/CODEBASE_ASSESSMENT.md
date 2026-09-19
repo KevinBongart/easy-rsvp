@@ -482,10 +482,14 @@ provided; Bon App's accepted risks do not transfer.
 
 ## Phase 2 — Security and privacy
 
-- [ ] **2.1 P1 — Patch relevant dependency exposures and add audit coverage.**
-  Use the [deduplicated audit](assessment/2026-09-08-dependency-audit.md) as the
-  worklist, prioritizing request parsing, HTML sanitization, Active Storage, and
-  the web server before development-only tooling. Rails 8.0.2.1 predates the
+- [x] **2.1 P1 — Patch relevant dependency exposures and add audit coverage.**
+  Completed through the dependency and runtime upgrades. The lockfile now uses
+  Rails 8.1.3.1, Rack 3.2.6, Puma 8.0.2, Loofah 2.25.2, and Nokogiri 1.19.4.
+  `bin/ci` refreshes and runs Bundler Audit, Brakeman, and npm audit as required
+  gates before compiling assets and running the full suite. The
+  [deduplicated audit](assessment/2026-09-08-dependency-audit.md) remains a
+  historical baseline rather than a description of the current lockfile.
+  Original finding: Rails 8.0.2.1 predates the
   [March security patches](https://rubyonrails.org/2026/3/23/Rails-Versions-7-2-3-1-8-0-4-1-and-8-1-2-1-have-been-released)
   and [July variant-processing patch](https://rubyonrails.org/2026/7/29/Rails-Versions-7-2-3-2-8-0-5-1-and-8-1-3-1-have-been-released).
   Rails 8.0.5.1 is a verified patched release on the current minor line; choose
@@ -682,13 +686,13 @@ provided; Bon App's accepted risks do not transfer.
 
 ## Phase 7 — CI and operations follow-up
 
-- [ ] **7.1 P1 — Make CI observe the important failure modes.** CircleCI currently
-  installs gems, creates/loads the test DB, and runs RSpec before deploying
-  successful `main` builds. Add pinned Brakeman/bundler-audit, asset compilation,
-  focused Firefox specs, and `zeitwerk:check`. Introduce Omakase Ruby style and
-  appropriate ERB/JS/CSS checks as separate cleanup work, not blanket suppressions.
-  Provide one local command matching hosted CI and retain browser-failure evidence.
-  Security scans should become real gates rather than occasional local tools.
+- [x] **7.1 P1 — Make CI observe the important failure modes.** `bin/ci` is the
+  shared local and CircleCI entry point. It gates on Bundler Audit, Brakeman,
+  `zeitwerk:check`, npm audit, asset compilation, and the entire randomized RSpec
+  suite, including headless Firefox. CircleCI stores JUnit results and browser
+  failure screenshots, and deploys `main` only after that job passes. Formatting
+  and style checks remain a separate, lower-priority cleanup so they do not obscure
+  the failure modes this task was intended to cover.
 
 - [ ] **7.2 P2 — Add a real health route and deployment verification.**
   Rails' lightweight `/up` route and a request regression are implemented. A
@@ -706,6 +710,11 @@ provided; Bon App's accepted risks do not transfer.
   not tested in this assessment. Run such checks only against deliberately
   disposable local databases and authorized production exports. Do not weaken
   the target guards to make a local rehearsal convenient.
+
+- [ ] **7.4 P3 — Add a focused formatting and lint baseline.** Evaluate Omakase
+  Ruby and proportionate ERB, JavaScript, and CSS checks against the modernized
+  stack. Introduce them in reviewable groups, fix real findings, and avoid blanket
+  suppression or a repository-wide mechanical rewrite.
 
 ## Verified healthy and accepted decisions
 
