@@ -2,8 +2,11 @@ class OrganizerLogPrivacyVerifier
   SYNTHETIC_TOKEN = '11111111-2222-4333-8444-555555555555'
   FILTERED_PATH = '/[FILTERED]/admin/[FILTERED]'
   FILTERED_PROBE_PATH = '/organizer-log-privacy-probe/admin/[FILTERED]'
-  GENERAL_MAP_RULE = '~^/[^/]+/admin/ /[FILTERED]/admin/[FILTERED];'
-  PROBE_MAP_RULE = '~^/organizer-log-privacy-probe/admin/ /organizer-log-privacy-probe/admin/[FILTERED];'
+  MAP_DIRECTIVES = [
+    'default $uri',
+    '~^/organizer-log-privacy-probe/admin/ /organizer-log-privacy-probe/admin/[FILTERED]',
+    '~^/[^/]+/admin/ /[FILTERED]/admin/[FILTERED]'
+  ].freeze
   FORMAT_VARIABLES = %w[
     $remote_addr
     $request_method
@@ -40,18 +43,18 @@ class OrganizerLogPrivacyVerifier
   end
 
   def check_map(failures)
-    map = active(http_config)[/map\s+\$uri\s+\$organizer_private_uri\s*\{.*?\}/m]
-    normalized_map = map&.gsub(/\s+/, ' ')
+    map_body = active(http_config)[/map\s+\$uri\s+\$organizer_private_uri\s*\{(.*?)\}/m, 1]
+    directives = map_body&.split(';')&.map { |directive| directive.gsub(/\s+/, ' ').strip }&.reject(&:empty?)
+    return if directives == MAP_DIRECTIVES
 
-    failures << 'effective nginx config is missing the general organizer-path redaction rule' unless
-      normalized_map&.include?(GENERAL_MAP_RULE)
-    failures << 'effective nginx config is missing the identifiable synthetic-probe redaction rule' unless
-      normalized_map&.include?(PROBE_MAP_RULE)
+    failures << 'organizer URI map must contain only the default, synthetic-probe, and general redaction rules in safe order'
   end
 
   def check_log_format(failures)
     format = active(http_config)[/log_format\s+organizer_private\s+(.*?);/m, 1]
-    variables = format&.scan(/\$[A-Za-z0-9_]+/)
+    variables = format&.scan(/\$(?:[A-Za-z0-9_]+|\{[A-Za-z0-9_]+\})/)&.map do |variable|
+      variable.start_with?('${') ? "$#{variable[2...-1]}" : variable
+    end
     return if variables == FORMAT_VARIABLES
 
     failures << "organizer_private must use exactly these variables: #{FORMAT_VARIABLES.join(', ')}"
@@ -90,7 +93,8 @@ class OrganizerLogPrivacyVerifier
   def check_evidence(failures)
     evidence = { 'access log' => access_log, 'error log' => error_log }.merge(other_logs)
     evidence.each do |name, contents|
-      normalized = contents.downcase.gsub('%2d', '-')
+      normalized = contents.downcase
+      3.times { normalized = normalized.gsub(/%([0-9a-f]{2})/i) { [$1.hex].pack('C') } }
       failures << "#{name} contains the synthetic organizer token" if normalized.include?(SYNTHETIC_TOKEN)
     end
   end
@@ -114,11 +118,16 @@ class OrganizerLogPrivacyVerifier
   def matching_brace(config, opening)
     depth = 0
     quote = nil
+    comment = false
 
     (opening...config.length).each do |index|
       character = config[index]
-      if quote
+      if comment
+        comment = false if character == "\n"
+      elsif quote
         quote = nil if character == quote && config[index - 1] != '\\'
+      elsif character == '#'
+        comment = true
       elsif character == "'" || character == '"'
         quote = character
       elsif character == '{'
@@ -133,12 +142,40 @@ class OrganizerLogPrivacyVerifier
   end
 
   def server_level_access_logs(block)
+    server_level_content(block).scan(/access_log\s+([^;]+);/).flatten
+  end
+
+  def server_level_content(block)
     depth = 0
-    block.each_line.filter_map do |line|
-      active_line = line.sub(/#.*/, '')
-      directive = active_line[/access_log\s+([^;]+);/, 1] if depth == 1
-      depth += active_line.count('{') - active_line.count('}')
-      directive
+    quote = nil
+    comment = false
+    content = +''
+
+    block.each_char.with_index do |character, index|
+      if comment
+        if character == "\n"
+          comment = false
+          content << character if depth == 1
+        end
+      elsif quote
+        content << character if depth == 1
+        quote = nil if character == quote && block[index - 1] != '\\'
+      elsif character == '#'
+        comment = true
+      elsif character == "'" || character == '"'
+        quote = character
+        content << character if depth == 1
+      elsif character == '{'
+        depth += 1
+        content << ' ' if depth == 1
+      elsif character == '}'
+        depth -= 1
+        content << ' ' if depth == 1
+      elsif depth == 1
+        content << character
+      end
     end
+
+    content
   end
 end

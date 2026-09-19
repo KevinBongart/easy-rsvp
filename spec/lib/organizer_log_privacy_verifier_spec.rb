@@ -2,17 +2,7 @@ require 'rails_helper'
 require Rails.root.join('lib/organizer_log_privacy_verifier')
 
 RSpec.describe OrganizerLogPrivacyVerifier do
-  let(:safe_http_config) do
-    <<~NGINX
-      map $uri $organizer_private_uri {
-        default $uri;
-        ~^/organizer-log-privacy-probe/admin/ /organizer-log-privacy-probe/admin/[FILTERED];
-        ~^/[^/]+/admin/ /[FILTERED]/admin/[FILTERED];
-      }
-      log_format organizer_private '$remote_addr $request_method $organizer_private_uri '
-                                   '$status $body_bytes_sent $request_time';
-    NGINX
-  end
+  let(:safe_http_config) { Rails.root.join('config/nginx/organizer-log-format.conf').read }
   let(:safe_server_config) do
     <<~NGINX
       server {
@@ -51,7 +41,24 @@ RSpec.describe OrganizerLogPrivacyVerifier do
     config = safe_http_config.sub('~^/[^/]+/admin/ /[FILTERED]/admin/[FILTERED];', '')
 
     expect(verifier(http_config: config).errors)
-      .to include('effective nginx config is missing the general organizer-path redaction rule')
+      .to include(a_string_including('must contain only'))
+  end
+
+  it 'rejects an earlier organizer rule that overrides the safe general rule' do
+    config = safe_http_config.sub(
+      '~^/[^/]+/admin/ /[FILTERED]/admin/[FILTERED];',
+      "~^/[^/]+/admin/ $uri;\n  ~^/[^/]+/admin/ /[FILTERED]/admin/[FILTERED];"
+    )
+
+    expect(verifier(http_config: config).errors)
+      .to include(a_string_including('must contain only'))
+  end
+
+  it 'rejects nginx braced variables in the private format' do
+    config = safe_http_config.sub('$request_time', '$request_time ${uri}')
+
+    expect(verifier(http_config: config).errors)
+      .to include(a_string_including('must use exactly these variables'))
   end
 
   it 'rejects a server artifact containing another virtual host' do
@@ -85,6 +92,24 @@ RSpec.describe OrganizerLogPrivacyVerifier do
       .to include('Easy RSVP server block 2 must explicitly select organizer_private')
   end
 
+  it 'accepts a compact single-line Easy RSVP server block' do
+    compact = 'server { server_name easy-rsvp.com; access_log /tmp/access.log organizer_private; }'
+
+    expect(verifier(server_config: compact).errors).to be_empty
+  end
+
+  it 'does not mistake a location-level access log for an explicit server log' do
+    nested = <<~NGINX
+      server {
+        server_name easy-rsvp.com;
+        location / { access_log /tmp/access.log organizer_private; }
+      }
+    NGINX
+
+    expect(verifier(server_config: nested).errors)
+      .to include('Easy RSVP server block 1 must explicitly select organizer_private')
+  end
+
   it 'rejects the synthetic token in mandatory or additional log evidence' do
     expect(verifier(error_log: "failed #{described_class::SYNTHETIC_TOKEN}").errors)
       .to include('error log contains the synthetic organizer token')
@@ -93,7 +118,14 @@ RSpec.describe OrganizerLogPrivacyVerifier do
   end
 
   it 'rejects a percent-encoded synthetic token' do
-    token = described_class::SYNTHETIC_TOKEN.gsub('-', '%2D')
+    token = described_class::SYNTHETIC_TOKEN.bytes.map { |byte| format('%%%02X', byte) }.join
+
+    expect(verifier(error_log: token).errors)
+      .to include('error log contains the synthetic organizer token')
+  end
+
+  it 'rejects a repeatedly encoded synthetic token' do
+    token = described_class::SYNTHETIC_TOKEN.gsub('-', '%252D')
 
     expect(verifier(error_log: token).errors)
       .to include('error log contains the synthetic organizer token')
