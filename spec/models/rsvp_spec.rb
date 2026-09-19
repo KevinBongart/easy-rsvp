@@ -49,6 +49,27 @@ RSpec.describe Rsvp, type: :model do
     expect(rsvp.reload.event).to be_present
   end
 
+  it 'requires an event at the database boundary' do
+    rsvp = create(:rsvp)
+
+    expect do
+      described_class.transaction(requires_new: true) { rsvp.update_column(:event_id, nil) }
+    end.to raise_error(ActiveRecord::NotNullViolation)
+    expect(rsvp.reload.event).to be_present
+  end
+
+  [nil, '', '   '].each do |name|
+    it "rejects the guest name #{name.inspect} at the database boundary" do
+      rsvp = create(:rsvp)
+
+      expected_error = name.nil? ? ActiveRecord::NotNullViolation : ActiveRecord::StatementInvalid
+      expect do
+        described_class.transaction(requires_new: true) { rsvp.update_column(:name, name) }
+      end.to raise_error(expected_error)
+      expect(rsvp.reload.name).to be_present
+    end
+  end
+
   [nil, 'unexpected'].each do |answer|
     it "rejects #{answer.inspect} even when model validation is bypassed" do
       rsvp = create(:rsvp)
@@ -62,6 +83,14 @@ RSpec.describe Rsvp, type: :model do
   it 'has a validated database constraint for supported responses' do
     constraint = ActiveRecord::Base.connection.check_constraints(:rsvps)
       .find { |candidate| candidate.name == 'rsvps_supported_response' }
+
+    expect(constraint).to be_present
+    expect(constraint.options[:validate]).to be(true)
+  end
+
+  it 'has a validated database constraint for nonblank guest names' do
+    constraint = ActiveRecord::Base.connection.check_constraints(:rsvps)
+      .find { |candidate| candidate.name == 'rsvps_name_present' }
 
     expect(constraint).to be_present
     expect(constraint.options[:validate]).to be(true)
