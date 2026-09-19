@@ -5,7 +5,7 @@ RSpec.describe Event, type: :model do
     expect(build(:event)).to be_valid
   end
 
-  [:title, :date].each do |attribute|
+  [:title, :date, :published].each do |attribute|
     it "requires #{attribute}" do
       event = build(:event, attribute => nil)
       expect(event).not_to be_valid
@@ -25,6 +25,15 @@ RSpec.describe Event, type: :model do
   it 'publishes new events and shows guest names by default' do
     event = create(:event)
     expect(event.reload).to have_attributes(published: true, show_rsvp_names: true)
+  end
+
+  it 'rejects a missing publication state at the database boundary' do
+    event = create(:event)
+
+    expect do
+      described_class.transaction(requires_new: true) { event.update_column(:published, nil) }
+    end.to raise_error(ActiveRecord::NotNullViolation)
+    expect(event.reload.published).to be(true)
   end
 
   it 'generates a different organizer credential for each saved event' do
