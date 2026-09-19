@@ -37,20 +37,26 @@ Use this fixed synthetic path so the check never exposes a real event token:
 After an authorized operator deploys the nginx configuration, request that path
 once and export these files locally:
 
-1. the effective nginx configuration for the Easy RSVP app;
-2. an access-log sample containing the request;
-3. samples from the nginx error log and each external log collector/APM sink that
-   could receive request URLs.
+1. the effective nginx `http` configuration containing the active `map` and
+   `log_format` definitions;
+2. a bounded server configuration artifact containing every Easy RSVP `server`
+   block and no unrelated virtual hosts; each block must explicitly select the
+   private access-log format instead of inheriting one;
+3. access- and error-log samples covering the synthetic request;
+4. samples from every external log collector/APM sink that could receive request
+   URLs.
 
 Then run:
 
 ```sh
-bin/verify-organizer-log-privacy effective-nginx.conf access.log error.log collector.log
+bin/verify-organizer-log-privacy http.conf easy-rsvp-servers.conf access.log error.log collector.log
 ```
 
-The command fails when an active access log does not name the private format,
-the private format includes a raw request variable, the masked probe is absent,
-or any supplied sink contains the synthetic token. Keep the assessment item open
-until this check passes with production evidence and the operator has reviewed
-historical log retention. Repository agents must not obtain the evidence by SSH;
-the owner or server operator supplies it.
+The command positively checks the expected map rules and the exact safe log
+variables. It also fails when the server artifact contains another hostname,
+an active access log does not name the private format, the uniquely masked probe
+is absent, or any supplied sink contains the synthetic token. Its success applies
+only to the files supplied on the command line. Keep the assessment item open
+until the operator confirms that the evidence covers every production URL sink
+and has reviewed historical log retention. Repository agents must not obtain the
+evidence by SSH; the owner or server operator supplies it.

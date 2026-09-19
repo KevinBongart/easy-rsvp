@@ -2,22 +2,25 @@
 
 require_relative '../lib/organizer_log_privacy_verifier'
 
-unless ARGV.length >= 2
-  warn "Usage: bin/verify-organizer-log-privacy EFFECTIVE_NGINX_CONFIG ACCESS_LOG_SAMPLE [OTHER_LOG_SAMPLE ...]"
+unless ARGV.length >= 4
+  warn "Usage: bin/verify-organizer-log-privacy HTTP_CONFIG EASY_RSVP_SERVER_CONFIG ACCESS_LOG_SAMPLE ERROR_LOG_SAMPLE [OTHER_LOG_SAMPLE ...]"
   exit 2
 end
 
-config_path, access_log_path, *other_log_paths = ARGV
+http_config_path, server_config_path, access_log_path, error_log_path, *other_log_paths = ARGV
 read = ->(path) { File.read(path) }
 other_logs = other_log_paths.to_h { |path| [path, read.call(path)] }
 verifier = OrganizerLogPrivacyVerifier.new(
-  config: read.call(config_path),
+  http_config: read.call(http_config_path),
+  server_config: read.call(server_config_path),
   access_log: read.call(access_log_path),
+  error_log: read.call(error_log_path),
   other_logs: other_logs
 )
 
 if verifier.errors.empty?
-  puts "Organizer log evidence passed for synthetic token #{OrganizerLogPrivacyVerifier::SYNTHETIC_TOKEN}."
+  puts "The supplied Easy RSVP config and log samples do not expose synthetic token #{OrganizerLogPrivacyVerifier::SYNTHETIC_TOKEN}."
+  puts 'Confirm that every production URL sink was supplied before closing the assessment item.'
   exit 0
 end
 
