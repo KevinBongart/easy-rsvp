@@ -19,6 +19,19 @@ jobs:
     executor: ruby/default
     steps:
       - checkout
+      - run:
+          name: Skip documentation-only build
+          command: |
+            if [[ "$CIRCLE_BRANCH" == "main" ]]; then
+              base_revision=HEAD^
+            else
+              git fetch origin main
+              base_revision="$(git merge-base HEAD origin/main)"
+            fi
+
+            if bin/docs-only-changes "$base_revision"; then
+              circleci-agent step halt
+            fi
       - node/install
       - ruby/install-deps
       - run:
@@ -44,8 +57,14 @@ jobs:
     docker:
       - image: cimg/base:stable
     steps:
-      - add_ssh_keys
       - checkout
+      - run:
+          name: Skip documentation-only deploy
+          command: |
+            if bin/docs-only-changes HEAD^; then
+              circleci-agent step halt
+            fi
+      - add_ssh_keys
       - run:
           name: Configure Dokku remote
           command: |

@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+base_revision="${1:?Usage: bin/docs-only-changes BASE [HEAD]}"
+head_revision="${2:-HEAD}"
+changed_files="$(git diff --name-only "$base_revision" "$head_revision")"
+
+[[ -n "$changed_files" ]] || exit 1
+
+while IFS= read -r path; do
+  case "$path" in
+    *.md|docs/*) ;;
+    *) exit 1 ;;
+  esac
+done <<< "$changed_files"
