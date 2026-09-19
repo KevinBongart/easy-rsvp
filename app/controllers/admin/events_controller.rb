@@ -1,5 +1,7 @@
 module Admin
-  class EventsController < AdminController
+  class EventsController < ApplicationController
+    http_basic_authenticate_with name: ENV["ADMIN_USER"], password: ENV["ADMIN_PASSWORD"]
+
     EVENTS_PER_PAGE = 1000
     RSVP_COUNT_SQL = <<~SQL.squish.freeze
       (SELECT COUNT(*) FROM rsvps WHERE rsvps.event_id = events.id)

@@ -37,7 +37,7 @@ class RsvpsController < ApplicationController
   private
 
   def set_event
-    hashid = hashid_from_param(params[:event_id])
+    hashid = event_hashid_from_param(params[:event_id])
     @event = Event.find_by_hashid!(hashid)
     raise ActiveRecord::RecordNotFound unless @event.published?
   end
@@ -50,7 +50,4 @@ class RsvpsController < ApplicationController
     attributes.permit(:name)
   end
 
-  def hashid_from_param(parameterized_id)
-    parameterized_id.to_s.split('-').first
-  end
 end

@@ -1,4 +1,4 @@
-class EventsAdminController < ApplicationController
+class OrganizerEventsController < ApplicationController
   before_action :set_event
 
   def show
@@ -29,7 +29,7 @@ class EventsAdminController < ApplicationController
   private
 
   def set_event
-    hashid = hashid_from_param(params[:event_id])
+    hashid = event_hashid_from_param(params[:event_id])
     id = Event.decode_id(hashid)
 
     @event = Event.find_by!(id: id, admin_token: params[:admin_token])
@@ -38,9 +38,5 @@ class EventsAdminController < ApplicationController
   # Never trust parameters from the scary internet, only allow the white list through.
   def event_params
     params.require(:event).permit(:title, :date, :body, :show_rsvp_names)
-  end
-
-  def hashid_from_param(parameterized_id)
-    parameterized_id.to_s.split('-').first
   end
 end

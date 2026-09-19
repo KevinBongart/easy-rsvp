@@ -29,6 +29,15 @@ RSpec.describe 'Organizer events', type: :request do
     expect(Nokogiri::HTML(response.body).at_css('label.form-label.mb-2[for="event_body"]')).to be_present
   end
 
+  it 'renders persisted pasted HTML attachment content' do
+    event.update!(body: '<action-text-attachment content-type="text/html" content="&lt;strong&gt;Safe pasted details&lt;/strong&gt;"></action-text-attachment>')
+
+    get event_admin_path(event, event.admin_token)
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include('<strong>Safe pasted details</strong>')
+  end
+
   it 'updates editable fields without rotating the credential' do
     token = event.admin_token
     patch event_admin_path(event, token), params: { event: { title: 'New title', body: '<div>Updated</div>', show_rsvp_names: false, admin_token: 'chosen' } }
@@ -81,6 +90,12 @@ RSpec.describe 'Organizer events', type: :request do
     post toggle_publish_event_admin_path(event, other.admin_token)
     expect(response).to have_http_status(:not_found)
     expect(event.reload).to be_published
+  end
+
+  it 'does not accept dashboard credentials without the event organizer token' do
+    get event_admin_path(event, 'wrong'), headers: dashboard_headers
+
+    expect(response).to have_http_status(:not_found)
   end
 
   it 'deletes an event and its responses without touching another events responses' do

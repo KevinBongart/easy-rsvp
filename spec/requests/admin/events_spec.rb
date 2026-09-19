@@ -11,6 +11,15 @@ RSpec.describe 'Site administrator dashboard', type: :request do
     expect(response).to have_http_status(:unauthorized)
   end
 
+  it 'does not accept an event organizer token as dashboard credentials' do
+    event = create(:event)
+    credentials = ActionController::HttpAuthentication::Basic.encode_credentials('spec-admin', event.admin_token)
+
+    get admin_events_path, headers: { 'HTTP_AUTHORIZATION' => credentials }
+
+    expect(response).to have_http_status(:unauthorized)
+  end
+
   it 'lists events and their organizer links for an authenticated administrator' do
     event = create(:event)
     get admin_events_path, headers: dashboard_headers

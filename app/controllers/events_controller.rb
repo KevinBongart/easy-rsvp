@@ -28,7 +28,7 @@ class EventsController < ApplicationController
   private
 
   def set_event
-    hashid = hashid_from_param(params[:id])
+    hashid = event_hashid_from_param(params[:id])
     @event = Event.find_by_hashid!(hashid)
 
     unless @event.published?
@@ -47,7 +47,4 @@ class EventsController < ApplicationController
     params.require(:event).permit(:title, :date, :body)
   end
 
-  def hashid_from_param(parameterized_id)
-    parameterized_id.to_s.split('-').first
-  end
 end
