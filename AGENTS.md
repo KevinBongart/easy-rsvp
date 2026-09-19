@@ -143,8 +143,10 @@ user's authorization.
 `events_development` after confirmation and a validated backup. Its usage and
 recovery files are documented in the [README](README.md). Adding or testing its
 code is separate from running an actual production import.
-`db:backup_production` uses the same guarded export path to create and validate
-a timestamped archive under ignored `db/backups/` without changing either database.
+`db:backup_production` uses the same guarded export path to create a timestamped
+archive under ignored `db/backups/` without changing either database. It checks
+the archive catalog and reads the complete archive, but only a disposable restore
+drill proves usability; require that drill before destructive use.
 
 Production and staging database access has a stricter boundary. An agent may
 pull either database only by invoking a dedicated, repository-owned, guarded
