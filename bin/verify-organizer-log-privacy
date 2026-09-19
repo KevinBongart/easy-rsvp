@@ -1,0 +1,25 @@
+#!/usr/bin/env ruby
+
+require_relative '../lib/organizer_log_privacy_verifier'
+
+unless ARGV.length >= 2
+  warn "Usage: bin/verify-organizer-log-privacy EFFECTIVE_NGINX_CONFIG ACCESS_LOG_SAMPLE [OTHER_LOG_SAMPLE ...]"
+  exit 2
+end
+
+config_path, access_log_path, *other_log_paths = ARGV
+read = ->(path) { File.read(path) }
+other_logs = other_log_paths.to_h { |path| [path, read.call(path)] }
+verifier = OrganizerLogPrivacyVerifier.new(
+  config: read.call(config_path),
+  access_log: read.call(access_log_path),
+  other_logs: other_logs
+)
+
+if verifier.errors.empty?
+  puts "Organizer log evidence passed for synthetic token #{OrganizerLogPrivacyVerifier::SYNTHETIC_TOKEN}."
+  exit 0
+end
+
+verifier.errors.each { |error| warn "- #{error}" }
+exit 1
