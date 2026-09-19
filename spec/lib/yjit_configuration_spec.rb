@@ -14,7 +14,6 @@ RSpec.describe 'YJIT configuration' do
         'RAILS_ENV' => 'production',
         'RAILS_YJIT' => yjit_value,
         'SECRET_KEY_BASE_DUMMY' => '1',
-        'DOMAIN' => 'example.test',
         'AWS_EC2_METADATA_DISABLED' => 'true',
         'S3_ACCESS_KEY_ID' => 'test-access-key',
         'S3_SECRET_ACCESS_KEY' => 'test-secret-key',

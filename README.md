@@ -17,12 +17,9 @@ bin/dev
 ```
 
 Configure the environment values needed by the flows you use. The dashboard
-uses `ADMIN_USER` and `ADMIN_PASSWORD`. Organizer-link email delivery is
-currently unavailable while the feature is reconsidered; its dormant
-configuration uses the `SMTP_*` settings and `DOMAIN`. Development uploads use
-`storage/development`. If email delivery is restored, development messages are
-written under `tmp/mail`, without SMTP credentials. Development uploads do not
-need S3 credentials.
+uses `ADMIN_USER` and `ADMIN_PASSWORD`. Development uploads use
+`storage/development` and do not need S3 credentials. The application does not
+send email.
 
 ## Tests
 
@@ -54,7 +51,7 @@ bundle exec rspec --seed 18467                # reproduce a full-suite ordering
 ```
 
 The suite has no pending regressions and covers models,
-presenter units, mailers, HTTP requests, independent
+presenter units, HTTP requests, independent
 organizer/guest sessions, database-import services, Rack Test form flows, and
 real browser interactions. Firefox actually drops a PNG into Trix, submits it
 through Active Storage's direct-upload endpoint, waits for the returned image to load, saves it with
@@ -70,8 +67,8 @@ data, and narrow layouts, alongside unit tests for projections and chart scaling
 
 Tests require local `events_test`. They use synthetic dashboard credentials,
 transactional records, a temporary disk storage directory removed after the
-suite, test email/jobs, and WebMock to reject external Ruby HTTP requests.
-WebDriver's localhost traffic is allowed. No production imports or real S3/SMTP
+suite, test jobs, and WebMock to reject external Ruby HTTP requests.
+WebDriver's localhost traffic is allowed. No production imports or real S3
 operations are part of the suite.
 
 All 19 original pending expectations now pass. Guest RSVP additions/deletions are
@@ -81,8 +78,8 @@ accept declared PNG/JPEG/GIF/WebP files between 1 byte and 10 MB; failed Trix
 uploads show an error and permit another attempt. Because files upload directly
 to storage, the endpoint can enforce declared metadata and signed upload length
 but cannot inspect the bytes before issuing the storage URL. If organizer-link
-email delivery is restored, production links require `DOMAIN` (a host without a
-URL scheme) and use HTTPS.
+email delivery is ever restored, it should be designed and verified as a new
+feature rather than relying on the removed legacy implementation.
 
 The RSVP migrations enforce supported response values with a validated PostgreSQL
 check constraint. An aggregate review of the production-derived development data
@@ -160,8 +157,8 @@ verified, then delete unneeded copies containing real user data.
 
 After importing, apply any pending local migrations with `bin/rails db:migrate`.
 This task copies database rows only; it does not copy attachment files. In
-development, imported `amazon` blobs resolve to local disk, and email stays in
-`tmp/mail`. Imported images are unavailable until their files are copied into
+development, imported `amazon` blobs resolve to local disk. Imported images are
+unavailable until their files are copied into
 local storage through a separately authorized export. Never fall back to S3
 for missing local files. Unknown storage service names fail closed.
 

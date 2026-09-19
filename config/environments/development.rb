@@ -39,18 +39,6 @@ Rails.application.configure do
   local_storage = { service: "Disk", root: Rails.root.join("storage/development").to_s }
   config.active_storage.service_configurations = { "local" => local_storage, "amazon" => local_storage }
 
-  config.action_mailer.delivery_method = :file
-  config.action_mailer.file_settings = { location: Rails.root.join("tmp/mail") }
-
-  # Don't care if the mailer can't send.
-  config.action_mailer.raise_delivery_errors = false
-
-  # Make template changes take effect immediately.
-  config.action_mailer.perform_caching = false
-
-  # Set localhost to be used by links generated in mailer templates.
-  config.action_mailer.default_url_options = { host: "localhost", port: 3000 }
-
   # Print deprecation notices to the Rails logger.
   config.active_support.deprecation = :log
 

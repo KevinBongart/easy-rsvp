@@ -35,7 +35,6 @@ RSpec.configure do |config|
   config.include ActiveJob::TestHelper
 
   config.before do
-    ActionMailer::Base.deliveries.clear
     clear_enqueued_jobs
     clear_performed_jobs
   end

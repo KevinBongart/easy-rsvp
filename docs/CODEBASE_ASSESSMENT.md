@@ -94,7 +94,8 @@ one defect group at a time in priority-ordered commits. All now pass. The fixes 
 3. P1 response integrity: model inclusion and a PostgreSQL check constrain new
    writes, including writes that bypass model validation.
 4. P1 event deletion: dependent RSVP destruction runs within the event transaction.
-5. P1 mail links: production uses the configured `DOMAIN` and HTTPS.
+5. P1 mail links: production used the configured `DOMAIN` and HTTPS. The dormant
+   email feature was later removed entirely under 3.3.
 6. P1 Trix uploads: one document listener, local XHR state, and visible recovery for
    rejected files, network errors, timeouts, and malformed JSON responses.
 7. P2 publication and session state: unpublished guest writes are blocked;
@@ -459,7 +460,8 @@ provided; Bon App's accepted risks do not transfer.
   configuration/message-body regression test. The email endpoint remains live,
   although the current organizer page has no email form and the feature test's
   email journey is commented out; decide whether to restore that feature or
-  remove the unused endpoint in a separate product decision.
+  remove the unused endpoint in a separate product decision. The feature and its
+  configuration were later removed under 3.3.
 
 - [x] **1.7 P1 — Register one attachment handler per document lifecycle.** Completed in the remediation above; original finding follows.
   `app/assets/javascripts/trix_attachments.js:37` adds a document listener inside
@@ -472,13 +474,11 @@ provided; Bon App's accepted risks do not transfer.
 
 - [ ] **1.8 P3 — Remove verified dead scaffolding and unused dependencies.**
   `Rsvp#session_key` has no caller; helpers are empty; `events.scss` contains
-  only generated comments. Jbuilder has no templates/call sites, and octicons/
-  octicons_helper have no application usage (the logo is an image). Remove with
-  a boot/assets/full-suite check. `config/puma.rb:37` has a conditional Solid Queue
+  only generated comments. Jbuilder and Octicons were removed because they had no
+  templates or call sites. `config/puma.rb:37` has a conditional Solid Queue
   plugin despite no Solid Queue gem or worker; remove that misleading branch.
   `ApplicationJob` has no subclasses; retain it only with an explicit future use.
-  Do not remove CoffeeScript, clipboard, Trix, or mailer code as "unused": they
-  have live consumers or routes.
+  Trix remains a live dependency.
 
 ## Phase 2 — Security and privacy
 
@@ -565,8 +565,9 @@ provided; Bon App's accepted risks do not transfer.
   not evidence that the old product flows have been repaired.
 
 - [x] **3.2 P1 — Isolate development storage and email.** Development uses a
-  dedicated disk root and file delivery under `tmp/mail`; imported `amazon` blobs
-  resolve to the same local disk service, preventing remote reads and purges. A
+  dedicated disk root; imported `amazon` blobs resolve to the same local disk
+  service, preventing remote reads and purges. The unused email feature and its
+  delivery configuration were later removed under 3.3. A
   separate-environment regression proves external credentials and endpoints are
   ignored. Existing imported files require an explicitly authorized local copy.
   Original finding:
@@ -578,12 +579,11 @@ provided; Bon App's accepted risks do not transfer.
   does not guarantee isolation of restored records. Specify a safe local-copy
   policy and verify it without writing to real S3 or SMTP.
 
-- [ ] **3.3 P2 — Re-enable or remove organizer-link email delivery.** The app is
-  not currently expected to send these emails, so the organizer email-request
-  route is temporarily disabled. Either restore and verify delivery end to end,
-  or remove `OrganizerEmailRequestsController`, the corresponding `UserMailer`
-  method and template, configuration, and tests. Keep the route disabled until
-  one direction is complete.
+- [x] **3.3 P2 — Remove organizer-link email delivery.** The app did not expose
+  or use this dormant flow, so its disabled route, controller, mailers, templates,
+  Action Mailer configuration, environment variables, direct mail dependencies,
+  and obsolete tests were removed. A future email capability should be introduced
+  as a deliberately configured and tested product feature.
 
 ## Phase 4 — Architecture, duplication, and data integrity
 
@@ -681,8 +681,8 @@ provided; Bon App's accepted risks do not transfer.
   Node 24 is aligned across `.node-version`, `package.json`, CircleCI and the Node
   buildpack. npm owns the browser graph, esbuild builds JavaScript, dartsass-rails
   builds Bootstrap and application SCSS, and Propshaft fingerprints both outputs.
-  CI installs and audits the same lockfile before compiling.
-  Required mail adapter gems remain pending a separate runtime review.
+  CI installs and audits the same lockfile before compiling. Unused Jbuilder,
+  Octicons, and direct mail adapter dependencies have been removed.
 
 ## Phase 7 — CI and operations follow-up
 

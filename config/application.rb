@@ -7,7 +7,6 @@ require "active_model/railtie"
 require "active_record/railtie"
 require "active_storage/engine"
 require "action_controller/railtie"
-require "action_mailer/railtie"
 require "action_view/railtie"
 require "action_text/engine"
 
@@ -48,17 +47,5 @@ module EasyRsvp
     # Don't generate system test files.
     config.generators.system_tests = nil
 
-    config.action_mailer.default_url_options = { host: ENV['DOMAIN'] }
-    config.action_mailer.delivery_method = :smtp
-    config.action_mailer.perform_deliveries = true
-    config.action_mailer.smtp_settings = {
-      address: ENV['SMTP_SERVER'],
-      user_name: ENV['SMTP_USERNAME'],
-      password: ENV['SMTP_PASSWORD'],
-      domain: ENV['DOMAIN'],
-      port: 587,
-      authentication: :plain,
-      enable_starttls_auto: true
-    }
   end
 end
