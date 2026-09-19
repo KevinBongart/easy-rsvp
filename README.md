@@ -106,7 +106,9 @@ health endpoint. After Dokku switches to a successful release, its `app.json`
 postdeploy task reports Dokku's exact `GIT_REV` to Honeybadger. The task fails
 visibly when its configuration or request fails, so a missing deploy marker
 cannot be mistaken for success. Bundler-audit and Brakeman are security gates in
-`bin/ci`; linting remains an assessment follow-up.
+`bin/ci`; linting remains an assessment follow-up. Pull requests that change
+only Markdown files or files under `docs/` skip the expensive application checks.
+A documentation-only commit on `main` also skips the production deploy.
 
 ## Refresh development data from Dokku
 
