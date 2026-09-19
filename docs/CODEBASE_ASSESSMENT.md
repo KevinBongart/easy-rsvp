@@ -411,7 +411,7 @@ provided; Bon App's accepted risks do not transfer.
 
 - [x] **1.1 P1 — Repair event deletion.** Completed in the remediation above; original finding follows. `Event` has `has_many :rsvps` without a
   dependent policy (`app/models/event.rb:4`), while `rsvps.event_id` has a foreign
-  key (`db/schema.rb:73`). `EventsAdminController#destroy` at line 19 calls
+  key (`db/schema.rb:73`). `OrganizerEventsController#destroy` calls
   `@event.destroy`. A token-authorized DELETE of an event with one RSVP raises
   `ActiveRecord::InvalidForeignKey`; an empty-event path alone misses the defect.
   Define the intended cascade, implement it transactionally, and test both cases
@@ -437,7 +437,7 @@ provided; Bon App's accepted risks do not transfer.
   among 88,330 production-derived rows, and the constraint is now validated without
   modifying historical data. Original finding: `app/models/rsvp.rb:13` only
   validates response presence. The organizer endpoint permits `response`
-  (`app/controllers/admin/rsvps_controller.rb:26`). A PATCH with `unexpected`
+  (`app/controllers/organizer_rsvps_controller.rb`). A PATCH with `unexpected`
   persists successfully; the public view only groups yes/maybe/no and omits
   that guest (`app/views/events/show.html.erb:40`). Add inclusion validation,
   a safe data cleanup/migration, and a database check constraint; test model,
@@ -574,6 +574,13 @@ provided; Bon App's accepted risks do not transfer.
   does not guarantee isolation of restored records. Specify a safe local-copy
   policy and verify it without writing to real S3 or SMTP.
 
+- [ ] **3.3 P2 — Re-enable or remove organizer-link email delivery.** The app is
+  not currently expected to send these emails, so the organizer email-request
+  route is temporarily disabled. Either restore and verify delivery end to end,
+  or remove `OrganizerEmailRequestsController`, the corresponding `UserMailer`
+  method and template, configuration, and tests. Keep the route disabled until
+  one direction is complete.
+
 ## Phase 4 — Architecture, duplication, and data integrity
 
 - [x] **4.1 P2 — Bound dashboard work in SQL.** The listing is now paginated as
@@ -596,13 +603,17 @@ provided; Bon App's accepted risks do not transfer.
   strings back into numbers. Cache or aggregate repeated monthly calculations
   within one presenter instance rather than scanning repeatedly.
 
-- [ ] **4.3 P2 — Consolidate parsing without merging authorization contexts.**
-  Identical `hashid_from_param` methods exist in EventsController,
-  EventsAdminController, RsvpsController, and Admin::BaseController. Give public
-  ID parsing one owner and preserve organizer token matching at the boundary.
-  Clarify `Admin::AdminController` versus `Admin::BaseController` naming only
-  behind the negative request tests; one is Basic Auth, the other token auth.
-  Keep these small controllers small rather than extracting one-line services.
+- [x] **4.3 P2 — Consolidate parsing without merging authorization contexts.**
+  `ApplicationController#event_hashid_from_param` now owns extraction of the
+  hashid from an event's slugged public parameter. Public and organizer
+  controllers share only that parser; organizer-token matching remains in each
+  authorization boundary. The `Admin` namespace now belongs only to the
+  site-wide HTTP Basic dashboard through `Admin::EventsController`, which applies
+  its own authentication without an otherwise-empty parent class. Separately named
+  `Organizer*Controller` classes authorize creator actions with the event's private
+  token. Existing negative request coverage continues to prove wrong
+  credentials, cross-event tokens, and unrelated RSVP IDs cannot cross either
+  boundary.
 
 - [ ] **4.4 P2 — Tighten persisted invariants deliberately.**
   `rsvps.name`, `response`, and `event_id` are nullable in the schema; `published`

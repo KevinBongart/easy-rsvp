@@ -22,9 +22,10 @@ model when applying the playbook's authentication and ownership guidance.
 - Public RSVP deletion uses event-scoped session hashids. Organizer RSVP
   mutations find the response through the token-authorized event's association.
 - The cross-event `/admin/events` dashboard uses HTTP Basic authentication from
-  `ADMIN_USER` and `ADMIN_PASSWORD`. `Admin::AdminController` is the dashboard
-  base; `Admin::BaseController` handles organizer tokens. They are different
-  access boundaries despite their similar names.
+  `ADMIN_USER` and `ADMIN_PASSWORD`, applied directly by
+  `Admin::EventsController`. The separately named `Organizer*Controller` classes
+  authorize event-scoped creator actions with `Event#admin_token`. An organizer
+  token never grants access to the site-wide `Admin` namespace.
 - Owner-approved policy: unpublished events block guest RSVP additions and
   deletions, including deletion by a guest who previously owned a response.
   Organizer editing and RSVP management remain available. Public mutations enforce
@@ -46,7 +47,7 @@ Verified against the repository on 2026-09-18; the version files remain authorit
 | UI | ERB, Simple Form, Bootstrap 5.3.8 |
 | Assets | Propshaft, dartsass-rails, jsbundling-rails/esbuild, Turbo, Stimulus, Action Text/Trix 2.1.19; browser packages locked with npm |
 | Storage | Active Storage; disk in development/test, S3 in production |
-| Mail | Action Mailer; file delivery in development, test delivery in test, SMTP in production; organizer-link delivery is synchronous |
+| Mail | Action Mailer; file delivery in development, test delivery in test, SMTP in production; organizer-link delivery route currently disabled |
 | Tests | RSpec, FactoryBot, WebMock; Rack Test by default, Selenium/headless Firefox for `js: true` system specs |
 | CI/deploy | CircleCI; Dokku app `easy-rsvp`, server configured through `DOKKU_HOST` |
 
@@ -73,10 +74,12 @@ asset-compilation, and RSpec checks.
   before reaching storage. Upload ownership remains independent of event
   creation and needs a separate lifecycle design.
 - `EventsController`: event creation and public display.
-- `EventsAdminController`: organizer display, editing, deletion, publication.
+- `OrganizerEventsController`: organizer display, editing, deletion, publication.
 - `RsvpsController`: public response creation and session-owned deletion.
-- `Admin::RsvpsController`: organizer response editing/deletion.
-- `Admin::EmailRequestsController` / `UserMailer`: email the organizer link.
+- `OrganizerRsvpsController`: organizer response editing/deletion.
+- `OrganizerEmailRequestsController` / `UserMailer`: dormant organizer-link
+  email flow. Its route is disabled pending a decision to restore verified
+  delivery or remove the feature.
 - `Admin::EventsController` / `Admin::EventStats`: dashboard listing and stats.
   Owner-approved rule: yearly/monthly counts and projections measure event creation
   using `created_at`, independent of scheduled `date`. Monthly numeric counts are
@@ -130,7 +133,8 @@ fingerprint on refresh; normal development never needs manual asset clean,
 clobber, or build tasks. Development uses a process-specific manifest path so
 precompiled output left by local CI cannot override current source. Development uploads and imported
 `amazon` blobs resolve to local disk under
-`storage/development`; organizer-link emails are written to `tmp/mail`. Imported
+`storage/development`; the dormant organizer-link email flow writes to `tmp/mail`
+if invoked directly. Imported
 images require a separately authorized local file copy; no remote fallback exists.
 Ordinary tests use local storage and test delivery. Do not exercise external side effects without the
 user's authorization.

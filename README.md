@@ -17,10 +17,12 @@ bin/dev
 ```
 
 Configure the environment values needed by the flows you use. The dashboard
-uses `ADMIN_USER` and `ADMIN_PASSWORD`. Organizer-link emails use the `SMTP_*`
-settings and `DOMAIN`. Development uploads use `storage/development`, and organizer-link emails are
-written under `tmp/mail` for local inspection. No SMTP or S3 credentials are
-needed for those development flows.
+uses `ADMIN_USER` and `ADMIN_PASSWORD`. Organizer-link email delivery is
+currently unavailable while the feature is reconsidered; its dormant
+configuration uses the `SMTP_*` settings and `DOMAIN`. Development uploads use
+`storage/development`. If email delivery is restored, development messages are
+written under `tmp/mail`, without SMTP credentials. Development uploads do not
+need S3 credentials.
 
 ## Tests
 
@@ -78,8 +80,9 @@ counts and projections use creation dates. The editor and direct-upload endpoint
 accept declared PNG/JPEG/GIF/WebP files between 1 byte and 10 MB; failed Trix
 uploads show an error and permit another attempt. Because files upload directly
 to storage, the endpoint can enforce declared metadata and signed upload length
-but cannot inspect the bytes before issuing the storage URL. Production email
-links require `DOMAIN` (a host without a URL scheme) and use HTTPS.
+but cannot inspect the bytes before issuing the storage URL. If organizer-link
+email delivery is restored, production links require `DOMAIN` (a host without a
+URL scheme) and use HTTPS.
 
 The RSVP migrations enforce supported response values with a validated PostgreSQL
 check constraint. An aggregate review of the production-derived development data

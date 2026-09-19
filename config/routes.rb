@@ -8,16 +8,16 @@ Rails.application.routes.draw do
 
   resources :events, path: '/', only: [:new, :create, :show] do
     resources :admin,
-      controller: :events_admin,
+      controller: :organizer_events,
       param: :admin_token,
       only: [:show, :edit, :update, :destroy] do
 
       post :toggle_publish, on: :member
 
-      scope module: 'admin' do
-        resources :email_requests, only: [:create]
-        resources :rsvps, only: [:update, :destroy]
-      end
+      # Organizer-link email delivery is currently unavailable. Re-enable it with
+      # verified delivery configuration, or remove the dormant email feature.
+      # resources :email_requests, controller: :organizer_email_requests, only: [:create]
+      resources :rsvps, controller: :organizer_rsvps, only: [:update, :destroy]
     end
 
     resources :rsvps, only: [:create, :destroy]
