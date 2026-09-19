@@ -15,6 +15,7 @@
 
 # Ignore uploaded files in development
 /storage/*
+/db/backups/
 
 /node_modules
 /npm-debug.log*

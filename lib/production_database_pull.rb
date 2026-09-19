@@ -3,6 +3,7 @@
 require "fileutils"
 require "open3"
 require "pathname"
+require "securerandom"
 require "shellwords"
 
 # Copies a Dokku PostgreSQL export to this machine and replaces only Easy RSVP's
@@ -52,7 +53,8 @@ class ProductionDatabasePull
     output: $stdout,
     runner: CommandRunner.new,
     clock: Time,
-    process_id: Process.pid
+    process_id: Process.pid,
+    nonce_generator: SecureRandom
   )
     @database_config = database_config
     @rails_environment = rails_environment.to_s
@@ -65,6 +67,7 @@ class ProductionDatabasePull
     @runner = runner
     @clock = clock
     @process_id = process_id
+    @nonce_generator = nonce_generator
   end
 
   def call
@@ -101,10 +104,35 @@ class ProductionDatabasePull
     raise error
   end
 
+  def backup
+    validate_local_target!
+    service = required_setting("DOKKU_PG_SERVICE")
+    host = required_setting("DOKKU_HOST")
+    validate_remote_setting!(host, service)
+    postgres_bin = resolve_postgres_bin(required_executables: %w[pg_restore])
+
+    prepare_backup_directory
+    timestamp = clock.now.utc.strftime("%Y%m%dT%H%M%SZ")
+    stem = "easy-rsvp-production-#{timestamp}-#{process_id}-#{nonce_generator.hex(4)}"
+    filename = "#{stem}.pgdump"
+    production_dump = backup_dir.join(filename)
+    partial_dump = backup_dir.join(".#{filename}.partial")
+    remote_dump = "/tmp/#{filename}"
+    copy_production_dump(host:, service:, remote_dump:, production_dump: partial_dump)
+    validate_archive!(partial_dump, postgres_bin:)
+    publish_archive!(partial_dump, production_dump)
+
+    output.puts "Production backup downloaded and read successfully: #{production_dump}"
+    production_dump
+  ensure
+    FileUtils.rm_f(partial_dump) if partial_dump
+  end
+
   private
 
   attr_reader :database_config, :rails_environment, :rails_command, :backup_dir,
-              :disconnect, :env, :input, :output, :runner, :clock, :process_id
+              :disconnect, :env, :input, :output, :runner, :clock, :process_id,
+              :nonce_generator
 
   def validate_local_target!
     unless rails_environment == "development"
@@ -123,7 +151,7 @@ class ProductionDatabasePull
 
   def required_setting(name)
     value = env[name].to_s.strip
-    raise Error, "Set #{name} before importing the production database." if value.empty?
+    raise Error, "Set #{name} before accessing the production database." if value.empty?
 
     value
   end
@@ -157,15 +185,29 @@ class ProductionDatabasePull
     cleanup = Shellwords.join([ "rm", "-f", "--", remote_dump ])
 
     output.puts "Creating a temporary production export on #{host}..."
+    primary_error = nil
     begin
       runner.run!("ssh", host, export)
       output.puts "Copying the export to #{production_dump}..."
       runner.run!("scp", "--", "#{host}:#{remote_dump}", production_dump.to_s)
       FileUtils.chmod(0o600, production_dump)
+    rescue StandardError => error
+      primary_error = error
+      raise
     ensure
       cleaned = runner.run("ssh", host, cleanup)
-      output.puts "Warning: could not remove #{remote_dump} from #{host}." unless cleaned
+      unless cleaned
+        message = "Could not remove production export #{remote_dump} from #{host}; remove it manually."
+        primary_error ? output.puts("Warning: #{message}") : raise(Error, message)
+      end
     end
+  end
+
+  def publish_archive!(partial_dump, production_dump)
+    File.link(partial_dump, production_dump)
+    FileUtils.rm_f(partial_dump)
+  rescue Errno::EEXIST
+    raise Error, "Refusing to overwrite existing backup: #{production_dump}"
   end
 
   def backup_development_database(file, postgres_bin:)
@@ -188,7 +230,8 @@ class ProductionDatabasePull
       raise Error, "Archive #{file} is suspiciously small (#{size} bytes); local data was not changed."
     end
 
-    runner.run!(postgres_bin.join("pg_restore"), "--list", file, env: postgres_environment)
+    runner.run!(postgres_bin.join("pg_restore"), "--list", file, env: archive_environment)
+    runner.run!(postgres_bin.join("pg_restore"), "--file=#{File::NULL}", file, env: archive_environment)
   end
 
   def replace_database(archive, postgres_bin:)
@@ -254,6 +297,20 @@ class ProductionDatabasePull
     }.transform_values { |value| value&.to_s }
   end
 
+  def archive_environment
+    {
+      "PGHOST" => nil,
+      "PGPORT" => nil,
+      "PGUSER" => nil,
+      "PGPASSWORD" => nil,
+      "PGDATABASE" => nil,
+      "PGHOSTADDR" => nil,
+      "PGSERVICE" => nil,
+      "PGSERVICEFILE" => nil,
+      "PGPASSFILE" => nil
+    }
+  end
+
   def database_setting(name)
     return database_config.public_send(name) if database_config.respond_to?(name)
     return unless database_config.respond_to?(:configuration_hash)
@@ -261,7 +318,7 @@ class ProductionDatabasePull
     database_config.configuration_hash[name]
   end
 
-  def resolve_postgres_bin
+  def resolve_postgres_bin(required_executables: POSTGRES_EXECUTABLES)
     candidates = []
     candidates << env["PG_BIN"] unless env["PG_BIN"].to_s.empty?
     candidates.concat([
@@ -272,10 +329,10 @@ class ProductionDatabasePull
     candidates.concat(env.fetch("PATH", "").split(File::PATH_SEPARATOR))
 
     directory = candidates.compact.map { |candidate| Pathname(candidate) }.find do |candidate|
-      POSTGRES_EXECUTABLES.all? { |executable| File.executable?(candidate.join(executable)) }
+      required_executables.all? { |executable| File.executable?(candidate.join(executable)) }
     end
     return directory if directory
 
-    raise Error, "Could not find pg_dump, pg_restore, dropdb, and createdb in one directory. Set PG_BIN."
+    raise Error, "Could not find #{required_executables.join(', ')} in one directory. Set PG_BIN."
   end
 end
