@@ -518,8 +518,9 @@ provided; Bon App's accepted risks do not transfer.
 
 - [ ] **2.3 P1 — Keep organizer credentials out of URL logs.** Application
   logger and Honeybadger notice redaction are implemented and covered by the
-  suite. Proxy
-  rollout and external collector verification remain; see
+  suite. The repository includes a synthetic probe and evidence checker. Proxy
+  rollout, a passing check against operator-supplied production evidence, and
+  external collector verification remain; see
   [Organizer link privacy](ORGANIZER_LOG_PRIVACY.md). Original finding:
   Routes embed the credential in the path (`config/routes.rb:4`), and Rails'
   request-start log includes that path verbatim. A local logger probe found the
