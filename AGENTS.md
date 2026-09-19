@@ -93,7 +93,9 @@ asset-compilation, and RSpec checks.
   and account for month/year length. Missing periods are zero-filled. Monthly
   history includes 12 completed months plus the current projection. The all-time
   total includes the oldest creation date; current-year and current-month counts
-  and projections are visible beside their charts.
+  and projections are visible beside their charts. The event list reports and can
+  filter on persisted Action Text embeds using a correlated SQL query rather than
+  loading attachments per event.
 Use `db/schema.rb` and `config/routes.rb` for exact constraints and paths.
 Keep controllers focused on HTTP; share repeated event-ID parsing and access
 rules only after their different authorization boundaries are covered by tests.

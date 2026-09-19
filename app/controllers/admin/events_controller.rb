@@ -6,6 +6,19 @@ module Admin
     RSVP_COUNT_SQL = <<~SQL.squish.freeze
       (SELECT COUNT(*) FROM rsvps WHERE rsvps.event_id = events.id)
     SQL
+    HAS_ATTACHMENTS_SQL = <<~SQL.squish.freeze
+      EXISTS (
+        SELECT 1
+        FROM action_text_rich_texts
+        INNER JOIN active_storage_attachments
+          ON active_storage_attachments.record_type = 'ActionText::RichText'
+          AND active_storage_attachments.record_id = action_text_rich_texts.id
+          AND active_storage_attachments.name = 'embeds'
+        WHERE action_text_rich_texts.record_type = 'Event'
+          AND action_text_rich_texts.record_id = events.id
+          AND action_text_rich_texts.name = 'body'
+      )
+    SQL
 
     def index
       @event_stats = Admin::EventStats.new(Event.all)
@@ -15,7 +28,13 @@ module Admin
     private
 
     def listed_events
-      events = Event.select("events.*", "#{RSVP_COUNT_SQL} AS rsvps_count")
+      events = Event.select(
+        "events.*",
+        "#{RSVP_COUNT_SQL} AS rsvps_count",
+        "#{HAS_ATTACHMENTS_SQL} AS has_attachments"
+      )
+      events = events.where(Arel.sql(HAS_ATTACHMENTS_SQL)) if params[:attachments] == "1"
+
       if params[:sort] == "rsvps"
         events.order(Arel.sql("rsvps_count DESC"), id: :desc)
       else
