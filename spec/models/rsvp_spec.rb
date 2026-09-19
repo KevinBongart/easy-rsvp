@@ -58,7 +58,7 @@ RSpec.describe Rsvp, type: :model do
     expect(rsvp.reload.event).to be_present
   end
 
-  [nil, '', '   '].each do |name|
+  [nil, '', '   ', "\t\n"].each do |name|
     it "rejects the guest name #{name.inspect} at the database boundary" do
       rsvp = create(:rsvp)
 

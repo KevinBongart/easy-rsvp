@@ -85,7 +85,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_19_160200) do
     t.string "response"
     t.datetime "updated_at", precision: nil, null: false
     t.index ["event_id"], name: "index_rsvps_on_event_id"
-    t.check_constraint "name IS NOT NULL AND btrim(name::text) <> ''::text", name: "rsvps_name_present"
+    t.check_constraint "name IS NOT NULL AND name::text ~ '[^[:space:]]'::text", name: "rsvps_name_present"
     t.check_constraint "response IS NOT NULL AND (response::text = ANY (ARRAY['yes'::character varying::text, 'maybe'::character varying::text, 'no'::character varying::text]))", name: "rsvps_supported_response"
   end
 
