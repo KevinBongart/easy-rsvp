@@ -40,7 +40,7 @@ end
 
 group :test do
   gem 'factory_bot_rails', '~> 6.4'
-  gem 'selenium-webdriver', '~> 4.35'
+  gem 'selenium-webdriver', '~> 4.49'
   gem 'webmock', '~> 3.23'
 end
 

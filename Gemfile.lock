@@ -369,7 +369,7 @@ GEM
       language_server-protocol (~> 3.17.0)
       prism (>= 1.2, < 2.0)
       rbs (>= 3, < 5)
-    rubyzip (3.6.0)
+    rubyzip (3.7.0)
     sass-embedded (1.104.1-aarch64-linux-gnu)
       google-protobuf (~> 4.31)
     sass-embedded (1.104.1-aarch64-linux-musl)
@@ -389,7 +389,7 @@ GEM
     scout_apm (6.3.0)
       parser
     securerandom (0.4.1)
-    selenium-webdriver (4.48.0)
+    selenium-webdriver (4.49.0)
       base64 (~> 0.2)
       logger (~> 1.4)
       rexml (~> 3.2, >= 3.2.5)
@@ -473,7 +473,7 @@ DEPENDENCIES
   rspec_junit_formatter
   ruby-lsp
   scout_apm
-  selenium-webdriver (~> 4.35)
+  selenium-webdriver (~> 4.49)
   simple_form
   spring
   spring-watcher-listen
