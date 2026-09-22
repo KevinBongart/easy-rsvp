@@ -39,6 +39,39 @@ RSpec.describe 'Site administrator dashboard', type: :request do
     expect(rows.map { |row| row.css('td')[2].text }).to eq(%w[3 0 0])
   end
 
+  it 'shows, filters, and sorts current and legacy attachments by stored size' do
+    attached = create(:event, title: 'Event with a photo')
+    legacy = create(:event, title: 'Event with a legacy photo')
+    plain = create(:event, title: 'Text-only event')
+    attach_images(attached, sizes: [10, 20])
+    attach_legacy_images(legacy, files: [
+      { path: 'shared-photo.png', size: 50 },
+      { path: 'shared-photo.png', size: 50 },
+      { path: 'second-photo.png', size: 25 }
+    ])
+
+    get admin_events_path, headers: dashboard_headers
+    rows = Nokogiri::HTML(response.body).css('tbody tr').index_by { |row| row.css('td')[0].text }
+    expect(rows.fetch(attached.title).css('td')[3].text.squish).to eq('2 files · 30 Bytes')
+    expect(rows.fetch(legacy.title).css('td')[3].text.squish).to eq('2 files · 75 Bytes')
+    expect(rows.fetch(plain.title).css('td')[3].text.squish).to eq('0 files · 0 Bytes')
+
+    get admin_events_path, params: { sort: 'attachments' }, headers: dashboard_headers
+    rows = Nokogiri::HTML(response.body).css('tbody tr')
+    expect(rows.map { |row| row.css('td')[0].text }).to eq([legacy.title, attached.title, plain.title])
+
+    get admin_events_path,
+      params: { attachments: '1', sort: 'attachments' },
+      headers: dashboard_headers
+    doc = Nokogiri::HTML(response.body)
+    expect(doc.css('tbody tr').map { |row| row.css('td')[0].text }).to eq([legacy.title, attached.title])
+    links = doc.css('a').index_by(&:text)
+    expect(links.fetch('Sort by ID')['href']).to include('attachments=1')
+    expect(doc.at_css('.admin-sort strong').text).to eq('Sorted by attachment size')
+    expect(links).not_to have_key('Sort by attachment size')
+    expect(links.fetch('Show all events')['href']).to include('sort=attachments')
+  end
+
   it 'renders an empty state without broken statistics' do
     get admin_events_path, headers: dashboard_headers
     expect(response).to have_http_status(:ok)
@@ -48,6 +81,7 @@ RSpec.describe 'Site administrator dashboard', type: :request do
   it 'bounds queries and instantiated records as the database grows past one page' do
     insert_events(1001)
     create(:rsvp, event: Event.order(:id).last)
+    attach_image(Event.order(:id).last)
     get admin_events_path, headers: dashboard_headers # warm templates and schema
 
     first_page_queries = count_queries { get admin_events_path, headers: dashboard_headers }
@@ -61,9 +95,13 @@ RSpec.describe 'Site administrator dashboard', type: :request do
         get admin_events_path, headers: dashboard_headers
       end
     end
+    attachment_filtered_queries = count_queries do
+      get admin_events_path, params: { attachments: '1' }, headers: dashboard_headers
+    end
 
     expect(larger_database_queries).to eq(first_page_queries)
     expect(larger_database_queries).to be <= 6
+    expect(attachment_filtered_queries).to be <= 6
     expect(instantiated['Event']).to eq(Admin::EventsController::EVENTS_PER_PAGE)
     expect(instantiated['Rsvp']).to eq(0)
   end
@@ -117,6 +155,39 @@ RSpec.describe 'Site administrator dashboard', type: :request do
       }
     end
     Event.insert_all!(rows)
+  end
+
+  def attach_image(event)
+    attach_images(event, sizes: [11])
+  end
+
+  def attach_images(event, sizes:)
+    attachments = sizes.map.with_index do |size, index|
+      blob = ActiveStorage::Blob.create_and_upload!(
+        io: StringIO.new('x' * size),
+        filename: "photo-#{index}.png",
+        content_type: 'image/png'
+      )
+      %(<action-text-attachment sgid="#{blob.attachable_sgid}"></action-text-attachment>)
+    end
+    event.update!(body: attachments.join)
+  end
+
+  def attach_legacy_images(event, files:)
+    event.update!(body: 'Legacy photo')
+    legacy_body = files.map do |file|
+      <<~HTML
+        <figure data-trix-attachment="{&quot;contentType&quot;:&quot;image/png&quot;,&quot;filesize&quot;:#{file.fetch(:size)},&quot;url&quot;:&quot;/rails/active_storage/blobs/legacy/#{file.fetch(:path)}&quot;}">
+          <img src="/rails/active_storage/blobs/legacy/#{file.fetch(:path)}">
+        </figure>
+      HTML
+    end.join
+    connection = ActionText::RichText.connection
+    connection.execute(<<~SQL)
+      UPDATE action_text_rich_texts
+      SET body = #{connection.quote(legacy_body)}
+      WHERE id = #{connection.quote(event.rich_text_body.id)}
+    SQL
   end
 
 end
