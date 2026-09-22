@@ -181,7 +181,7 @@ GEM
       activerecord (>= 4.0)
       hashids (~> 1.0)
     hashids (1.0.6)
-    honeybadger (6.9.1)
+    honeybadger (6.9.2)
       logger
       ostruct
     i18n (1.15.2)
