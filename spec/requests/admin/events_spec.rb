@@ -44,12 +44,16 @@ RSpec.describe 'Site administrator dashboard', type: :request do
     legacy = create(:event, title: 'Event with a legacy photo')
     plain = create(:event, title: 'Text-only event')
     attach_images(attached, sizes: [10, 20])
-    attach_legacy_images(legacy, sizes: [50])
+    attach_legacy_images(legacy, files: [
+      { path: 'shared-photo.png', size: 50 },
+      { path: 'shared-photo.png', size: 50 },
+      { path: 'second-photo.png', size: 25 }
+    ])
 
     get admin_events_path, headers: dashboard_headers
     rows = Nokogiri::HTML(response.body).css('tbody tr').index_by { |row| row.css('td')[0].text }
     expect(rows.fetch(attached.title).css('td')[3].text.squish).to eq('2 attachments · 30 Bytes stored')
-    expect(rows.fetch(legacy.title).css('td')[3].text.squish).to eq('1 attachment · 50 Bytes stored')
+    expect(rows.fetch(legacy.title).css('td')[3].text.squish).to eq('2 attachments · 75 Bytes stored')
     expect(rows.fetch(plain.title).css('td')[3].text.squish).to eq('0 attachments · 0 Bytes stored')
 
     get admin_events_path, params: { sort: 'attachments' }, headers: dashboard_headers
@@ -168,12 +172,12 @@ RSpec.describe 'Site administrator dashboard', type: :request do
     event.update!(body: attachments.join)
   end
 
-  def attach_legacy_images(event, sizes:)
+  def attach_legacy_images(event, files:)
     event.update!(body: 'Legacy photo')
-    legacy_body = sizes.map.with_index do |size, index|
+    legacy_body = files.map do |file|
       <<~HTML
-        <figure data-trix-attachment="{&quot;contentType&quot;:&quot;image/png&quot;,&quot;filesize&quot;:#{size},&quot;url&quot;:&quot;/rails/active_storage/blobs/legacy/photo-#{index}.png&quot;}">
-          <img src="/rails/active_storage/blobs/legacy/photo-#{index}.png">
+        <figure data-trix-attachment="{&quot;contentType&quot;:&quot;image/png&quot;,&quot;filesize&quot;:#{file.fetch(:size)},&quot;url&quot;:&quot;/rails/active_storage/blobs/legacy/#{file.fetch(:path)}&quot;}">
+          <img src="/rails/active_storage/blobs/legacy/#{file.fetch(:path)}">
         </figure>
       HTML
     end.join

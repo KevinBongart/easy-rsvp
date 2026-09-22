@@ -29,18 +29,30 @@ module Admin
         ) native_attachments ON TRUE
         LEFT JOIN LATERAL (
           SELECT
-            (
-              SELECT COUNT(*)
-              FROM regexp_matches(action_text_rich_texts.body, 'data-trix-attachment=', 'g')
-            ) AS attachments_count,
-            (
-              SELECT COALESCE(SUM((legacy_sizes.value)[1]::bigint), 0)
+            COUNT(*) AS attachments_count,
+            COALESCE(SUM(unique_attachments.filesize), 0) AS attachments_size
+          FROM (
+            SELECT
+              metadata->>'url' AS url,
+              MAX(COALESCE((metadata->>'filesize')::bigint, 0)) AS filesize
+            FROM (
+              SELECT REPLACE((matches.value)[1], '&quot;', '"')::jsonb AS metadata
               FROM regexp_matches(
                 action_text_rich_texts.body,
-                '&quot;filesize&quot;[[:space:]]*:[[:space:]]*([0-9]+)',
+                'data-trix-attachment="([^"]+)"',
                 'g'
-              ) AS legacy_sizes(value)
-            ) AS attachments_size
+              ) AS matches(value)
+              UNION ALL
+              SELECT REPLACE((matches.value)[1], '&quot;', '"')::jsonb AS metadata
+              FROM regexp_matches(
+                action_text_rich_texts.body,
+                $$data-trix-attachment='([^']+)'$$,
+                'g'
+              ) AS matches(value)
+            ) parsed_attachments
+            WHERE metadata ? 'url'
+            GROUP BY metadata->>'url'
+          ) unique_attachments
         ) legacy_attachments ON TRUE
         WHERE action_text_rich_texts.record_type = 'Event'
           AND action_text_rich_texts.record_id = events.id
