@@ -107,6 +107,7 @@ RSpec.describe ProductionDatabasePull do
       runner:,
       clock: class_double(Time, now: Time.utc(2026, 8, 21, 12)),
       process_id: 123,
+      nonce_generator: class_double(SecureRandom, hex: "a1b2c3d4"),
       **overrides
     ).call
   end
@@ -123,12 +124,14 @@ RSpec.describe ProductionDatabasePull do
       runner:,
       clock: class_double(Time, now: Time.utc(2026, 8, 21, 12)),
       process_id: 123,
+      nonce_generator: class_double(SecureRandom, hex: "a1b2c3d4"),
       **overrides
     ).backup
   end
 
   it "creates and validates a timestamped production backup without changing either database" do
     filename = "easy-rsvp-production-20260821T120000Z.pgdump"
+    remote_filename = "easy-rsvp-production-20260821T120000Z-123-a1b2c3d4.pgdump"
     partial = backup_dir.join(".#{filename}.partial")
     expected = backup_dir.join(filename)
     result = backup
@@ -141,16 +144,16 @@ RSpec.describe ProductionDatabasePull do
     commands = runner.calls.map { |call| call.fetch(:command) }
     expect(commands[0]).to eq([
       "ssh", "root@example.test",
-      "umask 077 && dokku postgres:export easy-rsvp-db > /tmp/#{filename}"
+      "umask 077 && dokku postgres:export easy-rsvp-db > /tmp/#{remote_filename}"
     ])
     expect(commands[1]).to eq([
       "scp", "--",
-      "root@example.test:/tmp/#{filename}",
+      "root@example.test:/tmp/#{remote_filename}",
       partial.to_s
     ])
     expect(commands[2]).to eq([
       "ssh", "root@example.test",
-      "rm -f -- /tmp/#{filename}"
+      "rm -f -- /tmp/#{remote_filename}"
     ])
     expect(commands[3]).to eq([
       postgres_bin.join("pg_restore").to_s,
@@ -208,6 +211,16 @@ RSpec.describe ProductionDatabasePull do
 
     expect { backup }.to raise_error(described_class::Error, /existing backup/)
     expect(first.basename.to_s).to eq("easy-rsvp-production-20260821T120000Z.pgdump")
+    expect(runner.calls).to be_empty
+  end
+
+  it "does not delete a partial file reserved by another backup" do
+    FileUtils.mkdir_p(backup_dir)
+    partial = backup_dir.join(".easy-rsvp-production-20260821T120000Z.pgdump.partial")
+    File.binwrite(partial, "another backup is writing here")
+
+    expect { backup }.to raise_error(described_class::Error, /Another backup/)
+    expect(File.binread(partial)).to eq("another backup is writing here")
     expect(runner.calls).to be_empty
   end
 
