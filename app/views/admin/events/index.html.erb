@@ -49,7 +49,7 @@
         <td class="text-nowrap"><%= event.date %></td>
         <td class="text-nowrap"><code class="small"><%= event.rsvps_count %></code></td>
         <td class="text-nowrap">
-          <%= pluralize(event.attachments_count.to_i, "file") %> /
+          <%= pluralize(event.attachments_count.to_i, "file") %> ·
           <%= number_to_human_size(event.attachments_size.to_i) %>
         </td>
         <td class="text-nowrap"><code class="small"><%= link_to event.admin_token.split('-').first, event_admin_path(event, event.admin_token), class: "text-body" %></code></td>
