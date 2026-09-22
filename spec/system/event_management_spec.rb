@@ -4,7 +4,8 @@ RSpec.describe 'Event management forms', type: :system do
   it 'shows validation errors and preserves a submitted description', js: true do
     visit root_path
     expect(page.evaluate_script("getComputedStyle(document.querySelector('input[type=submit]')).color")).to eq('rgb(255, 255, 255)')
-    expect(page.evaluate_script("getComputedStyle(document.querySelector('input[type=submit]')).backgroundColor")).to eq('rgb(0, 123, 255)')
+    expect(page.evaluate_script("getComputedStyle(document.querySelector('.brand-accent')).color")).to eq('rgb(40, 167, 69)')
+    expect(page.evaluate_script("getComputedStyle(document.querySelector('footer a')).fontWeight")).to eq('400')
     click_button 'Create your event, for free!'
     expect(page).to have_content('Your event needs a name!')
     expect(page).to have_field('What are you planning?')
@@ -14,7 +15,7 @@ RSpec.describe 'Event management forms', type: :system do
     event = create(:event)
     create(:rsvp, event: event, name: 'Private guest')
     visit event_admin_path(event, event.admin_token)
-    click_link 'Edit', match: :first
+    click_link 'Edit event', match: :first
     fill_in 'Title', with: 'Renamed garden party'
     uncheck 'Let guests see the names of other guests'
     click_button 'Update Event'

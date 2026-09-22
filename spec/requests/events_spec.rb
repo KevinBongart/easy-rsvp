@@ -6,8 +6,15 @@ RSpec.describe 'Public events', type: :request do
     expect(response).to have_http_status(:ok)
     page = Nokogiri::HTML(response.body)
     expect(response.body).to include('<trix-editor', 'event[title]', 'event[date(1i)]')
+    expect(page.at_css('html')['lang']).to eq('en')
+    expect(page.at_css('main')).to be_present
+    expect(page.at_css('nav img#logo')['alt']).to eq('')
     expect(page.at_css('trix-editor[aria-label="More details (optional)"]')).to be_present
     expect(page.at_css('label.form-label.mb-2[for="event_body"]')).to be_present
+    expect(page.at_css('fieldset legend').text).to eq('When is this happening?')
+    expect(page.at_css('label[for="event_date_2i"]').text).to eq('Month')
+    expect(page.at_css('label[for="event_date_3i"]').text).to eq('Day')
+    expect(page.at_css('label[for="event_date_1i"]').text).to eq('Year')
   end
 
   it 'loads the compiled asset entrypoints with Turbo tracking and integrity protection' do

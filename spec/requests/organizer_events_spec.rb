@@ -6,7 +6,21 @@ RSpec.describe 'Organizer events', type: :request do
   it 'shows the organizer page with its private and public links' do
     get event_admin_path(event, event.admin_token)
     expect(response).to have_http_status(:ok)
+    page = Nokogiri::HTML(response.body)
     expect(response.body).to include(event.admin_token, 'id="public-link"')
+    expect(page.css('a.event-url').length).to eq(2)
+    expect(page.at_css('[role="status"][aria-live="polite"]')).to be_present
+    expect(page.css('a').count { |link| link.text == 'Edit event' }).to eq(2)
+  end
+
+  it 'labels every part of the event date on the edit form' do
+    get edit_event_admin_path(event, event.admin_token)
+    page = Nokogiri::HTML(response.body)
+
+    expect(page.at_css('fieldset legend').text).to eq('When is this happening?')
+    expect(page.at_css('label[for="event_date_2i"]').text).to eq('Month')
+    expect(page.at_css('label[for="event_date_3i"]').text).to eq('Day')
+    expect(page.at_css('label[for="event_date_1i"]').text).to eq('Year')
   end
 
   it 'renders Bootstrap 5 modal controls with unique form field IDs' do
@@ -16,6 +30,7 @@ RSpec.describe 'Organizer events', type: :request do
     page = Nokogiri::HTML(response.body)
 
     expect(page.css('a[data-bs-toggle="modal"][data-bs-target^="#rsvp_"]').length).to eq(2)
+    expect(page.css('a[data-bs-toggle="modal"][aria-label^="Edit RSVP for "]').length).to eq(2)
     expect(page.css('button[data-bs-dismiss="modal"]').length).to eq(2)
     expect(page.css('[data-toggle], [data-target], [data-dismiss]')).to be_empty
     name_ids = page.css('.modal input[name="rsvp[name]"]').map { |input| input['id'] }

@@ -1,6 +1,7 @@
 @use "bootstrap/scss/bootstrap" with (
-  $primary: #007bff,
-  $success: #28a745,
+  $primary: #006cf5,
+  $danger: #c82333,
+  $success: #218838,
   $link-decoration: none,
   $link-hover-decoration: underline
 );
@@ -22,6 +23,16 @@
   max-width: 960px;
 }
 
+.brand-accent {
+  // Large heading text meets AA at the original, brighter brand green.
+  color: #28a745;
+}
+
+.event-heading,
+.event-url {
+  overflow-wrap: anywhere;
+}
+
 .navbar {
   padding-left: 0;
 
@@ -38,4 +49,9 @@ form.inline-btn-link {
     padding: 0;
     vertical-align: baseline;
   }
+}
+
+.site-footer {
+  // Dark surrounding copy keeps unadorned blue links distinguishable by color.
+  color: #212529;
 }

@@ -349,7 +349,7 @@ performed. For future offline production-config checks, set
 
 This was not a live penetration test, full accessibility audit, migration replay,
 or hosted CI/deployment verification. Firefox's minimum window width produced
-450 px, so 320–390 px phone layouts still need inspection. Screenshots did not
+500 px, so 320–390 px phone layouts still need inspection. Screenshots did not
 cover every dense/error state. No line-coverage percentage was measured. Lint
 configuration does not exist, so no arbitrary default-style report is presented
 as an established project check.
@@ -635,12 +635,19 @@ provided; Bon App's accepted risks do not transfer.
 
 ## Phase 5 — Frontend and accessibility
 
-- [ ] **5.1 P2 — Fix concrete markup issues before a redesign.**
+- [x] **5.1 P2 — Fix concrete markup issues before a redesign.**
   Bootstrap 5 migration fixed the missing modal name, repeated RSVP field IDs,
-  implicit Close-button type, and unnamed Trix controls. The Firefox suite proves
-  Close does not save changes and covers modal focus/opening behavior. A focused
-  accessibility-tool pass and narrow-screen check of the organizer's long secret
-  link remain.
+  implicit Close-button type, and unnamed Trix controls. Follow-up work adds the
+  document language and main landmark, descriptive RSVP and publication controls,
+  accessible clipboard status and failure feedback, visible Trix focus styles,
+  AA-contrast Bootstrap colors, and wrapping for long titles and organizer URLs.
+  Headless Firefox runs axe-core on the creation, public, organizer, open-modal,
+  and dashboard states and checks the organizer page at Firefox's verified
+  500 px minimum viewport. The narrower 320–390 px range remains an explicit
+  manual-inspection limitation above.
+  The dashboard's dense sparkline points retain their labeled keyboard controls
+  under WCAG's essential target-size exception; target-size checks still run on
+  the rest of every audited page.
 
 - [x] **5.2 P2 — Modernize incrementally, with the current UI as a baseline.**
   Completed with Propshaft, dartsass-rails, jsbundling-rails/esbuild, Turbo,

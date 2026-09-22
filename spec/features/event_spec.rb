@@ -53,7 +53,7 @@ describe 'event creation' do
     expect(page).to have_content "Batman's surprise birthday"
 
     visit(admin_path) # Back to admin page
-    click_button 'click here'
+    click_button 'Unpublish this event'
 
     expect(page).to have_content "Your event is now unpublished."
 
@@ -63,7 +63,7 @@ describe 'event creation' do
     expect(page).to have_content "This event is no longer viewable."
 
     visit(admin_path) # Back to admin page
-    click_button 'Click here to publish it'
+    click_button 'Publish this event'
 
     expect(page).to have_content "Your event is now live."
 

@@ -1,4 +1,4 @@
-<h1>
+<h1 class="event-heading">
   <%= @event.title %>
 
   <small class='text-muted'>
@@ -8,42 +8,43 @@
 </h1>
 
 <p>
-  <%= link_to "Edit", edit_event_admin_path(@event, @event.admin_token), class: 'btn btn-primary' %>
+  <%= link_to "Edit event", edit_event_admin_path(@event, @event.admin_token), class: 'btn btn-primary' %>
 </p>
 
 <ul>
   <li>
     This is your super-secret admin link:
-    <%= link_to event_admin_url(@event, @event.admin_token), event_admin_path(@event, @event.admin_token), id: 'admin-link' %>.
+    <%= link_to event_admin_url(@event, @event.admin_token), event_admin_path(@event, @event.admin_token), id: 'admin-link', class: 'event-url' %>.
     Bookmark it!
   </li>
 
   <li>
     Invite your guests by sending them this link:
-    <%= link_to event_url(@event), event_path(@event), id: 'public-link' %>
+    <%= link_to event_url(@event), event_path(@event), id: 'public-link', class: 'event-url' %>
 
-    <%= content_tag :button,
-      'Copy',
-      type: :button,
-      class: ['btn', 'btn-sm', 'btn-outline-success', 'clipboard'],
-      data: {
-        controller: 'clipboard',
-        action: 'clipboard#copy',
-        clipboard_text_value: event_url(@event)
-      }
-    %>
+    <span data-controller="clipboard" data-clipboard-text-value="<%= event_url(@event) %>">
+      <%= content_tag :button,
+        'Copy',
+        type: :button,
+        class: ['btn', 'btn-sm', 'btn-outline-success', 'clipboard'],
+        data: {
+          action: 'clipboard#copy',
+          clipboard_target: 'button'
+        }
+      %>
+      <span class="visually-hidden" role="status" aria-live="polite" data-clipboard-target="status"></span>
+    </span>
 
     Everyone with the link can RSVP, no account required.
   </li>
 
   <li>
     <% if @event.published? %>
-      If you'd like to unpublish your event:
-      <%= button_to 'click here', toggle_publish_event_admin_path(@event, @event.admin_token), class: 'btn btn-link', form_class: 'inline-btn-link' %>.
+      <%= button_to 'Unpublish this event', toggle_publish_event_admin_path(@event, @event.admin_token), class: 'btn btn-link', form_class: 'inline-btn-link' %>.
       No one will be able to view the event page. You can come back to this admin page anytime to change this if needed.
     <% else %>
       <strong>Your event is not publicly viewable right now.</strong> No one is currently able to view the event page.
-      <%= button_to 'Click here to publish it', toggle_publish_event_admin_path(@event, @event.admin_token), class: 'btn btn-link', form_class: 'inline-btn-link' %>.
+      <%= button_to 'Publish this event', toggle_publish_event_admin_path(@event, @event.admin_token), class: 'btn btn-link', form_class: 'inline-btn-link' %>.
     <% end %>
   </li>
 </ul>
@@ -69,7 +70,7 @@
     Guest names are hidden to other guests.
   <% end %>
 
-  <%= link_to "Edit", edit_event_admin_path(@event, @event.admin_token) %>
+  <%= link_to "Edit event", edit_event_admin_path(@event, @event.admin_token) %>
 </p>
 
 <ul>
@@ -82,7 +83,7 @@
         <% rsvps.each do |rsvp| %>
           <li>
             <%= rsvp.name %>
-            [<%= link_to 'edit', '#', data: { bs_toggle: :modal, bs_target: "#rsvp_#{rsvp.hashid}_modal" } %>]
+            [<%= link_to 'edit', '#', aria: { label: "Edit RSVP for #{rsvp.name}" }, data: { bs_toggle: :modal, bs_target: "#rsvp_#{rsvp.hashid}_modal" } %>]
           </li>
         <% end %>
       </ul>
