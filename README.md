@@ -119,7 +119,7 @@ bin/rails db:backup_production
 
 The task requires `DOKKU_HOST` and `DOKKU_PG_SERVICE`, using the same settings
 as the development database import below. It creates a temporary export on
-Dokku, downloads it through a uniquely named local partial file, checks the
+Dokku, downloads it through a reserved local partial file, checks the
 archive catalog and reads the complete archive with `pg_restore`, publishes it
 with owner-only permissions, and removes the remote temporary file. Cleanup
 failure makes the task fail and reports the exact remote path. It does not

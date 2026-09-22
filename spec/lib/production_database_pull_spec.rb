@@ -107,7 +107,6 @@ RSpec.describe ProductionDatabasePull do
       runner:,
       clock: class_double(Time, now: Time.utc(2026, 8, 21, 12)),
       process_id: 123,
-      nonce_generator: class_double(SecureRandom, hex: "a1b2c3d4"),
       **overrides
     ).call
   end
@@ -124,13 +123,12 @@ RSpec.describe ProductionDatabasePull do
       runner:,
       clock: class_double(Time, now: Time.utc(2026, 8, 21, 12)),
       process_id: 123,
-      nonce_generator: class_double(SecureRandom, hex: "a1b2c3d4"),
       **overrides
     ).backup
   end
 
   it "creates and validates a timestamped production backup without changing either database" do
-    filename = "easy-rsvp-production-20260821T120000Z-123-a1b2c3d4.pgdump"
+    filename = "easy-rsvp-production-20260821T120000Z.pgdump"
     partial = backup_dir.join(".#{filename}.partial")
     expected = backup_dir.join(filename)
     result = backup
@@ -204,14 +202,13 @@ RSpec.describe ProductionDatabasePull do
     expect(backup_dir.glob(".*.partial", File::FNM_DOTMATCH)).to be_empty
   end
 
-  it "uses a per-run nonce when backups start during the same second" do
-    first = backup(nonce_generator: class_double(SecureRandom, hex: "11111111"))
+  it "refuses to overwrite a backup from the same timestamp" do
+    first = backup
     runner.calls.clear
-    second = backup(nonce_generator: class_double(SecureRandom, hex: "22222222"))
 
-    expect(first).not_to eq(second)
-    expect(first.basename.to_s).to include("20260821T120000Z-123-11111111")
-    expect(second.basename.to_s).to include("20260821T120000Z-123-22222222")
+    expect { backup }.to raise_error(described_class::Error, /existing backup/)
+    expect(first.basename.to_s).to eq("easy-rsvp-production-20260821T120000Z.pgdump")
+    expect(runner.calls).to be_empty
   end
 
   it "stages, copies, validates, and restores production after backing up development" do

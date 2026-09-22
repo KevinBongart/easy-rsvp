@@ -3,7 +3,6 @@
 require "fileutils"
 require "open3"
 require "pathname"
-require "securerandom"
 require "shellwords"
 
 # Copies a Dokku PostgreSQL export to this machine and replaces only Easy RSVP's
@@ -53,8 +52,7 @@ class ProductionDatabasePull
     output: $stdout,
     runner: CommandRunner.new,
     clock: Time,
-    process_id: Process.pid,
-    nonce_generator: SecureRandom
+    process_id: Process.pid
   )
     @database_config = database_config
     @rails_environment = rails_environment.to_s
@@ -67,7 +65,6 @@ class ProductionDatabasePull
     @runner = runner
     @clock = clock
     @process_id = process_id
-    @nonce_generator = nonce_generator
   end
 
   def call
@@ -113,11 +110,11 @@ class ProductionDatabasePull
 
     prepare_backup_directory
     timestamp = clock.now.utc.strftime("%Y%m%dT%H%M%SZ")
-    stem = "easy-rsvp-production-#{timestamp}-#{process_id}-#{nonce_generator.hex(4)}"
-    filename = "#{stem}.pgdump"
+    filename = "easy-rsvp-production-#{timestamp}.pgdump"
     production_dump = backup_dir.join(filename)
     partial_dump = backup_dir.join(".#{filename}.partial")
     remote_dump = "/tmp/#{filename}"
+    reserve_archive!(partial_dump, production_dump)
     copy_production_dump(host:, service:, remote_dump:, production_dump: partial_dump)
     validate_archive!(partial_dump, postgres_bin:)
     publish_archive!(partial_dump, production_dump)
@@ -131,8 +128,7 @@ class ProductionDatabasePull
   private
 
   attr_reader :database_config, :rails_environment, :rails_command, :backup_dir,
-              :disconnect, :env, :input, :output, :runner, :clock, :process_id,
-              :nonce_generator
+              :disconnect, :env, :input, :output, :runner, :clock, :process_id
 
   def validate_local_target!
     unless rails_environment == "development"
@@ -208,6 +204,14 @@ class ProductionDatabasePull
     FileUtils.rm_f(partial_dump)
   rescue Errno::EEXIST
     raise Error, "Refusing to overwrite existing backup: #{production_dump}"
+  end
+
+  def reserve_archive!(partial_dump, production_dump)
+    raise Error, "Refusing to overwrite existing backup: #{production_dump}" if production_dump.exist?
+
+    File.open(partial_dump, File::WRONLY | File::CREAT | File::EXCL, 0o600) { }
+  rescue Errno::EEXIST
+    raise Error, "Another backup is already using #{partial_dump}"
   end
 
   def backup_development_database(file, postgres_bin:)
