@@ -52,9 +52,9 @@ RSpec.describe 'Site administrator dashboard', type: :request do
 
     get admin_events_path, headers: dashboard_headers
     rows = Nokogiri::HTML(response.body).css('tbody tr').index_by { |row| row.css('td')[0].text }
-    expect(rows.fetch(attached.title).css('td')[3].text.squish).to eq('2 attachments · 30 Bytes stored')
-    expect(rows.fetch(legacy.title).css('td')[3].text.squish).to eq('2 attachments · 75 Bytes stored')
-    expect(rows.fetch(plain.title).css('td')[3].text.squish).to eq('0 attachments · 0 Bytes stored')
+    expect(rows.fetch(attached.title).css('td')[3].text.squish).to eq('2 files / 30 Bytes')
+    expect(rows.fetch(legacy.title).css('td')[3].text.squish).to eq('2 files / 75 Bytes')
+    expect(rows.fetch(plain.title).css('td')[3].text.squish).to eq('0 files / 0 Bytes')
 
     get admin_events_path, params: { sort: 'attachments' }, headers: dashboard_headers
     rows = Nokogiri::HTML(response.body).css('tbody tr')
