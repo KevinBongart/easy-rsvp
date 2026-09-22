@@ -58,15 +58,15 @@ asset-compilation, and RSpec checks.
 
 ## Code map and domain rules
 
-- `Event`: title/date validation, Action Text `body`, public hashid/slug,
-  organizer token, publication and RSVP-name visibility flags, dependent
+- `Event`: title/date/publication validation, Action Text `body`, public hashid/slug,
+  organizer token, non-null publication and RSVP-name visibility flags, dependent
   destruction of RSVPs. The legacy `events.body` values were backfilled into
   Action Text before that column was removed in a later deployment. Missing
   Action Text rows are repaired during removal; divergent legacy values are
   retained in `legacy_event_body_conflicts` for explicit review.
 - `Rsvp`: belongs to an event, name/response presence validation,
-  `RESPONSES = [:yes, :maybe, :no]`, with inclusion validation and a database check
-  that is validated against existing rows as well as enforced for new writes.
+  `RESPONSES = [:yes, :maybe, :no]`, with non-null database columns, a nonblank
+  name check, and a supported-response check validated against existing rows.
 - `ImageUpload`: legacy records retain old editor uploads and their Active
   Storage attachments. New editor uploads use Action Text direct uploads. The
   browser and server accept declared PNG/JPEG/GIF/WebP files from 1 byte through

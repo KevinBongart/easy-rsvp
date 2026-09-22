@@ -58,7 +58,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_19_170000) do
     t.string "admin_token", null: false
     t.datetime "created_at", precision: nil, null: false
     t.date "date", null: false
-    t.boolean "published", default: true
+    t.boolean "published", default: true, null: false
     t.boolean "show_rsvp_names", default: true, null: false
     t.string "title", null: false
     t.datetime "updated_at", precision: nil, null: false
@@ -80,11 +80,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_19_170000) do
 
   create_table "rsvps", force: :cascade do |t|
     t.datetime "created_at", precision: nil, null: false
-    t.bigint "event_id"
-    t.string "name"
+    t.bigint "event_id", null: false
+    t.string "name", null: false
     t.string "response"
     t.datetime "updated_at", precision: nil, null: false
     t.index ["event_id"], name: "index_rsvps_on_event_id"
+    t.check_constraint "name IS NOT NULL AND name::text ~ '[^[:space:]]'::text", name: "rsvps_name_present"
     t.check_constraint "response IS NOT NULL AND (response::text = ANY (ARRAY['yes'::character varying::text, 'maybe'::character varying::text, 'no'::character varying::text]))", name: "rsvps_supported_response"
   end
 

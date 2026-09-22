@@ -619,13 +619,17 @@ provided; Bon App's accepted risks do not transfer.
   credentials, cross-event tokens, and unrelated RSVP IDs cannot cross either
   boundary.
 
-- [ ] **4.4 P2 — Tighten persisted invariants deliberately.**
-  `rsvps.name`, `response`, and `event_id` are nullable in the schema; `published`
-  is also nullable. Model-only presence checks do not protect direct/concurrent
-  writes. Inventory existing invalid data through an authorized path, document
-  cleanup choices, then add appropriate null/check constraints. Assess whether a
-  unique organizer token constraint is useful, without overstating collision risk
-  for UUID-generated tokens. Preserve the existing foreign key and valid data.
+- [x] **4.4 P2 — Tighten persisted invariants deliberately.** The current local
+  production-derived database has no null event references, null/blank RSVP names,
+  null publication states, or duplicate organizer tokens. New writes are first
+  protected by unvalidated checks; a separate migration validates historical rows
+  without rewriting them, and a final migration makes `rsvps.event_id`,
+  `rsvps.name`, and `events.published` non-null. A retained database check rejects
+  blank and whitespace-only names. Migration regressions prove invalid historical
+  data stops validation rather than being coerced. The existing foreign key and
+  supported-response check remain. No unique organizer-token index was added: no
+  collision was observed, and UUID collision risk does not justify a separate
+  cleanup policy or deployment scan.
 
 ## Phase 5 — Frontend and accessibility
 
