@@ -15,7 +15,4 @@ class Rsvp < ApplicationRecord
   # Use this to avoid including new (unsaved) records
   scope :persisted, -> { where.not(id: nil) }
 
-  def session_key
-    [:event, event_id, :rsvp, id].join(':')
-  end
 end
