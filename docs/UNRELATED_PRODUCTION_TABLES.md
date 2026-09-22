@@ -37,7 +37,16 @@ preserves its rows, indexes, sequences, and foreign keys. It also renames the
 Action Text uniqueness index so a later Action Text installation can create the
 canonical table and index names.
 
-Run `bin/rails db:rollback` to restore the original names before installing
-Action Text again. Dropping the quarantined tables should be a later, explicit
-migration after a retention period and confirmation that no other application
-needs the data.
+The follow-up `DropQuarantinedUnrelatedTables` migration removes all 19 tables in
+one PostgreSQL statement after the retention period. `IF EXISTS` makes it a no-op
+on clean installations where the unrelated tables never existed. The statement
+does not use `CASCADE`: an unexpected foreign key from any retained table aborts
+the drop instead of deleting that relationship implicitly.
+
+The drop is irreversible. Before merging or deploying it, confirm that the
+quarantine migration has been running for the agreed retention period, no other
+application needs the data, and create a fresh locally checked archive with
+`bin/rails db:backup_production`. Restore that archive into a disposable local
+database and verify that all 19 quarantined tables and their expected row counts
+are present before deploying this drop. Restoring the tables afterward requires
+restoring that backup; `db:rollback` cannot recreate their rows.

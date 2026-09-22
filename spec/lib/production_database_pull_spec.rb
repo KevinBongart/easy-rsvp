@@ -9,7 +9,8 @@ RSpec.describe ProductionDatabasePull do
 
   class FakeCommandRunner
     attr_reader :calls
-    attr_accessor :small_production_dump, :fail_production_restore
+    attr_accessor :small_production_dump, :fail_archive_read, :fail_copy,
+      :fail_production_restore, :fail_remote_cleanup
 
     def initialize
       @calls = []
@@ -20,6 +21,8 @@ RSpec.describe ProductionDatabasePull do
       executable = File.basename(command.first.to_s)
 
       if executable == "scp"
+        raise ProductionDatabasePull::CommandError.new(command.map(&:to_s), "copy broke") if fail_copy
+
         File.binwrite(command.last, "production" * (small_production_dump ? 1 : 200))
       elsif executable == "pg_dump"
         file = command.find { |argument| argument.to_s.start_with?("--file=") }.to_s.delete_prefix("--file=")
@@ -27,12 +30,20 @@ RSpec.describe ProductionDatabasePull do
       elsif executable == "pg_restore" && fail_production_restore && production_restore?(command)
         self.fail_production_restore = false
         raise ProductionDatabasePull::CommandError.new(command.map(&:to_s), "restore broke")
+      elsif executable == "pg_restore" && fail_archive_read &&
+          command.any? { |argument| argument.to_s.start_with?("--file=") }
+        raise ProductionDatabasePull::CommandError.new(command.map(&:to_s), "archive read broke")
       end
 
       true
     end
 
     def run(*command, env: {})
+      if fail_remote_cleanup && command.first.to_s == "ssh" && command.last.to_s.start_with?("rm -f -- ")
+        calls << { command: command.map(&:to_s), env: }
+        return false
+      end
+
       run!(*command, env:)
     rescue ProductionDatabasePull::CommandError
       false
@@ -41,7 +52,7 @@ RSpec.describe ProductionDatabasePull do
     private
 
     def production_restore?(command)
-      command.none? { |argument| argument.to_s == "--list" } &&
+      command.any? { |argument| argument.to_s.start_with?("--dbname=") } &&
         command.last.to_s.include?("easy-rsvp-production")
     end
   end
@@ -96,8 +107,121 @@ RSpec.describe ProductionDatabasePull do
       runner:,
       clock: class_double(Time, now: Time.utc(2026, 8, 21, 12)),
       process_id: 123,
+      nonce_generator: class_double(SecureRandom, hex: "a1b2c3d4"),
       **overrides
     ).call
+  end
+
+  def backup(**overrides)
+    described_class.new(
+      database_config:,
+      rails_environment: "development",
+      rails_command: "/app/bin/rails",
+      backup_dir:,
+      disconnect:,
+      env: environment,
+      output:,
+      runner:,
+      clock: class_double(Time, now: Time.utc(2026, 8, 21, 12)),
+      process_id: 123,
+      nonce_generator: class_double(SecureRandom, hex: "a1b2c3d4"),
+      **overrides
+    ).backup
+  end
+
+  it "creates and validates a timestamped production backup without changing either database" do
+    filename = "easy-rsvp-production-20260821T120000Z.pgdump"
+    remote_filename = "easy-rsvp-production-20260821T120000Z-123-a1b2c3d4.pgdump"
+    partial = backup_dir.join(".#{filename}.partial")
+    expected = backup_dir.join(filename)
+    result = backup
+
+    expect(result).to eq(expected)
+    expect(result).to exist
+    expect(File.stat(result).mode & 0o777).to eq(0o600)
+    expect(partial).not_to exist
+
+    commands = runner.calls.map { |call| call.fetch(:command) }
+    expect(commands[0]).to eq([
+      "ssh", "root@example.test",
+      "umask 077 && dokku postgres:export easy-rsvp-db > /tmp/#{remote_filename}"
+    ])
+    expect(commands[1]).to eq([
+      "scp", "--",
+      "root@example.test:/tmp/#{remote_filename}",
+      partial.to_s
+    ])
+    expect(commands[2]).to eq([
+      "ssh", "root@example.test",
+      "rm -f -- /tmp/#{remote_filename}"
+    ])
+    expect(commands[3]).to eq([
+      postgres_bin.join("pg_restore").to_s,
+      "--list",
+      partial.to_s
+    ])
+    expect(commands[4]).to eq([
+      postgres_bin.join("pg_restore").to_s,
+      "--file=#{File::NULL}",
+      partial.to_s
+    ])
+    expect(runner.calls[3].fetch(:env)).to include("PGPASSWORD" => nil, "PGDATABASE" => nil)
+    expect(runner.calls[4].fetch(:env)).to include("PGPASSWORD" => nil, "PGDATABASE" => nil)
+    expect(commands.map { |command| File.basename(command.first) }).not_to include(
+      "pg_dump", "dropdb", "createdb", "rails"
+    )
+    expect(disconnect).not_to have_received(:call)
+  end
+
+  it "does not publish an invalid production backup" do
+    runner.small_production_dump = true
+
+    expect { backup }.to raise_error(described_class::Error, /suspiciously small/)
+    expect(backup_dir.glob("*.pgdump")).to be_empty
+    expect(backup_dir.glob(".*.partial", File::FNM_DOTMATCH)).to be_empty
+  end
+
+  it "fails and removes the local partial when the remote export cannot be removed" do
+    runner.fail_remote_cleanup = true
+
+    expect { backup }.to raise_error(described_class::Error, %r{remove production export /tmp/})
+    expect(backup_dir.glob("*.pgdump")).to be_empty
+    expect(backup_dir.glob(".*.partial", File::FNM_DOTMATCH)).to be_empty
+  end
+
+  it "preserves a copy error when remote cleanup also fails" do
+    runner.fail_copy = true
+    runner.fail_remote_cleanup = true
+
+    expect { backup }.to raise_error(described_class::CommandError, /copy broke/)
+    expect(output.string).to match(%r{Warning: Could not remove production export /tmp/})
+  end
+
+  it "does not publish an archive that cannot be read completely" do
+    runner.fail_archive_read = true
+
+    expect { backup }.to raise_error(described_class::CommandError, /archive read broke/)
+    expect(backup_dir.glob("*.pgdump")).to be_empty
+    expect(backup_dir.glob(".*.partial", File::FNM_DOTMATCH)).to be_empty
+  end
+
+  it "refuses to overwrite a backup from the same timestamp" do
+    first = backup
+    runner.calls.clear
+
+    expect { backup }.to raise_error(described_class::Error, /existing backup/)
+    expect(first.basename.to_s).to eq("easy-rsvp-production-20260821T120000Z.pgdump")
+    expect(runner.calls).to be_empty
+  end
+
+  it "does not delete a partial file reserved by another backup" do
+    FileUtils.mkdir_p(backup_dir)
+    partial = backup_dir.join(".easy-rsvp-production-20260821T120000Z.pgdump.partial")
+    File.binwrite(partial, "another backup is writing here")
+
+    expect { backup }.to raise_error(described_class::Error, /Another backup/)
+    expect(File.binread(partial)).to eq("another backup is writing here")
+    expect(runner.calls).to be_empty
   end
 
   it "stages, copies, validates, and restores production after backing up development" do
@@ -237,7 +361,8 @@ RSpec.describe ProductionDatabasePull do
 
     expect { pull }.to raise_error(described_class::CommandError, /restore broke/)
     restore_calls = runner.calls.map { |call| call.fetch(:command) }.select do |command|
-      File.basename(command.first) == "pg_restore" && !command.include?("--list")
+      File.basename(command.first) == "pg_restore" &&
+        command.any? { |argument| argument.start_with?("--dbname=") }
     end
     expect(restore_calls.length).to eq(2)
     expect(restore_calls.last.last).to include("development-before")

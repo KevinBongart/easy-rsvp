@@ -138,12 +138,17 @@ user's authorization.
 `events_development` after confirmation and a validated backup. Its usage and
 recovery files are documented in the [README](README.md). Adding or testing its
 code is separate from running an actual production import.
+`db:backup_production` uses the same guarded export path to create a timestamped
+archive under ignored `db/backups/` without changing either database. It checks
+the archive catalog and reads the complete archive, but only a disposable restore
+drill proves usability; require that drill before destructive use.
 
 Production and staging database access has a stricter boundary. An agent may
 pull either database only by invoking a dedicated, repository-owned, guarded
 Rake task, and only when the user explicitly authorizes that specific pull.
-`db:pull_production` is the only approved production interface. A staging pull
-is prohibited unless an equivalent guarded task exists in the repository. Never
+`db:pull_production` and `db:backup_production` are the only approved production
+database interfaces. A staging pull is prohibited unless an equivalent guarded
+task exists in the repository. Never
 reproduce or bypass a pull task's internals: do not invoke `ssh`, `scp`, `pg_dump`,
 `psql`, Dokku commands, or a remote database connection directly, even for
 read-only inspection. If the task cannot provide required information, ask the
