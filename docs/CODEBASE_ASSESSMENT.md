@@ -556,13 +556,15 @@ provided; Bon App's accepted risks do not transfer.
 
 ## Phase 3 — Documentation and operational clarity
 
-- [ ] **3.1 P2 — Close onboarding and feature-documentation gaps.** Keep README
-  and AGENTS current after each fix. Explain event/RSVP deletion rules,
-  unpublishing semantics, dashboard date semantics, and the email feature's
-  availability. Document required versus optional environment settings,
-  canonical host, local file-storage setup, and the local checks command once
-  introduced. The preceding documentation/import task is completed preparation,
-  not evidence that the old product flows have been repaired.
+- [x] **3.1 P2 — Close onboarding and feature-documentation gaps.** The README
+  now gives a `bin/setup` first-run path, states that no seeds or environment
+  variables are needed for the basic local flow, and maps dashboard, storage,
+  monitoring, deployment, database-utility, browser, and runtime settings. It
+  documents the request-derived canonical host, local disk storage, test command,
+  event and RSVP deletion rules, unpublishing behavior, creation-date dashboard
+  semantics, attachment controls, and the absence of email delivery. AGENTS now
+  requires an independent final-diff review for substantive pull requests while
+  retaining a narrow exception for routine automated dependency-only updates.
 
 - [x] **3.2 P1 — Isolate development storage and email.** Development uses a
   dedicated disk root; imported `amazon` blobs resolve to the same local disk

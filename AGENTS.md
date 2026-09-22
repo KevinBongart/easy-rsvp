@@ -108,6 +108,16 @@ For autoloading changes, run `RAILS_ENV=test bin/rails zeitwerk:check`.
 CircleCI installs Firefox/geckodriver, creates and loads the test database, then
 runs `bin/ci`. JUnit results and failure screenshots are retained. Bundler-audit and Brakeman run before the application checks; lint remains a follow-up.
 
+Before merging a substantive pull request, have a context-isolated agent
+independently review the final diff against `origin/main` and these repository
+instructions. Give the reviewer the acceptance criteria and final diff without
+the implementing agent's reasoning, then resolve or explicitly disposition
+material findings. Trivial automated dependency bumps limited to manifest and
+lockfile version changes may rely on normal dependency review and passing CI;
+require independent review when a bump includes conflicts, application or
+configuration changes, migrations, security-sensitive behavior, or unexplained
+failures.
+
 Use factories, transactional data, and block-scoped time travel. The harness
 supplies synthetic dashboard credentials and blocks external Ruby HTTP with
 WebMock, allowing localhost for WebDriver. Active Storage uses a dedicated
