@@ -67,7 +67,8 @@ RSpec.describe 'Site administrator dashboard', type: :request do
     expect(doc.css('tbody tr').map { |row| row.css('td')[0].text }).to eq([legacy.title, attached.title])
     links = doc.css('a').index_by(&:text)
     expect(links.fetch('Sort by ID')['href']).to include('attachments=1')
-    expect(links.fetch('Sort by attachment size')['href']).to include('attachments=1')
+    expect(doc.at_css('.admin-sort strong').text).to eq('Sorted by attachment size')
+    expect(links).not_to have_key('Sort by attachment size')
     expect(links.fetch('Show all events')['href']).to include('sort=attachments')
   end
 
