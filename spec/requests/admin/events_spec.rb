@@ -37,6 +37,8 @@ RSpec.describe 'Site administrator dashboard', type: :request do
     rows = doc.css('tbody tr')
     expect(rows.map { |row| row.css('td')[0].text }).to eq([popular.title, newer_quiet.title, older_quiet.title])
     expect(rows.map { |row| row.css('td')[2].text }).to eq(%w[3 0 0])
+    expect(doc.at_css('thead th:nth-child(4)')['class'].split).to include('text-end')
+    expect(rows.all? { |row| row.css('td')[2]['class'].split.include?('text-end') }).to be(true)
   end
 
   it 'shows, filters, and sorts current and legacy attachments by stored size' do
@@ -54,7 +56,7 @@ RSpec.describe 'Site administrator dashboard', type: :request do
     rows = Nokogiri::HTML(response.body).css('tbody tr').index_by { |row| row.css('td')[0].text }
     expect(rows.fetch(attached.title).css('td')[3].text.squish).to eq('2 files · 30 Bytes')
     expect(rows.fetch(legacy.title).css('td')[3].text.squish).to eq('2 files · 75 Bytes')
-    expect(rows.fetch(plain.title).css('td')[3].text.squish).to eq('0 files · 0 Bytes')
+    expect(rows.fetch(plain.title).css('td')[3].text.squish).to be_empty
 
     get admin_events_path, params: { sort: 'attachments' }, headers: dashboard_headers
     rows = Nokogiri::HTML(response.body).css('tbody tr')
