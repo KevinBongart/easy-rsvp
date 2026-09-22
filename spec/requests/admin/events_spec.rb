@@ -39,27 +39,32 @@ RSpec.describe 'Site administrator dashboard', type: :request do
     expect(rows.map { |row| row.css('td')[2].text }).to eq(%w[3 0 0])
   end
 
-  it 'shows and filters events with current and legacy rich-text attachments' do
+  it 'shows, filters, and sorts current and legacy attachments by stored size' do
     attached = create(:event, title: 'Event with a photo')
     legacy = create(:event, title: 'Event with a legacy photo')
     plain = create(:event, title: 'Text-only event')
-    attach_image(attached)
-    attach_legacy_image(legacy)
+    attach_images(attached, sizes: [10, 20])
+    attach_legacy_images(legacy, sizes: [50])
 
     get admin_events_path, headers: dashboard_headers
     rows = Nokogiri::HTML(response.body).css('tbody tr').index_by { |row| row.css('td')[0].text }
-    expect(rows.fetch(attached.title).css('td')[3].text).to eq('Yes')
-    expect(rows.fetch(legacy.title).css('td')[3].text).to eq('Yes')
-    expect(rows.fetch(plain.title).css('td')[3].text).to eq('No')
+    expect(rows.fetch(attached.title).css('td')[3].text.squish).to eq('2 attachments · 30 Bytes stored')
+    expect(rows.fetch(legacy.title).css('td')[3].text.squish).to eq('1 attachment · 50 Bytes stored')
+    expect(rows.fetch(plain.title).css('td')[3].text.squish).to eq('0 attachments · 0 Bytes stored')
+
+    get admin_events_path, params: { sort: 'attachments' }, headers: dashboard_headers
+    rows = Nokogiri::HTML(response.body).css('tbody tr')
+    expect(rows.map { |row| row.css('td')[0].text }).to eq([legacy.title, attached.title, plain.title])
 
     get admin_events_path,
-      params: { attachments: '1', sort: 'rsvps' },
+      params: { attachments: '1', sort: 'attachments' },
       headers: dashboard_headers
     doc = Nokogiri::HTML(response.body)
     expect(doc.css('tbody tr').map { |row| row.css('td')[0].text }).to eq([legacy.title, attached.title])
     links = doc.css('a').index_by(&:text)
     expect(links.fetch('Sort by ID')['href']).to include('attachments=1')
-    expect(links.fetch('Show all events')['href']).to include('sort=rsvps')
+    expect(links.fetch('Sort by attachment size')['href']).to include('attachments=1')
+    expect(links.fetch('Show all events')['href']).to include('sort=attachments')
   end
 
   it 'renders an empty state without broken statistics' do
@@ -148,23 +153,30 @@ RSpec.describe 'Site administrator dashboard', type: :request do
   end
 
   def attach_image(event)
-    blob = ActiveStorage::Blob.create_and_upload!(
-      io: StringIO.new('image bytes'),
-      filename: 'photo.png',
-      content_type: 'image/png'
-    )
-    event.update!(
-      body: %(<action-text-attachment sgid="#{blob.attachable_sgid}"></action-text-attachment>)
-    )
+    attach_images(event, sizes: [11])
   end
 
-  def attach_legacy_image(event)
+  def attach_images(event, sizes:)
+    attachments = sizes.map.with_index do |size, index|
+      blob = ActiveStorage::Blob.create_and_upload!(
+        io: StringIO.new('x' * size),
+        filename: "photo-#{index}.png",
+        content_type: 'image/png'
+      )
+      %(<action-text-attachment sgid="#{blob.attachable_sgid}"></action-text-attachment>)
+    end
+    event.update!(body: attachments.join)
+  end
+
+  def attach_legacy_images(event, sizes:)
     event.update!(body: 'Legacy photo')
-    legacy_body = <<~HTML
-      <figure data-trix-attachment="{&quot;contentType&quot;:&quot;image/png&quot;,&quot;url&quot;:&quot;/rails/active_storage/blobs/legacy/photo.png&quot;}">
-        <img src="/rails/active_storage/blobs/legacy/photo.png">
-      </figure>
-    HTML
+    legacy_body = sizes.map.with_index do |size, index|
+      <<~HTML
+        <figure data-trix-attachment="{&quot;contentType&quot;:&quot;image/png&quot;,&quot;filesize&quot;:#{size},&quot;url&quot;:&quot;/rails/active_storage/blobs/legacy/photo-#{index}.png&quot;}">
+          <img src="/rails/active_storage/blobs/legacy/photo-#{index}.png">
+        </figure>
+      HTML
+    end.join
     connection = ActionText::RichText.connection
     connection.execute(<<~SQL)
       UPDATE action_text_rich_texts

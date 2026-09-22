@@ -16,13 +16,12 @@
   </div>
 </div>
 
-<%# Sorting toggle %>
 <div class="mb-2">
-  <% if params[:sort] == "rsvps" %>
-    <%= link_to "Sort by ID", admin_events_path(attachments: params[:attachments].presence) %>
-  <% else %>
-    <%= link_to "Sort by RSVP count", admin_events_path(sort: "rsvps", attachments: params[:attachments].presence) %>
-  <% end %>
+  <%= link_to "Sort by ID", admin_events_path(attachments: params[:attachments].presence) %>
+  <span aria-hidden="true">·</span>
+  <%= link_to "Sort by RSVP count", admin_events_path(sort: "rsvps", attachments: params[:attachments].presence) %>
+  <span aria-hidden="true">·</span>
+  <%= link_to "Sort by attachment size", admin_events_path(sort: "attachments", attachments: params[:attachments].presence) %>
   <span aria-hidden="true">·</span>
   <% if params[:attachments] == "1" %>
     <%= link_to "Show all events", admin_events_path(sort: params[:sort].presence) %>
@@ -38,7 +37,7 @@
       <th scope="col">Name</th>
       <th scope="col">Date</th>
       <th scope="col">RSVPs</th>
-      <th scope="col">Attachment</th>
+      <th scope="col">Attachments</th>
       <th scope="col">Admin</th>
     </tr>
   </thead>
@@ -49,7 +48,10 @@
         <td><%= link_to event.title, event %></td>
         <td class="text-nowrap"><%= event.date %></td>
         <td class="text-nowrap"><code class="small"><%= event.rsvps_count %></code></td>
-        <td><%= event.has_attachments ? "Yes" : "No" %></td>
+        <td class="text-nowrap">
+          <%= pluralize(event.attachments_count.to_i, "attachment") %> ·
+          <%= number_to_human_size(event.attachments_size.to_i) %> stored
+        </td>
         <td class="text-nowrap"><code class="small"><%= link_to event.admin_token.split('-').first, event_admin_path(event, event.admin_token), class: "text-body" %></code></td>
       </tr>
     <% end %>
