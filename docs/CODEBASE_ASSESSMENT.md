@@ -702,9 +702,13 @@ provided; Bon App's accepted risks do not transfer.
   Rails' lightweight `/up` route and a request regression are implemented. A
   Dokku `postdeploy` task now reports the exact `GIT_REV` to Honeybadger and
   propagates configuration/API failures instead of hiding missed deploy markers.
-  Production still needs an authorized verification of release migrations,
-  health, one read path, and the resulting Honeybadger deploy marker. Keep the
-  real Dokku `Procfile`; no additional queue/deployment platform is needed.
+  The 2026-09-22 production log confirms a successful release migration, Puma
+  startup, public cutover, and Honeybadger notification for the deployed main
+  revision. It also showed that Dokku was relying only on port and uptime checks;
+  `app.json` now requires `/up` to pass before traffic switches. Keep this item
+  open until a production deploy log confirms that named HTTP check and the
+  public read path remains healthy. Keep the real Dokku `Procfile`; no additional
+  queue/deployment platform is needed.
 
 - [ ] **7.3 P2 — Extend backup/recovery verification when operationally needed.**
   The new `db:pull_production` has strict local-target/confirmation guards,

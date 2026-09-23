@@ -21,6 +21,18 @@ RSpec.describe 'bin/notify_honeybadger_deploy' do
     expect(app_json.dig('scripts', 'dokku', 'postdeploy')).to eq('bin/notify_honeybadger_deploy')
   end
 
+  it 'requires the Rails health endpoint to pass before Dokku switches traffic' do
+    app_json = JSON.parse(File.read(File.join(repository_root, 'app.json')))
+
+    expect(app_json.dig('healthchecks', 'web')).to contain_exactly(
+      include(
+        'type' => 'startup',
+        'path' => '/up',
+        'attempts' => 3
+      )
+    )
+  end
+
   it 'fails clearly when Honeybadger is not configured' do
     _stdout, stderr, status = run_notifier
 

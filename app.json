@@ -1,4 +1,17 @@
 {
+  "healthchecks": {
+    "web": [
+      {
+        "type": "startup",
+        "name": "Rails health check",
+        "description": "Require Rails /up to respond before switching traffic",
+        "path": "/up",
+        "attempts": 3,
+        "timeout": 5,
+        "wait": 5
+      }
+    ]
+  },
   "scripts": {
     "dokku": {
       "postdeploy": "bin/notify_honeybadger_deploy"

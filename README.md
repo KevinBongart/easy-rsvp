@@ -99,8 +99,9 @@ These are server-rendered SVGs with CSS tooltips and no charting dependency.
 `bin/ci` writes JUnit results to `tmp/test-results/rspec.xml`. Failed system tests
 save screenshots under `tmp/screenshots/`; CircleCI retains both. CircleCI deploys
 successful `main` builds to Dokku. The app exposes Rails' lightweight `/up`
-health endpoint. After Dokku switches to a successful release, its `app.json`
-postdeploy task reports Dokku's exact `GIT_REV` to Honeybadger. The task fails
+health endpoint, which Dokku must successfully probe before switching production
+traffic to a new web container. After that switch, the `app.json` postdeploy task
+reports Dokku's exact `GIT_REV` to Honeybadger. The task fails
 visibly when its configuration or request fails, so a missing deploy marker
 cannot be mistaken for success. Bundler-audit and Brakeman are security gates in
 `bin/ci`; linting remains an assessment follow-up. Pull requests that change
