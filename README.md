@@ -6,20 +6,65 @@ Read more: https://www.kevinbongart.net/projects/easy-rsvp.html
 
 ## Development
 
-Use Ruby from `.ruby-version` and a running local PostgreSQL server:
+Use Ruby from `.ruby-version`, Node from `.node-version`, and a running local
+PostgreSQL server:
 
 ```sh
-bundle install
-npm ci
-cp .env.sample .env # only on first setup; preserve an existing .env
-bin/rails db:prepare
-bin/dev
+test -e .env || cp .env.sample .env
+bin/setup
 ```
 
-Configure the environment values needed by the flows you use. The dashboard
-uses `ADMIN_USER` and `ADMIN_PASSWORD`. Development uploads use
-`storage/development` and do not need S3 credentials. The application does not
-send email.
+`bin/setup` installs the Ruby and npm dependencies, prepares the database, and
+starts `bin/dev`. Pass `--skip-server` when only preparing the checkout. No seed
+data is required. Development uploads use `storage/development` and do not need
+S3 credentials.
+
+The event creation and RSVP flows need no environment configuration locally.
+Set both `ADMIN_USER` and `ADMIN_PASSWORD` to use the site-wide dashboard at
+`/admin/events`. The application does not send email.
+
+## Product and access rules
+
+Easy RSVP has no accounts. A published event has a public URL for guests and a
+separate organizer URL containing a secret token. Anyone with the organizer URL
+can edit or publish the event and manage all its RSVPs; that token does not grant
+access to the site-wide dashboard.
+
+Guests can delete only RSVPs created in their current browser session. When an
+event is unpublished, its public page is unavailable and guests cannot add or
+delete RSVPs, including ones their session previously created. Existing RSVPs
+are preserved. The organizer can still edit the event and its RSVPs, and
+republishing restores public access. Deleting an event through its
+token-authorized endpoint also deletes its RSVPs, although the current interface
+does not expose an event-deletion control.
+
+The HTTP Basic-authenticated dashboard shows creation-date statistics; an
+event's scheduled date does not affect those charts. Its event list shows
+attachment count and stored size, can show only events with attachments, and can
+sort by ID, RSVP count, or attachment size.
+
+## Configuration
+
+The checked-in `.env.sample` contains the settings commonly needed for local
+development and operations. Keep secrets in an untracked `.env` locally and in
+the deployment environment in production.
+
+| Setting | When it is needed |
+| --- | --- |
+| `ADMIN_USER`, `ADMIN_PASSWORD` | Both are required to open the site-wide dashboard. |
+| `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | Production Active Storage access; development and tests use disk. |
+| `HONEYBADGER_API_KEY` | Production exception reports and postdeploy markers. |
+| `DOKKU_HOST` | CircleCI deploys and the guarded production database tasks. |
+| `DOKKU_PG_SERVICE` | Production database backup/import tasks only. |
+| `PG_BIN` | Optional PostgreSQL client directory when automatic discovery is unsuitable. |
+| `FIREFOX_BINARY` | Optional nonstandard Firefox path for browser specs. |
+| `SCOUT_APM_API_KEY` | Optional Scout APM reporting in production. |
+| `RAILS_YJIT=false` | Optional production override to disable Rails' default YJIT. |
+
+Dokku supplies database connection and revision values during deploys. The app
+has no `DOMAIN` setting: absolute public and organizer links use the host and
+scheme of the current HTTPS request. Configure the canonical hostname and TLS at
+the Dokku/nginx boundary so organizer pages display the intended URLs.
 
 ## Tests
 
@@ -52,7 +97,7 @@ bundle exec rspec --seed 18467                # reproduce a full-suite ordering
 
 The suite has no pending regressions and covers models,
 presenter units, HTTP requests, independent
-organizer/guest sessions, database-import services, Rack Test form flows, and
+organizer/guest sessions, database import/backup utilities, Rack Test form flows, and
 real browser interactions. Firefox actually drops a PNG into Trix, submits it
 through Active Storage's direct-upload endpoint, waits for the returned image to load, saves it with
 an event, reloads the public page, and edits text while preserving the image.
