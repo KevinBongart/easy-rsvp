@@ -1,4 +1,4 @@
-require "icalendar/tzinfo"
+require "icalendar"
 
 class EventCalendar
   def initialize(event, event_url:)
@@ -9,7 +9,6 @@ class EventCalendar
   def to_ical
     calendar = Icalendar::Calendar.new
     calendar.prodid = "-//Easy RSVP//Event//EN"
-    add_time_zone(calendar) if event.timed?
     calendar.event { |calendar_event| populate(calendar_event) }
     calendar.publish
     calendar.to_ical
@@ -36,16 +35,7 @@ class EventCalendar
     end
   end
 
-  def add_time_zone(calendar)
-    calendar.add_timezone(TZInfo::Timezone.get(event.time_zone).ical_timezone(local_datetime(event.starts_at)))
-  end
-
   def calendar_time(timestamp)
-    Icalendar::Values::DateTime.new(local_datetime(timestamp), "tzid" => event.time_zone)
-  end
-
-  def local_datetime(timestamp)
-    local = timestamp.in_time_zone(event.time_zone)
-    DateTime.new(local.year, local.month, local.day, local.hour, local.min, local.sec)
+    Icalendar::Values::DateTime.new(timestamp.utc.to_datetime, "tzid" => "UTC")
   end
 end

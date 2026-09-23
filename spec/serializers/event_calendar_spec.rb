@@ -23,15 +23,34 @@ RSpec.describe EventCalendar do
     expect(calendar_event.dtend.to_date).to eq(Date.new(2026, 10, 11))
   end
 
-  it 'includes the selected time zone and local start and end times' do
+  it 'represents timed events as exact UTC instants' do
     event = create(:event, :timed, date: Date.new(2026, 10, 10))
 
-    calendar = Icalendar::Calendar.parse(described_class.new(event, event_url: 'https://example.com/event').to_ical).first
+    serialized = described_class.new(event, event_url: 'https://example.com/event').to_ical
+    calendar = Icalendar::Calendar.parse(serialized).first
     calendar_event = calendar.events.first
 
-    expect(calendar.timezones.first.tzid.to_s).to eq('Europe/Paris')
-    expect(calendar_event.dtstart.ical_params['tzid']).to eq([ 'Europe/Paris' ])
-    expect(calendar_event.dtstart.strftime('%Y-%m-%d %H:%M')).to eq('2026-10-10 18:00')
-    expect(calendar_event.dtend.strftime('%Y-%m-%d %H:%M')).to eq('2026-10-10 21:00')
+    expect(calendar.timezones).to be_empty
+    expect(serialized).to include("DTSTART:20261010T160000Z")
+    expect(serialized).to include("DTEND:20261010T190000Z")
+    expect(calendar_event.dtstart.to_time).to eq(event.starts_at)
+    expect(calendar_event.dtend.to_time).to eq(event.ends_at)
+  end
+
+  it 'keeps the correct instant around a daylight-saving transition' do
+    zone = ActiveSupport::TimeZone['America/New_York']
+    event = create(
+      :event,
+      date: Date.new(2026, 3, 8),
+      starts_at: zone.local(2026, 3, 8, 3, 30),
+      ends_at: zone.local(2026, 3, 8, 4, 30),
+      time_zone: 'America/New_York'
+    )
+
+    serialized = described_class.new(event, event_url: 'https://example.com/event').to_ical
+
+    expect(serialized).to include("DTSTART:20260308T073000Z")
+    expect(serialized).to include("DTEND:20260308T083000Z")
+    expect(serialized).not_to include('BEGIN:VTIMEZONE')
   end
 end

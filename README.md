@@ -41,7 +41,8 @@ does not expose an event-deletion control.
 Events are date-only by default. Organizers can add a start time, required end
 time, and browser-detected IANA time zone; both times must be on the event date.
 Every published event offers an `.ics` download. Date-only events become all-day
-calendar entries, while timed events retain their selected time zone.
+calendar entries, while timed events use exact UTC instants for consistent
+display in each calendar user's chosen time zone.
 
 The HTTP Basic-authenticated dashboard shows creation-date statistics; an
 event's scheduled date does not affect those charts. Its event list shows

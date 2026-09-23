@@ -156,17 +156,16 @@ RSpec.describe 'Public events', type: :request do
     expect(response.body).not_to include(event.admin_token)
   end
 
-  it 'downloads a timed event with its selected time zone' do
+  it 'downloads a timed event as exact UTC instants' do
     event = create(:event, :timed, date: Date.new(2026, 10, 10))
 
     get calendar_event_path(event, format: :ics)
 
     calendar = Icalendar::Calendar.parse(response.body).first
     calendar_event = calendar.events.first
-    expect(calendar.timezones.first.tzid.to_s).to eq('Europe/Paris')
-    expect(calendar_event.dtstart.ical_params['tzid']).to eq([ 'Europe/Paris' ])
-    expect(calendar_event.dtstart.strftime('%Y-%m-%d %H:%M')).to eq('2026-10-10 18:00')
-    expect(calendar_event.dtend.strftime('%Y-%m-%d %H:%M')).to eq('2026-10-10 21:00')
+    expect(calendar.timezones).to be_empty
+    expect(calendar_event.dtstart.to_time).to eq(event.starts_at)
+    expect(calendar_event.dtend.to_time).to eq(event.ends_at)
   end
 
   it 'uses the canonical public origin for a calendar link' do

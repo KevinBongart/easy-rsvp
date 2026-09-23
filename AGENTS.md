@@ -64,7 +64,8 @@ asset-compilation, and RSpec checks.
   schedule: start time, required later end time, and IANA time zone. Timed values
   are stored as UTC timestamps and rendered in their event time zone. Published
   events expose an iCalendar download; date-only entries are all-day events and
-  timed entries include their `VTIMEZONE`. The legacy `events.body` values were
+  timed entries use exact UTC instants so calendar clients can display them in
+  the viewer's chosen time zone. The legacy `events.body` values were
   backfilled into Action Text before that column was removed in a later deployment.
   Missing Action Text rows are repaired during removal; divergent legacy values
   are retained in `legacy_event_body_conflicts` for explicit review.
