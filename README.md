@@ -25,10 +25,12 @@ Set both `ADMIN_USER` and `ADMIN_PASSWORD` to use the site-wide dashboard at
 
 Rails applies best-effort per-IP limits to event creation, event-scoped RSVP
 changes, and direct-upload authorization. Failed dashboard authentication has a
-separate per-IP limit; successful authentication clears prior failures. Exceeded
-requests return `429 Too Many Requests` with `Retry-After`. Production uses the
-application cache, so these limits reset on deploy and must move to a shared cache
-or verified proxy controls if the web process is scaled across hosts.
+separate per-IP limit; successful authentication clears prior failures before the
+lockout threshold. Once locked out, every request waits for the cache entry to
+expire. Exceeded requests return `429 Too Many Requests` with `Retry-After`.
+Production uses the application cache, so these limits reset on deploy and must
+move to a shared cache or verified proxy controls if the web process is scaled
+across containers or filesystems.
 
 ## Product and access rules
 

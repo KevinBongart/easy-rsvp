@@ -32,9 +32,10 @@ model when applying the playbook's authentication and ownership guidance.
   publication before looking up or changing a response.
 - Rails rate limits event creation, event-scoped RSVP mutations, and direct-upload
   authorization by client IP. Failed dashboard authentication has a separate
-  counter that successful authentication clears. Exceeded requests return 429
-  with `Retry-After`. The production application cache provides best-effort
-  single-host protection; do not describe it as distributed denial-of-service
+  counter that successful authentication clears before lockout. After the
+  threshold, every request waits for expiry. Exceeded requests return 429 with
+  `Retry-After`. The production application cache provides best-effort
+  single-container protection; do not describe it as distributed denial-of-service
   protection.
 
 Never import Bon App's accepted security risks as Easy RSVP owner decisions.

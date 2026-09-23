@@ -38,6 +38,31 @@ RSpec.describe "Request rate limits", type: :request do
     end.to change(Rsvp, :count).by(1)
   end
 
+  it "limits aggregate RSVP changes even when requests rotate across events" do
+    events = create_list(:event, 11)
+    RateLimits::ALL_RSVP_CHANGES.times do |index|
+      attempt_invalid_rsvp(events.fetch(index % events.size), first_ip)
+      expect(response).to redirect_to(events.fetch(index % events.size))
+    end
+    fresh_event = create(:event)
+    allow(RateLimits.store).to receive(:increment).and_call_original
+
+    post event_rsvps_path("never-seen"),
+      params: { rsvp: { name: "Unknown event" }, commit: "Yes" },
+      headers: remote_ip(first_ip)
+    expect_rate_limited(RateLimits::ALL_RSVP_WINDOW)
+    expect(RateLimits.store).to have_received(:increment).once
+
+    expect do
+      create_rsvp(fresh_event, "Blocked guest", first_ip)
+    end.not_to change(Rsvp, :count)
+    expect_rate_limited(RateLimits::ALL_RSVP_WINDOW)
+
+    expect do
+      create_rsvp(fresh_event, "Other IP", second_ip)
+    end.to change(Rsvp, :count).by(1)
+  end
+
   it "limits direct-upload authorization attempts before creating a blob" do
     RateLimits::DIRECT_UPLOADS.times do
       post rich_text_direct_uploads_path,
@@ -90,6 +115,12 @@ RSpec.describe "Request rate limits", type: :request do
   def create_rsvp(event, name, ip)
     post event_rsvps_path(event),
       params: { rsvp: { name: name }, commit: "Yes" },
+      headers: remote_ip(ip)
+  end
+
+  def attempt_invalid_rsvp(event, ip)
+    post event_rsvps_path(event),
+      params: { rsvp: { name: "" }, commit: "Yes" },
       headers: remote_ip(ip)
   end
 

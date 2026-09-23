@@ -1,15 +1,15 @@
 class RsvpsController < ApplicationController
-  rate_limit to: RateLimits::EVENT_RSVP_CHANGES,
-    within: RateLimits::EVENT_RSVP_WINDOW,
-    by: :event_rate_limit_key,
-    store: RateLimits.store,
-    with: -> { rate_limit_response(RateLimits::EVENT_RSVP_WINDOW) },
-    only: [ :create, :destroy ]
   rate_limit to: RateLimits::ALL_RSVP_CHANGES,
     within: RateLimits::ALL_RSVP_WINDOW,
     store: RateLimits.store,
     name: "all-events",
     with: -> { rate_limit_response(RateLimits::ALL_RSVP_WINDOW) },
+    only: [ :create, :destroy ]
+  rate_limit to: RateLimits::EVENT_RSVP_CHANGES,
+    within: RateLimits::EVENT_RSVP_WINDOW,
+    by: :event_rate_limit_key,
+    store: RateLimits.store,
+    with: -> { rate_limit_response(RateLimits::EVENT_RSVP_WINDOW) },
     only: [ :create, :destroy ]
 
   before_action :set_event
