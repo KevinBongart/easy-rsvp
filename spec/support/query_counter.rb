@@ -59,6 +59,13 @@ module QueryCounter
     )
   end
 
+  def request_metrics_summary(metrics, label:)
+    "#{label}: queries=#{metrics.queries}, duration=#{metrics.duration.round(1)}ms, " \
+      "db=#{metrics.db_runtime.round(1)}ms, sql=#{metrics.sql_runtime.round(1)}ms, " \
+      "view=#{metrics.view_runtime.round(1)}ms, allocations=#{metrics.allocations}, " \
+      "response=#{metrics.response_bytes}B, instantiations=#{metrics.instantiations.sort.to_h.inspect}"
+  end
+
   private
 
   def application_query?(payload)

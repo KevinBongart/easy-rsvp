@@ -159,7 +159,7 @@ RSpec.describe "Core request performance", type: :request do
   end
 
   def expect_metrics(metrics, label:, max_queries:, instances: nil, max_allocations: nil, max_response_bytes: nil)
-    summary = metrics_summary(label, metrics)
+    summary = request_metrics_summary(metrics, label: label)
 
     aggregate_failures(label) do
       expect(metrics.queries).to be <= max_queries, summary
@@ -171,12 +171,5 @@ RSpec.describe "Core request performance", type: :request do
       expect(metrics.allocations).to be <= max_allocations, summary if max_allocations
       expect(metrics.response_bytes).to be <= max_response_bytes, summary if max_response_bytes
     end
-  end
-
-  def metrics_summary(label, metrics)
-    "#{label}: queries=#{metrics.queries}, duration=#{metrics.duration.round(1)}ms, " \
-      "db=#{metrics.db_runtime.round(1)}ms, sql=#{metrics.sql_runtime.round(1)}ms, " \
-      "view=#{metrics.view_runtime.round(1)}ms, allocations=#{metrics.allocations}, " \
-      "response=#{metrics.response_bytes}B, instantiations=#{metrics.instantiations.sort.to_h.inspect}"
   end
 end
