@@ -16,6 +16,7 @@ RSpec.describe 'Public events', type: :request do
     expect(page.at_css('label[for="event_date_3i"]').text).to eq('Day')
     expect(page.at_css('label[for="event_date_1i"]').text).to eq('Year')
     expect(page.at_css('label[for="event_timed"]').text).to include('Add a time')
+    expect(page.at_css('input#event_time_zone')['list']).to eq('event-time-zones')
   end
 
   it 'loads the compiled asset entrypoints with Turbo tracking and integrity protection' do

@@ -15,9 +15,9 @@ export default class extends Controller {
     const enabled = this.toggleTarget.checked
 
     this.fieldsTarget.hidden = !enabled
-    this.fieldsTarget.querySelectorAll("input").forEach((input) => {
-      input.disabled = !enabled
-      input.required = enabled
+    this.fieldsTarget.querySelectorAll("input, select, textarea").forEach((field) => {
+      field.disabled = !enabled
+      field.required = enabled
     })
 
     if (enabled && !this.timeZoneTarget.value) {
