@@ -110,11 +110,12 @@ leave it serving stale styles or scripts. Restart an already running development
 server after changing environment configuration (`bin/rails restart` for Puma).
 Admin chart coverage checks real Firefox hover/focus tooltips, navigation, empty
 data, and narrow layouts, alongside unit tests for projections and chart scaling.
-Request-level performance regressions keep query counts and broad server response
+Request-level performance regressions keep query counts and warmed server response
 budgets bounded for the homepage, event creation and display, organizer views and
-updates, RSVP creation, and the site-wide dashboard. These warmed checks are meant
-to catch N+1 behavior and multi-second regressions rather than benchmark production
-capacity.
+updates, RSVP creation, and the site-wide dashboard. Ordinary paths have a 50 ms
+request ceiling, rendering 100 organizer RSVPs has 100 ms, and the 1,000-row
+dashboard has 400 ms; separate SQL and database ceilings remain lower. These are
+local/CI regression tripwires rather than production capacity benchmarks.
 
 Tests require local `events_test`. They use synthetic dashboard credentials,
 transactional records, a temporary disk storage directory removed after the

@@ -1,9 +1,10 @@
 require "rails_helper"
 
 RSpec.describe "Core request performance", type: :request do
-  REQUEST_BUDGET_MS = 2_000
-  DATABASE_BUDGET_MS = 1_000
-  SQL_BUDGET_MS = 1_000
+  REQUEST_BUDGET_MS = 50
+  LARGE_ORGANIZER_REQUEST_BUDGET_MS = 100
+  DATABASE_BUDGET_MS = 25
+  SQL_BUDGET_MS = 25
 
   it "keeps the homepage within its query and response budgets" do
     get root_path
@@ -70,6 +71,7 @@ RSpec.describe "Core request performance", type: :request do
         measurement,
         label: "organizer page with #{count} RSVPs",
         max_queries: 3,
+        max_duration: count == 100 ? LARGE_ORGANIZER_REQUEST_BUDGET_MS : REQUEST_BUDGET_MS,
         max_allocations: count == 100 ? 500_000 : nil,
         max_response_bytes: count == 100 ? 250.kilobytes : nil,
         instances: { "Event" => 1, "ActionText::RichText" => 1, "Rsvp" => count }
@@ -158,12 +160,20 @@ RSpec.describe "Core request performance", type: :request do
     post event_rsvps_path(event), params: { rsvp: { name: name }, commit: "Yes" }
   end
 
-  def expect_metrics(metrics, label:, max_queries:, instances: nil, max_allocations: nil, max_response_bytes: nil)
+  def expect_metrics(
+    metrics,
+    label:,
+    max_queries:,
+    max_duration: REQUEST_BUDGET_MS,
+    instances: nil,
+    max_allocations: nil,
+    max_response_bytes: nil
+  )
     summary = request_metrics_summary(metrics, label: label)
 
     aggregate_failures(label) do
       expect(metrics.queries).to be <= max_queries, summary
-      expect(metrics.duration).to be < REQUEST_BUDGET_MS, summary
+      expect(metrics.duration).to be < max_duration, summary
       expect(metrics.db_runtime).to be < DATABASE_BUDGET_MS, summary
       expect(metrics.sql_runtime).to be < SQL_BUDGET_MS, summary
       expected_instances = instances&.reject { |_class_name, count| count.zero? }
