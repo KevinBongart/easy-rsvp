@@ -1,6 +1,9 @@
 require 'rails_helper'
 
 RSpec.describe 'Site administrator dashboard', type: :request do
+  DASHBOARD_REQUEST_BUDGET_MS = 1_200
+  DASHBOARD_DATABASE_BUDGET_MS = 50
+
   it 'requires HTTP Basic authentication' do
     get admin_events_path
     expect(response).to have_http_status(:unauthorized)
@@ -101,8 +104,9 @@ RSpec.describe 'Site administrator dashboard', type: :request do
     expect(larger_database_metrics.queries).to eq(first_page_metrics.queries), scale_summary
     expect(larger_database_metrics.queries).to be <= 6, scale_summary
     expect(attachment_filtered_metrics.queries).to be <= 6, filter_summary
-    expect(larger_database_metrics.duration).to be < 2_000, scale_summary
-    expect(larger_database_metrics.db_runtime).to be < 1_000, scale_summary
+    expect(larger_database_metrics.duration).to be < DASHBOARD_REQUEST_BUDGET_MS, scale_summary
+    expect(larger_database_metrics.db_runtime).to be < DASHBOARD_DATABASE_BUDGET_MS, scale_summary
+    expect(larger_database_metrics.sql_runtime).to be < DASHBOARD_DATABASE_BUDGET_MS, scale_summary
     expect(larger_database_metrics.instantiations['Event']).to eq(Admin::EventsController::EVENTS_PER_PAGE), scale_summary
     expect(larger_database_metrics.instantiations['Rsvp']).to eq(0), scale_summary
   end
