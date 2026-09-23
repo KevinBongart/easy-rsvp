@@ -546,12 +546,15 @@ provided; Bon App's accepted risks do not transfer.
   work. Avoid purging production blobs based only on an imported local database.
 
 - [ ] **2.5 P2 — Review abuse and browser policies against the actual product.**
-  No app-level throttling exists for event creation, public RSVPs, Basic Auth,
-  uploads, or organizer-link mail. CSP and permissions-policy files are commented
-  templates. Define proportionate controls and test them; inspect actual reverse
-  proxy limits before claiming they are absent in production. Keep public creation
-  accountless. No password-policy or token-entropy redesign is justified merely
-  by copying Bon App's review categories.
+  Rails now applies best-effort per-IP limits to event creation, event-scoped RSVP
+  writes, direct-upload authorization, and failed dashboard authentication.
+  Successful dashboard authentication clears prior failures; exceeded requests
+  return 429 with `Retry-After`. The production application cache is sufficient
+  for the current single-host deployment but resets on deploy and is not shared
+  across horizontally scaled hosts. The removed organizer-link email feature
+  needs no limit. CSP and Permissions Policy remain a separate stacked change.
+  Inspect actual reverse-proxy limits and forwarded-IP behavior before marking
+  this item complete. Keep public creation accountless.
 
 ## Phase 3 — Documentation and operational clarity
 

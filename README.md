@@ -23,6 +23,13 @@ The event creation and RSVP flows need no environment configuration locally.
 Set both `ADMIN_USER` and `ADMIN_PASSWORD` to use the site-wide dashboard at
 `/admin/events`. The application does not send email.
 
+Rails applies best-effort per-IP limits to event creation, event-scoped RSVP
+changes, and direct-upload authorization. Failed dashboard authentication has a
+separate per-IP limit; successful authentication clears prior failures. Exceeded
+requests return `429 Too Many Requests` with `Retry-After`. Production uses the
+application cache, so these limits reset on deploy and must move to a shared cache
+or verified proxy controls if the web process is scaled across hosts.
+
 ## Product and access rules
 
 Easy RSVP has no accounts. A published event has a public URL for guests and a

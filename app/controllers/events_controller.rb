@@ -1,4 +1,10 @@
 class EventsController < ApplicationController
+  rate_limit to: RateLimits::EVENT_CREATIONS,
+    within: RateLimits::EVENT_CREATION_WINDOW,
+    store: RateLimits.store,
+    with: -> { rate_limit_response(RateLimits::EVENT_CREATION_WINDOW) },
+    only: :create
+
   before_action :set_event, only: [ :show ]
   before_action :set_placeholders, only: [ :new ]
 

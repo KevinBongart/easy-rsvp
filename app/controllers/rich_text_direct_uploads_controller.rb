@@ -1,6 +1,14 @@
 class RichTextDirectUploadsController < ActiveStorage::DirectUploadsController
+  include RateLimitResponses
+
   CONTENT_TYPES = %w[image/png image/jpeg image/gif image/webp].freeze
   MAXIMUM_SIZE = 10.megabytes
+
+  rate_limit to: RateLimits::DIRECT_UPLOADS,
+    within: RateLimits::DIRECT_UPLOAD_WINDOW,
+    store: RateLimits.store,
+    with: -> { rate_limit_response(RateLimits::DIRECT_UPLOAD_WINDOW) },
+    only: :create
 
   def create
     if acceptable_upload?

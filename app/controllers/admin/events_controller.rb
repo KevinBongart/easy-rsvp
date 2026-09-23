@@ -1,6 +1,6 @@
 module Admin
   class EventsController < ApplicationController
-    http_basic_authenticate_with name: ENV["ADMIN_USER"], password: ENV["ADMIN_PASSWORD"]
+    before_action :authenticate_dashboard
 
     EVENTS_PER_PAGE = 1000
     RSVP_COUNT_SQL = <<~SQL.squish.freeze
@@ -66,6 +66,36 @@ module Admin
     end
 
     private
+
+    def authenticate_dashboard
+      return rate_limit_response(RateLimits::DASHBOARD_FAILURE_WINDOW) if dashboard_authentication_blocked?
+
+      if valid_dashboard_credentials?
+        RateLimits.store.delete(dashboard_failure_key)
+      else
+        RateLimits.store.increment(
+          dashboard_failure_key,
+          1,
+          expires_in: RateLimits::DASHBOARD_FAILURE_WINDOW
+        )
+        request_http_basic_authentication
+      end
+    end
+
+    def dashboard_authentication_blocked?
+      RateLimits.store.read(dashboard_failure_key).to_i >= RateLimits::DASHBOARD_FAILURES
+    end
+
+    def valid_dashboard_credentials?
+      authenticate_with_http_basic do |username, password|
+        ActiveSupport::SecurityUtils.secure_compare(username.to_s, ENV.fetch("ADMIN_USER")) &
+          ActiveSupport::SecurityUtils.secure_compare(password.to_s, ENV.fetch("ADMIN_PASSWORD"))
+      end
+    end
+
+    def dashboard_failure_key
+      "dashboard-auth-failures:#{request.remote_ip}"
+    end
 
     def listed_events
       events = Event.joins(Arel.sql(ATTACHMENT_STATS_JOIN_SQL)).select(
