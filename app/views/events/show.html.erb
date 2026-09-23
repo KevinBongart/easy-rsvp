@@ -1,12 +1,16 @@
 <h1 class="event-heading">
-  <%= @event.title %>
+    <%= @event.title %>
 
   <small class='text-muted'>
     //
-    <%= @event.date.to_formatted_s(:week_day_and_date) %>
+    <%= event_schedule(@event) %>
   </small>
 
 </h1>
+
+<p>
+  <%= link_to 'Add to calendar', calendar_event_path(@event, format: :ics), class: 'btn btn-sm btn-outline-primary' %>
+</p>
 
 <%= @event.body %>
 

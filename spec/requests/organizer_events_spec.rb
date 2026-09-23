@@ -62,6 +62,29 @@ RSpec.describe 'Organizer events', type: :request do
     expect(response).to redirect_to(event_admin_path(event, token))
   end
 
+  it 'updates the event schedule without rotating the credential' do
+    token = event.admin_token
+
+    patch event_admin_path(event, token), params: {
+      event: {
+        date: '2026-11-01',
+        timed: '1',
+        start_time: '09:00',
+        end_time: '11:00',
+        time_zone: 'America/New_York'
+      }
+    }
+
+    expect(response).to redirect_to(event_admin_path(event, token))
+    expect(event.reload).to have_attributes(
+      date: Date.new(2026, 11, 1),
+      starts_at: Time.utc(2026, 11, 1, 14, 0),
+      ends_at: Time.utc(2026, 11, 1, 16, 0),
+      time_zone: 'America/New_York',
+      admin_token: token
+    )
+  end
+
   it 'renders validation feedback and preserves the saved event on invalid update' do
     original = event.title
     patch event_admin_path(event, event.admin_token), params: { event: { title: '' } }

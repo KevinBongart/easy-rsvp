@@ -46,6 +46,28 @@ RSpec.describe 'Firefox JavaScript smoke', type: :system, js: true do
     expect(page).to have_css('.trix-content', text: 'And a hat.')
   end
 
+  it 'detects a time zone and requires both times for a timed event' do
+    visit root_path
+    fill_in 'What are you planning?', with: 'Timed picnic'
+
+    expect(page).to have_field('Start time', disabled: true, visible: :hidden)
+    check 'Add a time'
+    expect(page).to have_field('Start time', visible: :visible)
+    expect(find_field('Time zone').value).to be_present
+
+    fill_in 'Start time', with: '18:00'
+    fill_in 'Time zone', with: 'Europe/Paris'
+    click_button 'Create your event, for free!'
+    expect(page).to have_current_path(root_path)
+
+    fill_in 'End time', with: '21:00'
+    click_button 'Create your event, for free!'
+
+    event = Event.order(:id).last
+    expect(page).to have_current_path(event_admin_path(event, event.admin_token))
+    expect(page).to have_content('6:00 PM–9:00 PM (Europe/Paris)')
+  end
+
   it 'uploads a dropped image through Trix and displays the persisted image after reload' do
     visit root_path
     fill_in 'What are you planning?', with: 'Photo picnic'

@@ -38,6 +38,11 @@ republishing restores public access. Deleting an event through its
 token-authorized endpoint also deletes its RSVPs, although the current interface
 does not expose an event-deletion control.
 
+Events are date-only by default. Organizers can add a start time, required end
+time, and browser-detected IANA time zone; both times must be on the event date.
+Every published event offers an `.ics` download. Date-only events become all-day
+calendar entries, while timed events retain their selected time zone.
+
 The HTTP Basic-authenticated dashboard shows creation-date statistics; an
 event's scheduled date does not affect those charts. Its event list shows
 attachment count and stored size, can show only events with attachments, and can
@@ -63,8 +68,9 @@ the deployment environment in production.
 
 Dokku supplies database connection and revision values during deploys. The app
 has no `DOMAIN` setting: absolute public and organizer links use the host and
-scheme of the current HTTPS request. Configure the canonical hostname and TLS at
-the Dokku/nginx boundary so organizer pages display the intended URLs.
+scheme of the current HTTPS request. Calendar downloads use the canonical
+production origin configured in `config/environments/production.rb`. Configure
+that origin and the Dokku/nginx hostname together if the public domain changes.
 
 ## Tests
 

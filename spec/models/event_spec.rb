@@ -17,6 +17,118 @@ RSpec.describe Event, type: :model do
     expect(build(:event, body: nil)).to be_valid
   end
 
+  it 'allows an event to remain date-only' do
+    event = build(:event)
+
+    expect(event).to be_valid
+    expect(event).not_to be_timed
+  end
+
+  it 'stores a complete timed schedule in the selected time zone' do
+    event = build(
+      :event,
+      date: Date.new(2026, 10, 10),
+      timed: true,
+      start_time: '18:00',
+      end_time: '21:30',
+      time_zone: 'Europe/Paris'
+    )
+
+    expect(event).to be_valid
+    expect(event.starts_at).to eq(Time.utc(2026, 10, 10, 16, 0))
+    expect(event.ends_at).to eq(Time.utc(2026, 10, 10, 19, 30))
+  end
+
+  it 'requires both a start and end time for a timed event' do
+    event = build(:event, timed: true, start_time: '18:00', end_time: '', time_zone: 'Europe/Paris')
+
+    expect(event).not_to be_valid
+    expect(event.errors[:end_time]).to include("can't be blank")
+  end
+
+  it 'requires the end time to be after the start time' do
+    event = build(:event, timed: true, start_time: '18:00', end_time: '17:00', time_zone: 'Europe/Paris')
+
+    expect(event).not_to be_valid
+    expect(event.errors[:end_time]).to include('must be after the start time')
+  end
+
+  it 'requires a recognized time zone for a timed event' do
+    event = build(
+      :event,
+      timed: true,
+      start_time: '18:00',
+      end_time: '21:00',
+      time_zone: 'Central Time (US & Canada)'
+    )
+
+    expect(event).not_to be_valid
+    expect(event.errors[:time_zone]).to include("isn't recognized")
+  end
+
+  it 'requires a time zone for a timed event' do
+    event = build(:event, timed: true, start_time: '18:00', end_time: '21:00', time_zone: '')
+
+    expect(event).not_to be_valid
+    expect(event.errors[:time_zone]).to include("can't be blank")
+  end
+
+  it 'can return a timed event to a date-only event' do
+    event = create(:event, :timed)
+
+    expect(event.update(timed: false)).to be(true)
+    expect(event.reload).to have_attributes(starts_at: nil, ends_at: nil, time_zone: nil)
+  end
+
+  it 'rejects an incomplete schedule at the database boundary' do
+    event = create(:event)
+
+    expect do
+      described_class.transaction(requires_new: true) do
+        event.update_columns(starts_at: Time.current, time_zone: 'UTC')
+      end
+    end.to raise_error(ActiveRecord::StatementInvalid, /events_schedule_complete/)
+  end
+
+  it 'rejects a non-increasing schedule at the database boundary' do
+    event = create(:event)
+    timestamp = Time.utc(event.date.year, event.date.month, event.date.day, 12)
+
+    expect do
+      described_class.transaction(requires_new: true) do
+        event.update_columns(starts_at: timestamp, ends_at: timestamp, time_zone: 'UTC')
+      end
+    end.to raise_error(ActiveRecord::StatementInvalid, /events_schedule_ordered/)
+  end
+
+  it 'rejects schedule timestamps outside the event date at the database boundary' do
+    event = create(:event, date: Date.new(2026, 10, 10))
+
+    expect do
+      described_class.transaction(requires_new: true) do
+        event.update_columns(
+          starts_at: Time.utc(2026, 10, 11, 16),
+          ends_at: Time.utc(2026, 10, 11, 17),
+          time_zone: 'Europe/Paris'
+        )
+      end
+    end.to raise_error(ActiveRecord::StatementInvalid, /events_schedule_matches_date/)
+  end
+
+  it 'rejects an unknown schedule time zone at the database boundary' do
+    event = create(:event)
+
+    expect do
+      described_class.transaction(requires_new: true) do
+        event.update_columns(
+          starts_at: Time.current,
+          ends_at: 1.hour.from_now,
+          time_zone: 'Atlantis/Nowhere'
+        )
+      end
+    end.to raise_error(ActiveRecord::StatementInvalid, /time zone .* not recognized/)
+  end
+
   it 'stores descriptions in Action Text without a legacy events column' do
     expect(described_class.connection.column_exists?(:events, :body)).to be(false)
     expect(described_class.reflect_on_association(:rich_text_body)).to be_present

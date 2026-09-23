@@ -60,10 +60,14 @@ asset-compilation, and RSpec checks.
 
 - `Event`: title/date/publication validation, Action Text `body`, public hashid/slug,
   organizer token, non-null publication and RSVP-name visibility flags, dependent
-  destruction of RSVPs. The legacy `events.body` values were backfilled into
-  Action Text before that column was removed in a later deployment. Missing
-  Action Text rows are repaired during removal; divergent legacy values are
-  retained in `legacy_event_body_conflicts` for explicit review.
+  destruction of RSVPs. Events may remain date-only or add a complete same-day
+  schedule: start time, required later end time, and IANA time zone. Timed values
+  are stored as UTC timestamps and rendered in their event time zone. Published
+  events expose an iCalendar download; date-only entries are all-day events and
+  timed entries include their `VTIMEZONE`. The legacy `events.body` values were
+  backfilled into Action Text before that column was removed in a later deployment.
+  Missing Action Text rows are repaired during removal; divergent legacy values
+  are retained in `legacy_event_body_conflicts` for explicit review.
 - `Rsvp`: belongs to an event, name/response presence validation,
   `RESPONSES = [:yes, :maybe, :no]`, with non-null database columns, a nonblank
   name check, and a supported-response check validated against existing rows.
