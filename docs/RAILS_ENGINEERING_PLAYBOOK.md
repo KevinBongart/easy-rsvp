@@ -2,7 +2,7 @@
 
 Status: cross-repository default
 
-Last reviewed: 2026-08-21
+Last reviewed: 2026-09-23
 
 ## Purpose
 
@@ -68,7 +68,7 @@ that the deployment environment supports:
 | JavaScript | Importmap, Turbo, and small Stimulus controllers |
 | Assets | Propshaft and Dart Sass when Sass is needed |
 | Tests | RSpec and FactoryBot for new apps; preserve a healthy established Minitest suite |
-| Browser tests | Capybara/Selenium with headless Firefox |
+| Browser tests | Capybara/Selenium with headless Firefox and axe-core checks |
 | Code style | `rubocop-rails-omakase`, unmodified and with no project-specific cop configuration |
 | CI | GitHub Actions or CircleCI, mirrored by one local command |
 | Deployment | Dokku with a `Procfile` unless the app documents another platform |
@@ -90,6 +90,12 @@ house style. Apart from the inheritance stub RuboCop needs to load
 `.rubocop_todo.yml` exclusions, or gradual-rollout overrides by default. Fix the
 code instead. A rare exception must document the concrete incompatibility and
 should be removed when that incompatibility ends.
+
+Run the Omakase linter in the shared local CI command and hosted CI. Introduce it
+in a focused pull request so existing violations are reviewed as code changes,
+not hidden behind a broad generated exclusion file. Add ERB, JavaScript, or CSS
+linters only when that source exists and the chosen tool provides useful,
+stable feedback.
 
 ## Rails and Ruby conventions
 
@@ -312,6 +318,35 @@ tested.
 - Add caching only after measurement identifies a useful, stable cache boundary;
   document invalidation and test it.
 
+### Performance regression coverage
+
+Add focused performance coverage for important collection, search, reporting,
+and dashboard endpoints when their cost can grow with stored data.
+
+- Build representative small and larger fixtures that exercise associations,
+  aggregates, pagination, and optional content. After warming both paths, require
+  the larger fixture to execute the same number of application queries as the
+  small fixture and keep that count below a fixed, explained ceiling. This is the
+  most stable automated guard against N+1 regressions.
+- Prefer `ActiveSupport::Notifications` instrumentation such as
+  `sql.active_record` and `process_action.action_controller` over parsing
+  formatted log text. Exclude cached SQL and `SCHEMA` and `TRANSACTION` events
+  from query counts so the assertion measures application work. On failure,
+  report the endpoint, query count, database time, allocation or render time when
+  useful, and total elapsed time.
+- Warm the application before timing requests. Exclude boot, asset compilation,
+  fixtures, and network setup from the measured region.
+- Use broad wall-clock ceilings only to catch order-of-magnitude regressions such
+  as a dashboard growing from hundreds of milliseconds to several seconds. Run
+  them on a consistent CI executor, tolerate ordinary variance, and never encode
+  one developer machine's timing as a universal budget.
+- Keep microbenchmarks separate from correctness tests unless a measured hot path
+  has a stable input and a meaningful regression threshold. Store the baseline,
+  dataset shape, environment, and reason for the budget beside the benchmark.
+- Treat browser smoke timing and server instrumentation as complementary: the
+  browser observes the user path, while Rails and SQL notifications locate the
+  server-side cause. Do not fail CI on raw browser timing alone.
+
 ## Frontend and interaction design
 
 ### HTML and CSS first
@@ -363,6 +398,15 @@ actions.
 - Keep decorative motion out of document flow so it cannot shift the page.
 - Verify that table, overflow, and transformed elements do not clip drag or
   animation feedback.
+- Run axe-core in the real headless browser against representative pages and
+  dynamic states, such as public, authenticated, error, and open-dialog states
+  when they exist. For RSpec/Capybara applications, prefer Deque's maintained
+  `axe-core-rspec` matcher over hand-written script injection and result parsing.
+- Keep rule exceptions as narrow as possible, explain the relevant WCAG exception,
+  and continue running every unaffected rule against the excluded component.
+- Treat automated scans as regression coverage. They complement keyboard,
+  screen-reader, responsive, contrast, and visual inspection; they do not prove
+  that a page is accessible.
 
 ### Development-only UI labs
 
@@ -558,7 +602,9 @@ fail fast and normally include:
 4. ERB linting;
 5. JavaScript and CSS linting when those assets exist;
 6. the full Ruby test suite;
-7. JavaScript unit tests when present.
+7. JavaScript unit tests when present;
+8. focused query-count and coarse performance regressions when the application
+   has identified expensive endpoints.
 
 Hosted CI should run for pull requests and pushes to `main`, use the pinned Ruby
 and Node versions, start PostgreSQL and Redis only when needed, and install
@@ -583,8 +629,11 @@ Omit the worker when there are no background jobs. Document the actual process
 types, backing PostgreSQL/Redis services, required environment variables, and
 first-deploy steps.
 
-Every deployed app should expose a lightweight health endpoint and have a
-post-deploy verification appropriate to its risk:
+Every deployed Rails app should expose the framework's lightweight `/up` health
+endpoint. Configure the platform to make an HTTP request to `/up` before routing
+production traffic to a new web container; a listening port or fixed uptime alone
+does not prove that Rails booted successfully. Also perform post-deploy
+verification appropriate to the application's risk:
 
 - deploy completed and release migration succeeded;
 - web process booted;
@@ -770,6 +819,17 @@ The PR description should lead with the product outcome and include:
 Keep unrelated cleanup out of the PR unless it is required to make the change
 safe.
 
+Before merging a substantive pull request, have a context-isolated agent review
+the final diff against the target branch, repository instructions, and stated
+acceptance criteria. Give the reviewer the final code and requirements without
+the implementing agent's reasoning. Resolve or explicitly disposition material
+findings, then rerun the relevant checks after any fix.
+
+Trivial automated dependency updates limited to manifest and lockfile versions
+may rely on normal dependency review and passing CI. Require the independent
+review when a dependency update includes conflicts, application or configuration
+changes, migrations, security-sensitive behavior, or unexplained failures.
+
 ### 8. Merge and deploy deliberately
 
 Do not merge with unresolved conflicts or unexplained failures. After deployment,
@@ -859,13 +919,19 @@ A product iteration is done when all applicable items are true:
 - [ ] Retryable writes and jobs are idempotent where necessary.
 - [ ] Tenant and authorization boundaries have negative coverage.
 - [ ] Query count remains bounded as data volume grows.
+- [ ] Important collection and reporting endpoints have representative query-count
+      coverage and a coarse timing guard when measured risk justifies one.
 - [ ] Fast model/service/request/system tests cover the behavior and failures.
 - [ ] JavaScript-dependent behavior has focused JS tests and a headless-Firefox
       integration path.
 - [ ] The real page was inspected for visual, responsive, and accessibility
       regressions.
+- [ ] Automated accessibility scans cover representative pages and dynamic states,
+      with narrow documented exceptions.
 - [ ] Relevant migrations were exercised safely.
 - [ ] The full local CI command passes.
+- [ ] A context-isolated agent independently reviewed the final substantive diff,
+      and material findings were resolved or explicitly dispositioned.
 - [ ] README, agent reference, and active feature docs reflect the new truth.
 - [ ] The PR explains outcome, risks, verification, and follow-up boundaries.
 - [ ] Deployment and health verification were completed when deployment was in
