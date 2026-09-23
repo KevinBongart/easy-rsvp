@@ -472,13 +472,12 @@ provided; Bon App's accepted risks do not transfer.
   currently assigns a global), handle network/non-2xx/invalid-JSON failures, and
   give users a recoverable error instead of a stuck attachment.
 
-- [ ] **1.8 P3 — Remove verified dead scaffolding and unused dependencies.**
-  `Rsvp#session_key` has no caller; helpers are empty; `events.scss` contains
-  only generated comments. Jbuilder and Octicons were removed because they had no
-  templates or call sites. `config/puma.rb:37` has a conditional Solid Queue
-  plugin despite no Solid Queue gem or worker; remove that misleading branch.
-  `ApplicationJob` has no subclasses; retain it only with an explicit future use.
-  Trix remains a live dependency.
+- [x] **1.8 P3 — Remove verified dead scaffolding and unused dependencies.**
+  Removed `Rsvp#session_key`, the empty `ApplicationHelper` and `EventsHelper`,
+  the unused `ApplicationJob` base, and the stray Puma Solid Queue plugin. The
+  generated `events.scss` stub was already removed during the asset migration;
+  Jbuilder and Octicons were removed with the dormant email feature. Retained
+  the live `Admin::EventsHelper`, framework Active Job configuration, and Trix.
 
 ## Phase 2 — Security and privacy
 
