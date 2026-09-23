@@ -642,6 +642,15 @@ provided; Bon App's accepted risks do not transfer.
   collision was observed, and UUID collision risk does not justify a separate
   cleanup policy or deployment scan.
 
+- [ ] **4.5 P2 — Stop rendering one complete editor per organizer RSVP.** The
+  public event page renders a compact list, while the organizer page currently
+  emits one Bootstrap modal and one Rails form for every RSVP. With 100 responses,
+  the organizer page produced about 176 KB of HTML and 342,000 allocations and
+  took 78 ms locally and 192 ms on CircleCI despite negligible database time.
+  Replace the repeated forms with one lazy-loaded Turbo Frame/modal or a dedicated
+  edit page. Preserve token-scoped authorization, keyboard/focus behavior, update
+  and deletion coverage, and the compact RSVP overview.
+
 ## Phase 5 — Frontend and accessibility
 
 - [x] **5.1 P2 — Fix concrete markup issues before a redesign.**
@@ -748,6 +757,15 @@ provided; Bon App's accepted risks do not transfer.
   style rules. The smaller SCSS preset catches invalid and deprecated source
   without treating Rails' generated Trix selectors and compatibility declarations
   as application style errors.
+
+- [ ] **7.5 P2 — Make the headless Firefox suite reliable on local macOS.** The
+  same browser coverage passes on CircleCI, but local full and focused runs can
+  stall in Firefox/Marionette after completing some examples and require manual
+  interruption. Reproduce the smallest hanging flow, retain Firefox/geckodriver
+  logs and process state, verify the local browser/driver pairing, and add bounded
+  startup/example failure behavior so a broken runner exits with diagnostics.
+  Keep the real Trix drop/upload, Turbo, Bootstrap, and accessibility coverage;
+  do not replace the browser interactions with stubs to make local runs finish.
 
 ## Verified healthy and accepted decisions
 
