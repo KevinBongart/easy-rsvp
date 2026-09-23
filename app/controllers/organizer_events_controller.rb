@@ -10,7 +10,7 @@ class OrganizerEventsController < ApplicationController
 
   def update
     if @event.update(event_params)
-      redirect_to event_admin_path(@event, @event.admin_token), notice: 'Your event was updated.'
+      redirect_to event_admin_path(@event, @event.admin_token), notice: "Your event was updated."
     else
       render :edit, status: :unprocessable_content
     end
@@ -18,7 +18,7 @@ class OrganizerEventsController < ApplicationController
 
   def destroy
     @event.destroy
-    redirect_to root_path, notice: 'Event was successfully destroyed.'
+    redirect_to root_path, notice: "Event was successfully destroyed."
   end
 
   def toggle_publish

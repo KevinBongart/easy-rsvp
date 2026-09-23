@@ -731,10 +731,12 @@ provided; Bon App's accepted risks do not transfer.
   disposable local databases and authorized production exports. Do not weaken
   the target guards to make a local rehearsal convenient.
 
-- [ ] **7.4 P3 — Add a focused formatting and lint baseline.** Evaluate Omakase
-  Ruby and proportionate ERB, JavaScript, and CSS checks against the modernized
-  stack. Introduce them in reviewable groups, fix real findings, and avoid blanket
-  suppression or a repository-wide mechanical rewrite.
+- [ ] **7.4 P3 — Add a focused formatting and lint baseline.** Rails Omakase now
+  checks Ruby in local and hosted CI using its unmodified configuration; existing
+  findings were fixed directly without a generated suppression file. Evaluate
+  proportionate ERB, JavaScript, and CSS checks against the modernized stack in
+  separate reviewable groups, adding only tools that provide stable, useful
+  feedback.
 
 ## Verified healthy and accepted decisions
 

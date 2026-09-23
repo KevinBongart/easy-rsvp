@@ -6,22 +6,21 @@ Rails.application.routes.draw do
     constraints: { format: :json }
   post "/rails/active_storage/direct_uploads" => "rich_text_direct_uploads#create", as: :rich_text_direct_uploads
 
-  resources :events, path: '/', only: [:new, :create, :show] do
+  resources :events, path: "/", only: [ :new, :create, :show ] do
     resources :admin,
       controller: :organizer_events,
       param: :admin_token,
-      only: [:show, :edit, :update, :destroy] do
-
+      only: [ :show, :edit, :update, :destroy ] do
       post :toggle_publish, on: :member
 
-      resources :rsvps, controller: :organizer_rsvps, only: [:update, :destroy]
+      resources :rsvps, controller: :organizer_rsvps, only: [ :update, :destroy ]
     end
 
-    resources :rsvps, only: [:create, :destroy]
+    resources :rsvps, only: [ :create, :destroy ]
   end
 
   namespace :admin do
-    resources :events, only: [:index]
+    resources :events, only: [ :index ]
   end
 
   root to: "events#new"

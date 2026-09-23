@@ -26,7 +26,7 @@ module Admin
     end
 
     def oldest_creation_date
-      summary.last&.strftime('%B %-d, %Y')
+      summary.last&.strftime("%B %-d, %Y")
     end
 
     def current_year_count
@@ -39,7 +39,7 @@ module Admin
 
     # Example: {2022=>"12", 2023=>"44"}
     def yearly_counts
-      creation_counts_by_year.sort.reverse.map { |year, count| [year, number_with_delimiter(count)] }.to_h
+      creation_counts_by_year.sort.reverse.map { |year, count| [ year, number_with_delimiter(count) ] }.to_h
     end
 
     # Example: "2022: 12, 2023: 44"
@@ -49,7 +49,7 @@ module Admin
 
     # Example: [["April 2024", "5"], ["March 2024", "10"], ["February 2024", "12"], ["January 2024", "8"]]
     def monthly_counts_with_labels
-      monthly_counts.map { |month, count| [month.strftime("%B %Y"), number_with_delimiter(count)] }
+      monthly_counts.map { |month, count| [ month.strftime("%B %Y"), number_with_delimiter(count) ] }
     end
 
     # Example: "March 2024: 10, February 2024: 12, January 2024: 8"
@@ -77,18 +77,18 @@ module Admin
       return @yearly_chart if @yearly_chart
 
       counts = creation_counts_by_year
-      first_year = [counts.keys.min || now.year, now.year - 1].min
+      first_year = [ counts.keys.min || now.year, now.year - 1 ].min
       actual = (first_year..now.year).map do |year|
         label = year == now.year ? "#{year} through #{now.strftime('%B %-d')}" : year.to_s
         { label: label, count: counts.fetch(year, 0) }
       end
       projection = (actual.last[:count].to_f / now.yday * now.end_of_year.yday).round
-      @yearly_chart = actual + [{ label: "#{now.year} through December 31", projected_count: projection }]
+      @yearly_chart = actual + [ { label: "#{now.year} through December 31", projected_count: projection } ]
     end
 
     def monthly_chart
       monthly_counts.reverse.map do |month, count|
-        point = { label: month.strftime('%B %Y'), count: count }
+        point = { label: month.strftime("%B %Y"), count: count }
         point[:projected_count] = monthly_projection if month == now.beginning_of_month
         point
       end
@@ -117,7 +117,7 @@ module Admin
       @summary ||= if relation?
         events.reorder(nil).pick(Arel.sql("COUNT(*)"), Arel.sql("MIN(events.created_at)"))
       else
-        [events.size, events.filter_map { |event| event&.created_at }.min]
+        [ events.size, events.filter_map { |event| event&.created_at }.min ]
       end
     end
 
@@ -139,7 +139,7 @@ module Admin
       counts = creation_counts_by_month
       @monthly_counts ||= (0..months_back).map do |offset|
         month = (now - offset.months).beginning_of_month
-        [month, counts.fetch(month.to_date, 0)]
+        [ month, counts.fetch(month.to_date, 0) ]
       end
     end
 

@@ -5,7 +5,7 @@ RSpec.describe Rsvp, type: :model do
     expect(build(:rsvp)).to be_valid
   end
 
-  [:name, :response, :event].each do |attribute|
+  [ :name, :response, :event ].each do |attribute|
     it "requires #{attribute}" do
       rsvp = build(:rsvp, attribute => nil)
       expect(rsvp).not_to be_valid
@@ -58,7 +58,7 @@ RSpec.describe Rsvp, type: :model do
     expect(rsvp.reload.event).to be_present
   end
 
-  [nil, '', '   ', "\t\n"].each do |name|
+  [ nil, '', '   ', "\t\n" ].each do |name|
     it "rejects the guest name #{name.inspect} at the database boundary" do
       rsvp = create(:rsvp)
 
@@ -70,7 +70,7 @@ RSpec.describe Rsvp, type: :model do
     end
   end
 
-  [nil, 'unexpected'].each do |answer|
+  [ nil, 'unexpected' ].each do |answer|
     it "rejects #{answer.inspect} even when model validation is bypassed" do
       rsvp = create(:rsvp)
       expect do

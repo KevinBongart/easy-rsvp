@@ -79,8 +79,9 @@ Prepare the local test database on first setup:
 RAILS_ENV=test bin/rails db:create db:schema:load
 ```
 
-Run the same checks as CircleCI (Bundler-audit, Brakeman, Rails eager loading, asset compilation, and the
-entire randomized RSpec suite, including headless Firefox):
+Run the same checks as CircleCI (Bundler-audit, Brakeman, Rails Omakase linting,
+Rails eager loading, asset compilation, and the entire randomized RSpec suite,
+including headless Firefox):
 
 ```sh
 bin/ci
@@ -148,8 +149,8 @@ health endpoint, which Dokku must successfully probe before switching production
 traffic to a new web container. After that switch, the `app.json` postdeploy task
 reports Dokku's exact `GIT_REV` to Honeybadger. The task fails
 visibly when its configuration or request fails, so a missing deploy marker
-cannot be mistaken for success. Bundler-audit and Brakeman are security gates in
-`bin/ci`; linting remains an assessment follow-up. Pull requests that change
+cannot be mistaken for success. Bundler-audit, Brakeman, and Rails Omakase are
+gates in `bin/ci`. Pull requests that change
 only Markdown files or files under `docs/` skip the expensive application checks.
 A documentation-only commit on `main` also skips the production deploy.
 

@@ -11,9 +11,9 @@ class RsvpsController < ApplicationController
       session[@event.hashid] ||= []
       session[@event.hashid] << @rsvp.hashid
 
-      redirect_to @event, notice: 'Thank you for responding!'
+      redirect_to @event, notice: "Thank you for responding!"
     else
-      redirect_to @event, alert: 'Please add your name to your RSVP'
+      redirect_to @event, alert: "Please add your name to your RSVP"
     end
   end
 
@@ -23,7 +23,7 @@ class RsvpsController < ApplicationController
     event_session = Array(session[@event.hashid])
 
     if @rsvp.hashid.in?(event_session) && @rsvp.destroy
-      remaining = event_session - [@rsvp.hashid]
+      remaining = event_session - [ @rsvp.hashid ]
       if remaining.empty?
         session.delete(@event.hashid)
       else
@@ -49,5 +49,4 @@ class RsvpsController < ApplicationController
     end
     attributes.permit(:name)
   end
-
 end

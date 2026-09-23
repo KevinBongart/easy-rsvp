@@ -27,7 +27,7 @@ RSpec.describe 'Framework-default compatibility', type: :request do
   it 'reads an RSVP ownership session whose key was derived with the old SHA-1 default' do
     event = create(:event)
     rsvp = create(:rsvp, event: event)
-    cookie = legacy_session_cookie(event.hashid => [rsvp.hashid])
+    cookie = legacy_session_cookie(event.hashid => [ rsvp.hashid ])
 
     expect do
       delete event_rsvp_path(event, rsvp), headers: { 'Cookie' => cookie }

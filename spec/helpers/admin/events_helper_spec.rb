@@ -5,11 +5,11 @@ RSpec.describe Admin::EventsHelper, type: :helper do
     points = helper.sparkline_points([
       { label: '2025', count: 5 }, { label: '2026', count: 2, projected_count: 10 }
     ])
-    expect(points.map { |point| [point[:x], point[:y]] }).to eq([[2, 10], [158, 2]])
+    expect(points.map { |point| [ point[:x], point[:y] ] }).to eq([ [ 2, 10 ], [ 158, 2 ] ])
   end
 
   it 'draws an empty history on a finite zero baseline' do
-    points = helper.sparkline_points([{ label: '2025', count: 0 }, { label: '2026', count: 0, projected_count: 0 }])
+    points = helper.sparkline_points([ { label: '2025', count: 0 }, { label: '2026', count: 0, projected_count: 0 } ])
     expect(helper.sparkline_coordinates(points)).to eq('2.0,18.0 158.0,18.0')
   end
 

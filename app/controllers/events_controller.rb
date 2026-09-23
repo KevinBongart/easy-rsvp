@@ -1,6 +1,6 @@
 class EventsController < ApplicationController
-  before_action :set_event, only: [:show]
-  before_action :set_placeholders, only: [:new]
+  before_action :set_event, only: [ :show ]
+  before_action :set_placeholders, only: [ :new ]
 
   def show
     @rsvp = @event.rsvps.new
@@ -32,13 +32,13 @@ class EventsController < ApplicationController
     @event = Event.find_by_hashid!(hashid)
 
     unless @event.published?
-      redirect_to root_path, alert: 'This event is no longer viewable.'
+      redirect_to root_path, alert: "This event is no longer viewable."
     end
   end
 
   def set_placeholders
     @placeholders = {
-      title: 'BBQ party in our backyard 🏡🍔🍻',
+      title: "BBQ party in our backyard 🏡🍔🍻",
       body: "Hey everyone, summer is finally here so let's celebrate with some grilled food and cold beers! Our address: 1000 Hart Street in Brooklyn."
     }
   end
@@ -46,5 +46,4 @@ class EventsController < ApplicationController
   def event_params
     params.require(:event).permit(:title, :date, :body)
   end
-
 end

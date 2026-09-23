@@ -26,7 +26,7 @@ RSpec.describe 'Independent organizer and guest sessions', type: :request do
     expect(Rsvp.exists?(first_response.id)).to be(true)
     first_guest.delete event_rsvp_path(event, first_response)
     expect(Rsvp.exists?(first_response.id)).to be(false)
-    expect(event.rsvps.pluck(:name)).to eq(['Second guest'])
+    expect(event.rsvps.pluck(:name)).to eq([ 'Second guest' ])
   end
 
   it 'requires a CSRF token for browser mutations when forgery protection is enabled' do

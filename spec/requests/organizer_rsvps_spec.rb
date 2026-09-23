@@ -29,7 +29,7 @@ RSpec.describe 'Organizer RSVP management', type: :request do
     expect(response).to redirect_to(event_admin_path(event, event.admin_token))
   end
 
-  [:patch, :delete].each do |verb|
+  [ :patch, :delete ].each do |verb|
     it "denies #{verb} using a token for another event" do
       other = create(:event)
       original = rsvp.reload.attributes
@@ -55,5 +55,4 @@ RSpec.describe 'Organizer RSVP management', type: :request do
     get event_path(event)
     expect(response.body).to include(rsvp.name)
   end
-
 end

@@ -1,0 +1,8 @@
+#!/usr/bin/env ruby
+require "rubygems"
+require "bundler/setup"
+
+# An explicit config avoids inheriting an unrelated RuboCop file from a parent directory.
+ARGV.unshift("--config", File.expand_path("../.rubocop.yml", __dir__))
+
+load Gem.bin_path("rubocop", "rubocop")

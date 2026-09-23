@@ -14,5 +14,4 @@ class Rsvp < ApplicationRecord
 
   # Use this to avoid including new (unsaved) records
   scope :persisted, -> { where.not(id: nil) }
-
 end

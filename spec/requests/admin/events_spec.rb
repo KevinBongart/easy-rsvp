@@ -35,7 +35,7 @@ RSpec.describe 'Site administrator dashboard', type: :request do
     get admin_events_path, params: { sort: 'rsvps' }, headers: dashboard_headers
     doc = Nokogiri::HTML(response.body)
     rows = doc.css('tbody tr')
-    expect(rows.map { |row| row.css('td')[0].text }).to eq([popular.title, newer_quiet.title, older_quiet.title])
+    expect(rows.map { |row| row.css('td')[0].text }).to eq([ popular.title, newer_quiet.title, older_quiet.title ])
     expect(rows.map { |row| row.css('td')[2].text }).to eq(%w[3 0 0])
     expect(doc.at_css('thead th:nth-child(4)')['class'].split).to include('text-end')
     expect(rows.all? { |row| row.css('td')[2]['class'].split.include?('text-end') }).to be(true)
@@ -45,7 +45,7 @@ RSpec.describe 'Site administrator dashboard', type: :request do
     attached = create(:event, title: 'Event with a photo')
     legacy = create(:event, title: 'Event with a legacy photo')
     plain = create(:event, title: 'Text-only event')
-    attach_images(attached, sizes: [10, 20])
+    attach_images(attached, sizes: [ 10, 20 ])
     attach_legacy_images(legacy, files: [
       { path: 'shared-photo.png', size: 50 },
       { path: 'shared-photo.png', size: 50 },
@@ -60,13 +60,13 @@ RSpec.describe 'Site administrator dashboard', type: :request do
 
     get admin_events_path, params: { sort: 'attachments' }, headers: dashboard_headers
     rows = Nokogiri::HTML(response.body).css('tbody tr')
-    expect(rows.map { |row| row.css('td')[0].text }).to eq([legacy.title, attached.title, plain.title])
+    expect(rows.map { |row| row.css('td')[0].text }).to eq([ legacy.title, attached.title, plain.title ])
 
     get admin_events_path,
       params: { attachments: '1', sort: 'attachments' },
       headers: dashboard_headers
     doc = Nokogiri::HTML(response.body)
-    expect(doc.css('tbody tr').map { |row| row.css('td')[0].text }).to eq([legacy.title, attached.title])
+    expect(doc.css('tbody tr').map { |row| row.css('td')[0].text }).to eq([ legacy.title, attached.title ])
     links = doc.css('a').index_by(&:text)
     expect(links.fetch('Sort by ID')['href']).to include('attachments=1')
     expect(doc.at_css('.admin-sort strong').text).to eq('Sorted by attachment size')
@@ -160,7 +160,7 @@ RSpec.describe 'Site administrator dashboard', type: :request do
   end
 
   def attach_image(event)
-    attach_images(event, sizes: [11])
+    attach_images(event, sizes: [ 11 ])
   end
 
   def attach_images(event, sizes:)
@@ -191,5 +191,4 @@ RSpec.describe 'Site administrator dashboard', type: :request do
       WHERE id = #{connection.quote(event.rich_text_body.id)}
     SQL
   end
-
 end

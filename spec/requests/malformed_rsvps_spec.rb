@@ -3,7 +3,7 @@ require 'rails_helper'
 RSpec.describe 'Malformed public RSVP requests', type: :request do
   let!(:event) { create(:event) }
 
-  ['', [], ['Yes'], { answer: 'Yes' }].each do |submit|
+  [ '', [], [ 'Yes' ], { answer: 'Yes' } ].each do |submit|
     it "rejects submit value #{submit.inspect} without saving or claiming ownership" do
       expect do
         post event_rsvps_path(event), params: { rsvp: { name: 'Guest' }, commit: submit }
@@ -13,7 +13,7 @@ RSpec.describe 'Malformed public RSVP requests', type: :request do
     end
   end
 
-  [nil, {}, { response: 'yes' }].each do |attributes|
+  [ nil, {}, { response: 'yes' } ].each do |attributes|
     it "rejects missing name parameters #{attributes.inspect} without mutation" do
       expect do
         post event_rsvps_path(event), params: { rsvp: attributes, commit: 'Yes' }
@@ -50,7 +50,7 @@ RSpec.describe 'Malformed public RSVP requests', type: :request do
     expect(request.session[event.hashid]).to eq([])
   end
 
-  ['invalid', ['invalid']].each do |attributes|
+  [ 'invalid', [ 'invalid' ] ].each do |attributes|
     it "rejects malformed RSVP attributes #{attributes.inspect}" do
       expect do
         post event_rsvps_path(event), params: { rsvp: attributes, commit: 'Yes' }
@@ -58,5 +58,4 @@ RSpec.describe 'Malformed public RSVP requests', type: :request do
       expect(response).to have_http_status(:bad_request)
     end
   end
-
 end

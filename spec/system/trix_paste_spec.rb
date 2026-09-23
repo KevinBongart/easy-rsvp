@@ -28,7 +28,7 @@ RSpec.describe 'Pasting into Trix', type: :system, js: true do
     click_button 'Copy paste fixture'
     editor.click
     modifier = Selenium::WebDriver::Platform.mac? ? :command : :control
-    editor.send_keys([modifier, 'v'])
+    editor.send_keys([ modifier, 'v' ])
     expect(page).to have_css('trix-editor', text: 'Safe pasted text')
     expect(page).to have_no_css('trix-editor [onerror]', visible: :all)
     expect(page.evaluate_script('window.pasteExecuted')).to be(false)

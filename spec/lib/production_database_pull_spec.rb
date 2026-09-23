@@ -324,7 +324,7 @@ RSpec.describe ProductionDatabasePull do
     expect(runner.calls).to be_empty
   end
 
-  [nil, "", "   "].each do |host|
+  [ nil, "", "   " ].each do |host|
     it "rejects a missing or blank Dokku host (#{host.inspect}) before running commands" do
       host.nil? ? environment.delete("DOKKU_HOST") : environment["DOKKU_HOST"] = host
 

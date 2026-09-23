@@ -8,7 +8,7 @@ class Event < ApplicationRecord
 
   validates :title, presence: true
   validates :date, presence: true
-  validates :published, inclusion: { in: [true, false] }
+  validates :published, inclusion: { in: [ true, false ] }
 
   def to_param
     "#{hashid}-#{title.parameterize}"
