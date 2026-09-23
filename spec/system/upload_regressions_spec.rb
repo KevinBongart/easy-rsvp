@@ -98,5 +98,4 @@ RSpec.describe 'Upload lifecycle regressions', type: :system, js: true do
       expect(ActiveStorage::Blob.count).to eq(1)
     end
   end
-
 end

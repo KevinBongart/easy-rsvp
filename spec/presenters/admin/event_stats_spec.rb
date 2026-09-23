@@ -19,8 +19,8 @@ RSpec.describe Admin::EventStats do
   end
 
   it 'labels the first creation date regardless of event order or scheduled dates' do
-    rows = [entry(date: Date.new(2010, 1, 1), created_at: Time.zone.local(2025, 9, 8)),
-            entry(date: Date.new(2030, 1, 1), created_at: Time.zone.local(2018, 2, 3))]
+    rows = [ entry(date: Date.new(2010, 1, 1), created_at: Time.zone.local(2025, 9, 8)),
+            entry(date: Date.new(2030, 1, 1), created_at: Time.zone.local(2018, 2, 3)) ]
     expect(described_class.new(rows, now: now).oldest_creation_date).to eq('February 3, 2018')
   end
 
@@ -37,20 +37,20 @@ RSpec.describe Admin::EventStats do
   end
 
   it 'groups creation years newest first' do
-    rows = [entry(date: Date.new(2024, 1, 1)), entry(date: Date.new(2026, 1, 1)), entry(date: Date.new(2026, 2, 1))]
+    rows = [ entry(date: Date.new(2024, 1, 1)), entry(date: Date.new(2026, 1, 1)), entry(date: Date.new(2026, 2, 1)) ]
     stats = described_class.new(rows, now: now)
-    expect(stats.yearly_counts.to_a).to eq([[2026, '2'], [2024, '1']])
+    expect(stats.yearly_counts.to_a).to eq([ [ 2026, '2' ], [ 2024, '1' ] ])
     expect(stats.yearly_counts_display).to eq('2026: 2, 2024: 1')
   end
 
   it 'includes the first day and excludes the next month from a monthly bucket' do
-    rows = [entry(date: Date.new(2026, 9, 1)), entry(date: Date.new(2026, 9, 30)), entry(date: Date.new(2026, 10, 1))]
+    rows = [ entry(date: Date.new(2026, 9, 1)), entry(date: Date.new(2026, 9, 30)), entry(date: Date.new(2026, 10, 1)) ]
     expect(described_class.new(rows, now: now).current_month_count).to eq('2')
   end
 
   it 'fills missing months with zero and honors the requested history length' do
     stats = described_class.new([], now: now, months_back: 2)
-    expect(stats.monthly_counts_with_labels).to eq([['September 2026', '0'], ['August 2026', '0'], ['July 2026', '0']])
+    expect(stats.monthly_counts_with_labels).to eq([ [ 'September 2026', '0' ], [ 'August 2026', '0' ], [ 'July 2026', '0' ] ])
     expect(stats.full_months_display).to eq('August 2026: 0, July 2026: 0')
   end
 
@@ -67,7 +67,7 @@ RSpec.describe Admin::EventStats do
   end
 
   it 'handles leap-year February at the last day without inflating the total' do
-    stats = described_class.new([entry(date: Date.new(2024, 2, 29))], now: Time.zone.local(2024, 2, 29))
+    stats = described_class.new([ entry(date: Date.new(2024, 2, 29)) ], now: Time.zone.local(2024, 2, 29))
     expect(stats.extrapolated_current_month_count).to eq('1')
   end
 
@@ -79,7 +79,7 @@ RSpec.describe Admin::EventStats do
 
   context 'creation-date statistics' do
     it 'assigns an event to its creation year when the party is in another year' do
-      rows = [entry(date: Date.new(2027, 1, 5), created_at: Time.zone.local(2026, 12, 20))]
+      rows = [ entry(date: Date.new(2027, 1, 5), created_at: Time.zone.local(2026, 12, 20)) ]
       stats = described_class.new(rows, now: Time.zone.local(2027, 1, 10))
       expect(stats.yearly_counts).to eq(2026 => '1')
     end
@@ -94,9 +94,9 @@ RSpec.describe Admin::EventStats do
     end
 
     it 'puts a December creation in December history even when the party is in January' do
-      rows = [entry(date: Date.new(2027, 1, 5), created_at: Time.zone.local(2026, 12, 20))]
+      rows = [ entry(date: Date.new(2027, 1, 5), created_at: Time.zone.local(2026, 12, 20)) ]
       stats = described_class.new(rows, now: Time.zone.local(2027, 1, 10), months_back: 1)
-      expect(stats.monthly_counts_with_labels).to eq([['January 2027', '0'], ['December 2026', '1']])
+      expect(stats.monthly_counts_with_labels).to eq([ [ 'January 2027', '0' ], [ 'December 2026', '1' ] ])
     end
 
     it 'uses creation timestamps at the exact start and end of a month' do
@@ -111,9 +111,9 @@ RSpec.describe Admin::EventStats do
 
     it 'keeps growth history unchanged when an organizer reschedules a party' do
       event = entry(date: Date.new(2026, 9, 5), created_at: Time.zone.local(2026, 9, 2))
-      original = described_class.new([event], now: now).monthly_counts_with_labels
+      original = described_class.new([ event ], now: now).monthly_counts_with_labels
       event.date = Date.new(2026, 11, 5)
-      expect(described_class.new([event], now: now).monthly_counts_with_labels).to eq(original)
+      expect(described_class.new([ event ], now: now).monthly_counts_with_labels).to eq(original)
     end
 
     it 'projects this months creation rate without using scheduled party dates' do
@@ -127,8 +127,8 @@ RSpec.describe Admin::EventStats do
 
   describe 'chart series' do
     it 'orders years chronologically, fills gaps, and projects only the current year' do
-      rows = [entry(date: Date.new(2030, 1, 1), created_at: Time.zone.local(2024, 2, 1)),
-              entry(date: Date.new(2030, 1, 1), created_at: Time.zone.local(2026, 2, 1))]
+      rows = [ entry(date: Date.new(2030, 1, 1), created_at: Time.zone.local(2024, 2, 1)),
+              entry(date: Date.new(2030, 1, 1), created_at: Time.zone.local(2026, 2, 1)) ]
       stats = described_class.new(rows, now: Time.zone.local(2026, 7, 1))
       expect(stats.yearly_chart).to eq([
         { label: '2024', count: 1 }, { label: '2025', count: 0 },
@@ -164,14 +164,14 @@ RSpec.describe Admin::EventStats do
     end
 
     it 'uses all 366 days when projecting a leap year' do
-      stats = described_class.new([entry(date: Date.new(2024, 1, 1))], now: Time.zone.local(2024, 1, 1))
+      stats = described_class.new([ entry(date: Date.new(2024, 1, 1)) ], now: Time.zone.local(2024, 1, 1))
       expect(stats.yearly_chart.last[:projected_count]).to eq(366)
     end
 
     it 'shows cumulative daily creations through today, then a month-end forecast' do
-      rows = [entry(date: Date.new(2030, 1, 1), created_at: Time.zone.local(2026, 9, 1)),
+      rows = [ entry(date: Date.new(2030, 1, 1), created_at: Time.zone.local(2026, 9, 1)),
               entry(date: Date.new(2030, 1, 1), created_at: Time.zone.local(2026, 9, 3)),
-              entry(date: Date.new(2030, 1, 1), created_at: Time.zone.local(2026, 8, 31))]
+              entry(date: Date.new(2030, 1, 1), created_at: Time.zone.local(2026, 8, 31)) ]
       stats = described_class.new(rows, now: Time.zone.local(2026, 9, 4))
       expect(stats.current_month_chart.first(4)).to eq([
         { label: 'September 1', count: 1 }, { label: 'September 2', count: 1 },
@@ -183,7 +183,7 @@ RSpec.describe Admin::EventStats do
     end
 
     it 'has no future forecast on the last day of a leap-year February' do
-      stats = described_class.new([entry(date: Date.new(2024, 2, 29))], now: Time.zone.local(2024, 2, 29))
+      stats = described_class.new([ entry(date: Date.new(2024, 2, 29)) ], now: Time.zone.local(2024, 2, 29))
       expect(stats.current_month_chart.size).to eq(29)
       expect(stats.current_month_chart.last).to eq(label: 'February 29', count: 1)
       expect(stats.current_month_chart).to all(satisfy { |point| !point.key?(:projected_count) })
@@ -196,5 +196,4 @@ RSpec.describe Admin::EventStats do
       expect(stats.current_month_chart.last).to eq(label: 'January 31', projected_count: 0)
     end
   end
-
 end

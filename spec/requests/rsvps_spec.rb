@@ -90,11 +90,10 @@ RSpec.describe 'Public RSVPs', type: :request do
     second = event.rsvps.last
 
     delete event_rsvp_path(event, first)
-    expect(request.session[event.hashid]).to eq([second.hashid])
-    expect(request.session[other_event.hashid]).to eq([elsewhere.hashid])
+    expect(request.session[event.hashid]).to eq([ second.hashid ])
+    expect(request.session[other_event.hashid]).to eq([ elsewhere.hashid ])
     delete event_rsvp_path(event, second)
     expect(request.session[event.hashid]).to be_nil
-    expect(request.session[other_event.hashid]).to eq([elsewhere.hashid])
+    expect(request.session[other_event.hashid]).to eq([ elsewhere.hashid ])
   end
-
 end

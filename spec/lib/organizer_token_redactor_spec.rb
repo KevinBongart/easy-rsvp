@@ -4,9 +4,9 @@ RSpec.describe OrganizerTokenRedactor do
   let(:token) { SecureRandom.uuid }
 
   it 'redacts paths, standalone SQL values, referers and encoded path segments' do
-    examples = ["Started GET /party/admin/#{token}/edit", "admin_token=#{token}",
+    examples = [ "Started GET /party/admin/#{token}/edit", "admin_token=#{token}",
                 "https://example.com/party/admin/#{token}?sort=recent", "/party/admin/#{token.gsub('-', '%2D')}/rsvps/1",
-                '/party/admin/%30%31%32%33/edit']
+                '/party/admin/%30%31%32%33/edit' ]
     examples.each do |text|
       expect(described_class.redact(text)).to include('[FILTERED]')
       expect(described_class.redact(text).include?(token)).to be(false)

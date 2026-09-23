@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
-require 'delegate'
+require "delegate"
 
 module OrganizerTokenRedactor
   UUID = /\b[0-9a-f]{8}(?:-|%2d)[0-9a-f]{4}(?:-|%2d)[0-9a-f]{4}(?:-|%2d)[0-9a-f]{4}(?:-|%2d)[0-9a-f]{12}\b/i
   ORGANIZER_PATH = %r{(/[^/\s?\#]+/admin/)[^/\s?\#"<>]+}
 
   def self.redact(value)
-    value.gsub(ORGANIZER_PATH, '\\1[FILTERED]').gsub(UUID, '[FILTERED]')
+    value.gsub(ORGANIZER_PATH, '\\1[FILTERED]').gsub(UUID, "[FILTERED]")
   end
 
   def self.scrub(value)

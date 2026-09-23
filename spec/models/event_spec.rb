@@ -5,7 +5,7 @@ RSpec.describe Event, type: :model do
     expect(build(:event)).to be_valid
   end
 
-  [:title, :date, :published].each do |attribute|
+  [ :title, :date, :published ].each do |attribute|
     it "requires #{attribute}" do
       event = build(:event, attribute => nil)
       expect(event).not_to be_valid

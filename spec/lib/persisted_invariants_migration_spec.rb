@@ -56,7 +56,7 @@ RSpec.describe 'Persisted invariant migrations' do
     expect_validation_failure
   end
 
-  ['', '   ', "\t\n"].each do |name|
+  [ '', '   ', "\t\n" ].each do |name|
     it "fails validation for a historical RSVP named #{name.inspect}" do
       connection.execute("INSERT INTO events (published) VALUES (TRUE)")
       connection.execute("INSERT INTO rsvps (event_id, name) VALUES (1, #{connection.quote(name)})")

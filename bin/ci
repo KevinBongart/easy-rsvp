@@ -8,9 +8,11 @@ if [[ "$RAILS_ENV" != test ]]; then
 fi
 export ADMIN_USER=spec-admin ADMIN_PASSWORD=spec-password
 export AWS_EC2_METADATA_DISABLED=true SCOUT_MONITOR=false
+export RUBOCOP_CACHE_ROOT="${RUBOCOP_CACHE_ROOT:-tmp/rubocop_cache}"
 
 bundle exec bundler-audit check --update
 bundle exec brakeman --no-pager
+bin/rubocop
 bin/rails zeitwerk:check
 npm ci
 npm audit

@@ -3,7 +3,7 @@ class OrganizerRsvpsController < OrganizerController
 
   def update
     if @rsvp.update(rsvp_params)
-      redirect_to event_admin_path(@event, @event.admin_token), notice: 'The RSVP was updated.'
+      redirect_to event_admin_path(@event, @event.admin_token), notice: "The RSVP was updated."
     else
       redirect_to event_admin_path(@event, @event.admin_token), alert: "The RSVP could not be updated: #{@rsvp.errors.full_messages.join(', ')}"
     end
@@ -12,7 +12,7 @@ class OrganizerRsvpsController < OrganizerController
   def destroy
     @rsvp.destroy
 
-    redirect_to event_admin_path(@event, @event.admin_token), notice: 'The RSVP was deleted.'
+    redirect_to event_admin_path(@event, @event.admin_token), notice: "The RSVP was deleted."
   end
 
   private

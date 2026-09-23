@@ -2,10 +2,10 @@
 
 module Admin::EventsHelper
   def sparkline_points(series)
-    maximum = [series.map { |point| point[:projected_count] || point[:count] }.max, 1].max
+    maximum = [ series.map { |point| point[:projected_count] || point[:count] }.max, 1 ].max
     series.each_with_index.map do |point, index|
       # Leave space for the endpoint dots inside the 160 × 20 SVG.
-      x = 2 + index * 156.0 / [series.size - 1, 1].max
+      x = 2 + index * 156.0 / [ series.size - 1, 1 ].max
       value = point[:projected_count] || point[:count]
       y = 18 - value * 16.0 / maximum
       point.merge(x: x.round(2), y: y.round(2))
@@ -13,7 +13,7 @@ module Admin::EventsHelper
   end
 
   def sparkline_coordinates(points)
-    points.map { |point| "#{point[:x]},#{point[:y]}" }.join(' ')
+    points.map { |point| "#{point[:x]},#{point[:y]}" }.join(" ")
   end
 
   def sparkline_tooltip(point)

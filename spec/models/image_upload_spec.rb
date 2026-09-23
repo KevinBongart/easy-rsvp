@@ -35,7 +35,7 @@ RSpec.describe ImageUpload, type: :model do
     expect(upload).not_to be_valid
   end
 
-  [10.megabytes, 10.megabytes + 1].each do |size|
+  [ 10.megabytes, 10.megabytes + 1 ].each do |size|
     it "enforces the 10 MB limit for a #{size}-byte image" do
       bytes = File.binread(Rails.root.join('spec/fixtures/files/party.png')).ljust(size, "\0")
       upload = described_class.new
@@ -44,5 +44,4 @@ RSpec.describe ImageUpload, type: :model do
       expect(upload.errors[:image]).to include('must be 10 MB or smaller') if size > 10.megabytes
     end
   end
-
 end

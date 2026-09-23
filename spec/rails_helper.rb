@@ -18,7 +18,7 @@ require 'capybara/rspec'
 require 'factory_bot_rails'
 
 config = ActiveRecord::Base.connection_db_config
-unless config.database == 'events_test' && [nil, '', 'localhost', '127.0.0.1', '::1'].include?(config.host)
+unless config.database == 'events_test' && [ nil, '', 'localhost', '127.0.0.1', '::1' ].include?(config.host)
   abort 'Specs require the local events_test database'
 end
 ActiveRecord::Migration.maintain_test_schema!
@@ -26,7 +26,7 @@ ActiveRecord::Migration.maintain_test_schema!
 Rails.root.glob('spec/support/**/*.rb').sort.each { |file| require file }
 
 RSpec.configure do |config|
-  config.fixture_paths = [Rails.root.join('spec/fixtures')]
+  config.fixture_paths = [ Rails.root.join('spec/fixtures') ]
   config.use_transactional_fixtures = true
   config.infer_spec_type_from_file_location!
   config.filter_rails_from_backtrace!
