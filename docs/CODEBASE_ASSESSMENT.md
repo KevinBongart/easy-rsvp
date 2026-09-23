@@ -595,7 +595,15 @@ provided; Bon App's accepted risks do not transfer.
   date, yearly/monthly buckets, and current-month daily counts use bounded SQL
   aggregates over `created_at`. Request coverage checks page bounds, event and
   RSVP instantiation, deterministic ordering, displayed counts, and constant
-  query count as off-page data grows.
+  query count as off-page data grows. Warmed request instrumentation also enforces
+  broad query, database-time, and response-time budgets for the dashboard and the
+  core public and organizer happy paths; these detect major local/CI regressions
+  without treating either environment as a production capacity benchmark. The
+  representative fixtures cover event creation, public pages with 0/1/100 RSVPs,
+  organizer pages with 1/100 RSVPs, an edit form whose event has 100 RSVPs, event
+  update, and RSVP creation against events with 0/100 existing responses. Query
+  counts must remain constant as stored responses grow; allocation, response-size,
+  and instantiated-record ceilings protect the intentional linear rendering work.
 
 - [x] **4.2 P2 — Use creation timestamps consistently for dashboard counts.** Completed in the remediation above; original finding follows.
   `Admin::EventStats#yearly_counts` groups by `created_at.year` (line 29), but

@@ -86,26 +86,25 @@ RSpec.describe 'Site administrator dashboard', type: :request do
     attach_image(Event.order(:id).last)
     get admin_events_path, headers: dashboard_headers # warm templates and schema
 
-    first_page_queries = count_queries { get admin_events_path, headers: dashboard_headers }
+    first_page_metrics = measure_request { get admin_events_path, headers: dashboard_headers }
     insert_events(1000)
-    instantiated = Hash.new(0)
-    subscriber = lambda do |*, payload|
-      instantiated[payload[:class_name]] += payload[:record_count]
-    end
-    larger_database_queries = count_queries do
-      ActiveSupport::Notifications.subscribed(subscriber, 'instantiation.active_record') do
-        get admin_events_path, headers: dashboard_headers
-      end
-    end
-    attachment_filtered_queries = count_queries do
+    larger_database_metrics = measure_request { get admin_events_path, headers: dashboard_headers }
+    attachment_filtered_metrics = measure_request do
       get admin_events_path, params: { attachments: '1' }, headers: dashboard_headers
     end
+    scale_summary = [
+      request_metrics_summary(first_page_metrics, label: 'dashboard with 1,001 events'),
+      request_metrics_summary(larger_database_metrics, label: 'dashboard with 2,001 events')
+    ].join("\n")
+    filter_summary = request_metrics_summary(attachment_filtered_metrics, label: 'attachment-filtered dashboard')
 
-    expect(larger_database_queries).to eq(first_page_queries)
-    expect(larger_database_queries).to be <= 6
-    expect(attachment_filtered_queries).to be <= 6
-    expect(instantiated['Event']).to eq(Admin::EventsController::EVENTS_PER_PAGE)
-    expect(instantiated['Rsvp']).to eq(0)
+    expect(larger_database_metrics.queries).to eq(first_page_metrics.queries), scale_summary
+    expect(larger_database_metrics.queries).to be <= 6, scale_summary
+    expect(attachment_filtered_metrics.queries).to be <= 6, filter_summary
+    expect(larger_database_metrics.duration).to be < 2_000, scale_summary
+    expect(larger_database_metrics.db_runtime).to be < 1_000, scale_summary
+    expect(larger_database_metrics.instantiations['Event']).to eq(Admin::EventsController::EVENTS_PER_PAGE), scale_summary
+    expect(larger_database_metrics.instantiations['Rsvp']).to eq(0), scale_summary
   end
 
   it 'shows creation counts even when all parties are scheduled in another month' do
