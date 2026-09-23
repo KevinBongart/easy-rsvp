@@ -23,6 +23,11 @@ The event creation and RSVP flows need no environment configuration locally.
 Set both `ADMIN_USER` and `ADMIN_PASSWORD` to use the site-wide dashboard at
 `/admin/events`. The application does not send email.
 
+Responses enforce a Content Security Policy for same-origin application assets
+and the configured S3 origin used by direct uploads and stored images. A modern
+Permissions Policy disables unused browser capabilities while allowing this page
+to write organizer links to the clipboard.
+
 ## Product and access rules
 
 Easy RSVP has no accounts. A published event has a public URL for guests and a

@@ -1,13 +1,15 @@
-# Be sure to restart your server when you modify this file.
+permissions_policy = [
+  "accelerometer=()",
+  "camera=()",
+  "clipboard-read=()",
+  "clipboard-write=(self)",
+  "display-capture=()",
+  "geolocation=()",
+  "gyroscope=()",
+  "magnetometer=()",
+  "microphone=()",
+  "payment=()",
+  "usb=()"
+].join(", ")
 
-# Define an application-wide HTTP permissions policy. For further
-# information see: https://developers.google.com/web/updates/2018/06/feature-policy
-
-# Rails.application.config.permissions_policy do |policy|
-#   policy.camera      :none
-#   policy.gyroscope   :none
-#   policy.microphone  :none
-#   policy.usb         :none
-#   policy.fullscreen  :self
-#   policy.payment     :self, "https://secure.example.com"
-# end
+Rails.application.config.action_dispatch.default_headers["Permissions-Policy"] = permissions_policy

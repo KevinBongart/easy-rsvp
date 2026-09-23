@@ -546,12 +546,16 @@ provided; Bon App's accepted risks do not transfer.
   work. Avoid purging production blobs based only on an imported local database.
 
 - [ ] **2.5 P2 — Review abuse and browser policies against the actual product.**
-  No app-level throttling exists for event creation, public RSVPs, Basic Auth,
-  uploads, or organizer-link mail. CSP and permissions-policy files are commented
-  templates. Define proportionate controls and test them; inspect actual reverse
-  proxy limits before claiming they are absent in production. Keep public creation
-  accountless. No password-policy or token-entropy redesign is justified merely
-  by copying Bon App's review categories.
+  An enforced Content Security Policy now limits application assets and requests
+  to the same origin plus the exact S3 origin needed for direct uploads and stored
+  images. A modern Permissions Policy disables unused browser capabilities while
+  retaining same-origin clipboard writes. Request coverage checks both headers,
+  and the existing Firefox suite exercises Turbo, Bootstrap, Trix uploads, inline
+  SVG charts, and clipboard behavior under the enforced policy. App-level
+  throttling remains for event creation, public RSVPs, direct-upload authorization,
+  and failed dashboard authentication. The removed organizer-link email feature
+  needs no limit. Inspect actual reverse-proxy limits before claiming they are
+  absent in production. Keep public creation accountless.
 
 ## Phase 3 — Documentation and operational clarity
 
