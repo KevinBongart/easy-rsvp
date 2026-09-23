@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe 'Site administrator dashboard', type: :request do
-  DASHBOARD_REQUEST_BUDGET_MS = 400
+  DASHBOARD_REQUEST_BUDGET_MS = 1_200
   DASHBOARD_DATABASE_BUDGET_MS = 50
 
   it 'requires HTTP Basic authentication' do

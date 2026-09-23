@@ -597,10 +597,10 @@ provided; Bon App's accepted risks do not transfer.
   RSVP instantiation, deterministic ordering, displayed counts, and constant
   query count as off-page data grows. Warmed request instrumentation also enforces
   tight query, database-time, and response-time budgets for the dashboard and the
-  core public and organizer happy paths. Ordinary paths have a 50 ms request
-  ceiling, rendering 100 organizer RSVPs has 100 ms, and the 1,000-row dashboard
-  has 400 ms; these remain local/CI regression tripwires rather than production
-  capacity benchmarks. The
+  core public and organizer happy paths. Ordinary paths have a 100 ms request
+  ceiling, rendering 100 public or organizer RSVPs has 150 ms and 300 ms
+  respectively, and the 1,000-row dashboard has 1,200 ms. These remain local/CI
+  regression tripwires rather than production capacity benchmarks. The
   representative fixtures cover event creation, public pages with 0/1/100 RSVPs,
   organizer pages with 1/100 RSVPs, an edit form whose event has 100 RSVPs, event
   update, and RSVP creation against events with 0/100 existing responses. Query

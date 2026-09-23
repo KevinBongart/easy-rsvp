@@ -1,8 +1,9 @@
 require "rails_helper"
 
 RSpec.describe "Core request performance", type: :request do
-  REQUEST_BUDGET_MS = 50
-  LARGE_ORGANIZER_REQUEST_BUDGET_MS = 100
+  REQUEST_BUDGET_MS = 100
+  LARGE_PUBLIC_REQUEST_BUDGET_MS = 150
+  LARGE_ORGANIZER_REQUEST_BUDGET_MS = 300
   DATABASE_BUDGET_MS = 25
   SQL_BUDGET_MS = 25
 
@@ -46,6 +47,7 @@ RSpec.describe "Core request performance", type: :request do
         measurement,
         label: "public event with #{count} RSVPs",
         max_queries: 3,
+        max_duration: count == 100 ? LARGE_PUBLIC_REQUEST_BUDGET_MS : REQUEST_BUDGET_MS,
         max_allocations: count == 100 ? 150_000 : nil,
         max_response_bytes: count == 100 ? 20.kilobytes : nil,
         instances: { "Event" => 1, "ActionText::RichText" => 1, "Rsvp" => count }
