@@ -18,4 +18,8 @@ Rails.application.configure do
     policy.style_src_attr :unsafe_inline
     policy.worker_src :none
   end
+
+  # Trix uses this nonce for the default styles it installs at runtime.
+  config.content_security_policy_nonce_generator = ->(_request) { SecureRandom.base64(16) }
+  config.content_security_policy_nonce_directives = %w[style-src-elem]
 end

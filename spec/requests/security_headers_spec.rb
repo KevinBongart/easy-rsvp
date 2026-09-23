@@ -8,6 +8,7 @@ RSpec.describe "Browser security headers", type: :request do
       name, *sources = directive.split
       [ name, sources ]
     end
+    nonce = Nokogiri::HTML(response.body).at_css('meta[name="csp-nonce"]')["content"]
 
     expect(directives).to include(
       "default-src" => [ "'self'" ],
@@ -20,7 +21,7 @@ RSpec.describe "Browser security headers", type: :request do
       "script-src" => [ "'self'" ],
       "script-src-attr" => [ "'none'" ],
       "style-src" => [ "'self'" ],
-      "style-src-elem" => [ "'self'" ],
+      "style-src-elem" => [ "'self'", "'nonce-#{nonce}'" ],
       "style-src-attr" => [ "'unsafe-inline'" ]
     )
     expect(response.headers).not_to have_key("Content-Security-Policy-Report-Only")
