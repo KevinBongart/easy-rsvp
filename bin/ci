@@ -13,9 +13,12 @@ export RUBOCOP_CACHE_ROOT="${RUBOCOP_CACHE_ROOT:-tmp/rubocop_cache}"
 bundle exec bundler-audit check --update
 bundle exec brakeman --no-pager
 bin/rubocop
+bundle exec erb_lint --lint-all
 bin/rails zeitwerk:check
 npm ci
 npm audit
+npm run lint:js
+npm run lint:scss
 SKIP_YARN_INSTALL=true bin/rails assets:precompile
 mkdir -p tmp/test-results
 bundle exec rspec --format progress --format RspecJunitFormatter --out tmp/test-results/rspec.xml "$@"

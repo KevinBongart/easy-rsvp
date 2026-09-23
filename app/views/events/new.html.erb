@@ -9,8 +9,7 @@
     required: false,
     label: 'What are you planning?',
     placeholder: @placeholders[:title],
-    error: 'Your event needs a name!'
-  %>
+    error: 'Your event needs a name!' %>
 
   <fieldset>
     <legend class="form-label fs-6 float-none mb-2">When is this happening?</legend>
@@ -21,8 +20,7 @@
       required: false,
       label: false,
       order: [:month, :day, :year],
-      start_year: Date.today.year
-    %>
+      start_year: Date.today.year %>
   </fieldset>
 
   <br>
@@ -34,8 +32,7 @@
     data: {
       controller: 'rich-text',
       action: 'trix-file-accept->rich-text#acceptFile direct-upload:error->rich-text#uploadFailed direct-upload:end->rich-text#uploadFinished'
-    }
-  %>
+    } %>
 
   <br>
 

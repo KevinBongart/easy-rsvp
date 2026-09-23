@@ -741,12 +741,13 @@ provided; Bon App's accepted risks do not transfer.
   disposable local databases and authorized production exports. Do not weaken
   the target guards to make a local rehearsal convenient.
 
-- [ ] **7.4 P3 — Add a focused formatting and lint baseline.** Rails Omakase now
-  checks Ruby in local and hosted CI using its unmodified configuration; existing
-  findings were fixed directly without a generated suppression file. Evaluate
-  proportionate ERB, JavaScript, and CSS checks against the modernized stack in
-  separate reviewable groups, adding only tools that provide stable, useful
-  feedback.
+- [x] **7.4 P3 — Add a focused formatting and lint baseline.** Rails Omakase,
+  ERB Lint's default rules, ESLint's recommended browser rules, and Stylelint's
+  recommended SCSS rules now run in local and hosted CI. The baseline fixes the
+  findings directly and has no generated suppression file or application-specific
+  style rules. The smaller SCSS preset catches invalid and deprecated source
+  without treating Rails' generated Trix selectors and compatibility declarations
+  as application style errors.
 
 ## Verified healthy and accepted decisions
 

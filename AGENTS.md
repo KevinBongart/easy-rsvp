@@ -107,7 +107,9 @@ booting Rails: `bundle exec rspec spec/lib/production_database_pull_spec.rb`.
 For autoloading changes, run `RAILS_ENV=test bin/rails zeitwerk:check`.
 CircleCI installs Firefox/geckodriver, creates and loads the test database, then
 runs `bin/ci`. JUnit results and failure screenshots are retained. Bundler-audit,
-Brakeman, and Rails Omakase run before the application checks.
+Brakeman, Rails Omakase, ERB Lint, ESLint, and Stylelint run before the application
+checks. The frontend linters use their upstream recommended rules without a
+project-specific house style or generated suppression file.
 
 Before merging a substantive pull request, have a context-isolated agent
 independently review the final diff against `origin/main` and these repository

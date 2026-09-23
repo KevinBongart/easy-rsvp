@@ -18,12 +18,12 @@ export default class extends Controller {
   }
 
   async copy() {
-    let copied = false
+    let copied
 
     try {
       await navigator.clipboard.writeText(this.textValue)
       copied = true
-    } catch (_error) {
+    } catch {
       copied = this.copyWithLegacyApi()
     }
 
@@ -54,7 +54,7 @@ export default class extends Controller {
 
     try {
       return document.execCommand("copy")
-    } catch (_error) {
+    } catch {
       return false
     } finally {
       input.remove()
