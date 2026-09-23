@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["toggle", "fields", "input", "timeZone"]
+  static targets = ["toggle", "fields", "timeZone"]
 
   connect() {
     this.update()
@@ -15,7 +15,7 @@ export default class extends Controller {
     const enabled = this.toggleTarget.checked
 
     this.fieldsTarget.hidden = !enabled
-    this.inputTargets.forEach((input) => {
+    this.fieldsTarget.querySelectorAll("input").forEach((input) => {
       input.disabled = !enabled
       input.required = enabled
     })

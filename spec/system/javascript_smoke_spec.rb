@@ -85,7 +85,7 @@ RSpec.describe 'Firefox JavaScript smoke', type: :system, js: true do
     expect(ActiveStorage::Blob.last.service_name).to eq('test')
     click_button 'Create your event, for free!'
     expect_loaded_image('.trix-content img')
-    expect(find('.trix-content img[src]')[:src]).not_to include('/representations/')
+    expect(page).to have_css('.trix-content img[src]:not([src*="/representations/"])')
     click_link 'public-link'
     page.refresh
     expect_loaded_image('.trix-content img')
