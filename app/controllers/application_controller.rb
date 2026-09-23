@@ -1,4 +1,6 @@
 class ApplicationController < ActionController::Base
+  include RateLimitResponses
+
   private
 
   def event_hashid_from_param(parameterized_id)
