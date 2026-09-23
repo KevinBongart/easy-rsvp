@@ -36,7 +36,7 @@ RSpec.describe 'Firefox JavaScript smoke', type: :system, js: true do
     enter_details('Bring a picnic blanket.')
     click_button 'Create your event, for free!'
     expect(page).to have_css('.trix-content', text: 'Bring a picnic blanket.')
-    click_link 'Edit', match: :first
+    click_link 'Edit event', match: :first
     expect(page).to have_css('trix-editor', text: 'Bring a picnic blanket.')
     enter_details('And a hat.')
     click_button 'Update Event'
@@ -52,6 +52,13 @@ RSpec.describe 'Firefox JavaScript smoke', type: :system, js: true do
     find('trix-editor').drop(Rails.root.join('spec/fixtures/files/party.png').to_s)
     expect(page).to have_css('trix-editor img[src*="/rails/active_storage/"]')
     expect_loaded_image('trix-editor img')
+    find('trix-editor figure').click
+    caption = find('trix-editor .attachment__caption-editor')
+    caption.click
+    expect(caption.evaluate_script('getComputedStyle(this).outlineStyle')).to eq('solid')
+    caption.send_keys(:tab)
+    expect(page.evaluate_script('document.activeElement.matches("trix-editor .trix-button")')).to be(true)
+    expect(page.evaluate_script('getComputedStyle(document.activeElement).outlineStyle')).to eq('solid')
     expect(ActiveStorage::Blob.count).to eq(1)
     expect(ActiveStorage::Blob.last.service_name).to eq('test')
     click_button 'Create your event, for free!'
@@ -69,7 +76,7 @@ RSpec.describe 'Firefox JavaScript smoke', type: :system, js: true do
     find('trix-editor').drop(Rails.root.join('spec/fixtures/files/party.png').to_s)
     expect(page).to have_css('trix-editor img[src*="/rails/active_storage/"]')
     click_button 'Create your event, for free!'
-    click_link 'Edit', match: :first
+    click_link 'Edit event', match: :first
     expect_loaded_image('trix-editor img')
     enter_details('More details after uploading.')
     click_button 'Update Event'
@@ -135,7 +142,29 @@ RSpec.describe 'Firefox JavaScript smoke', type: :system, js: true do
     JS
     click_button 'Copy'
     expect(page).to have_button('Copied')
+    expect(page).to have_css('[role="status"]', text: 'Public event link copied', visible: :all)
     expect(page.evaluate_script('window.copiedPublicURL')).to eq(public_url)
+    click_link 'public-link'
+    page.go_back
+    expect(page).to have_button('Copy', exact: true)
+    expect(find('[role="status"]', visible: :all).text(:all)).to eq('')
+  end
+
+  it 'reports clipboard failure without claiming the link was copied' do
+    event = create(:event)
+    visit event_admin_path(event, event.admin_token)
+    page.execute_script(<<~JS)
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: { writeText: async () => { throw new Error('denied'); } }
+      });
+      document.execCommand = () => false;
+    JS
+
+    click_button 'Copy'
+
+    expect(page).to have_button('Copy failed')
+    expect(page).to have_css('[role="status"]', text: 'Could not copy the public event link', visible: :all)
   end
 
   it 'dismisses the modal without saving changes' do

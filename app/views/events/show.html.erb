@@ -1,4 +1,4 @@
-<h1>
+<h1 class="event-heading">
   <%= @event.title %>
 
   <small class='text-muted'>
@@ -47,7 +47,7 @@
 
             <% if rsvp.hashid.in? @user_rsvp_hashids %>
               <small>
-                [<%= link_to 'x', event_rsvp_path(@event, rsvp), data: { turbo_method: :delete } %>]
+                [<%= link_to 'x', event_rsvp_path(@event, rsvp), aria: { label: "Delete RSVP for #{rsvp.name}" }, data: { turbo_method: :delete } %>]
               </small>
             <% end %>
           </li>
@@ -56,7 +56,7 @@
             <%= rsvp.name %>
 
             <small>
-              [<%= link_to 'x', event_rsvp_path(@event, rsvp), data: { turbo_method: :delete } %>]
+              [<%= link_to 'x', event_rsvp_path(@event, rsvp), aria: { label: "Delete RSVP for #{rsvp.name}" }, data: { turbo_method: :delete } %>]
             </small>
           </li>
         <% end %>

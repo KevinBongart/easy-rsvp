@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
     <title>
       <%= @event&.title || "Easy RSVP" %>
@@ -20,15 +20,17 @@
     <div class="container" id="main">
       <nav class="navbar navbar-light mb-2" aria-label="Main navigation">
         <%= link_to root_path, class: 'navbar-brand' do %>
-          <%= image_tag 'logo-small.png', id: 'logo' %>
+          <%= image_tag 'logo-small.png', id: 'logo', alt: '' %>
           Easy RSVP
         <% end %>
       </nav>
 
-      <%= render 'layouts/messages' %>
-      <%= yield %>
+      <main>
+        <%= render 'layouts/messages' %>
+        <%= yield %>
+      </main>
 
-      <div class="text-end text-muted mt-5">
+      <footer class="site-footer text-end mt-5">
         <hr>
         <p class="small">
           Easy RSVP is an
@@ -37,7 +39,7 @@
           <a href="http://kevinbongart.net">Kevin Bongart</a>.
           <a href="https://www.kevinbongart.net/projects/easy-rsvp.html">Learn more</a>.
         </p>
-      </div>
+      </footer>
     </div>
 
   </body>

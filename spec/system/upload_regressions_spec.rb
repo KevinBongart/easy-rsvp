@@ -22,7 +22,7 @@ RSpec.describe 'Upload lifecycle regressions', type: :system, js: true do
     event = create(:event)
     visit event_admin_path(event, event.admin_token)
     page.execute_script("window.specDocumentMarker = 'same-document'")
-    click_link 'Edit', match: :first
+    click_link 'Edit event', match: :first
     expect(page).to have_button('Update Event')
     find('.navbar-brand').click
     expect(page).to have_button('Create your event, for free!')

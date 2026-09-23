@@ -1,5 +1,5 @@
 <h1 class="text-center">
-  Make it <i class="text-success">easy</i> for your guests to <i class="text-success">RSVP</i>
+  Make it <i class="brand-accent">easy</i> for your guests to <i class="brand-accent">RSVP</i>
 </h1>
 
 <br>
@@ -12,12 +12,18 @@
     error: 'Your event needs a name!'
   %>
 
-  <%= f.input :date,
-    required: false,
-    label: 'When is this happening?',
-    order: [:month, :day, :year],
-    start_year: Date.today.year
-  %>
+  <fieldset>
+    <legend class="form-label fs-6 float-none mb-2">When is this happening?</legend>
+    <%= label_tag 'event_date_2i', 'Month', class: 'visually-hidden' %>
+    <%= label_tag 'event_date_3i', 'Day', class: 'visually-hidden' %>
+    <%= label_tag 'event_date_1i', 'Year', class: 'visually-hidden' %>
+    <%= f.input :date,
+      required: false,
+      label: false,
+      order: [:month, :day, :year],
+      start_year: Date.today.year
+    %>
+  </fieldset>
 
   <br>
 
