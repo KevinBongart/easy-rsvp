@@ -80,7 +80,9 @@ RSpec.describe "Core request performance", type: :request do
   it "keeps event editing within its query and response budgets" do
     event = create(:event)
     insert_rsvps(event, 100)
+    warm_event = create(:event)
     get edit_event_admin_path(event, event.admin_token)
+    patch event_admin_path(warm_event, warm_event.admin_token), params: event_attributes(title: "Warm update")
 
     show_metrics = measure_request { get edit_event_admin_path(event, event.admin_token) }
     update_metrics = measure_request do
@@ -95,8 +97,13 @@ RSpec.describe "Core request performance", type: :request do
       max_queries: 2,
       instances: { "Event" => 1, "ActionText::RichText" => 1 }
     )
-    expect(show_metrics.instantiations["Rsvp"]).to eq(0)
-    expect_metrics(update_metrics, label: "event update", max_queries: 3, max_allocations: 20_000)
+    expect_metrics(
+      update_metrics,
+      label: "event update",
+      max_queries: 3,
+      max_allocations: 20_000,
+      instances: { "Event" => 1, "ActionText::RichText" => 1 }
+    )
   end
 
   it "keeps RSVP creation constant with zero or 100 existing RSVPs" do
@@ -120,7 +127,6 @@ RSpec.describe "Core request performance", type: :request do
         max_allocations: 20_000,
         instances: { "Event" => 1 }
       )
-      expect(measurement.instantiations["Rsvp"]).to eq(0)
     end
   end
 
@@ -153,16 +159,24 @@ RSpec.describe "Core request performance", type: :request do
   end
 
   def expect_metrics(metrics, label:, max_queries:, instances: nil, max_allocations: nil, max_response_bytes: nil)
+    summary = metrics_summary(label, metrics)
+
     aggregate_failures(label) do
-      expect(metrics.queries).to be <= max_queries
-      expect(metrics.duration).to be < REQUEST_BUDGET_MS
-      expect(metrics.db_runtime).to be < DATABASE_BUDGET_MS
-      expect(metrics.sql_runtime).to be < SQL_BUDGET_MS
-      instances&.each do |class_name, count|
-        expect(metrics.instantiations[class_name]).to eq(count)
-      end
-      expect(metrics.allocations).to be <= max_allocations if max_allocations
-      expect(metrics.response_bytes).to be <= max_response_bytes if max_response_bytes
+      expect(metrics.queries).to be <= max_queries, summary
+      expect(metrics.duration).to be < REQUEST_BUDGET_MS, summary
+      expect(metrics.db_runtime).to be < DATABASE_BUDGET_MS, summary
+      expect(metrics.sql_runtime).to be < SQL_BUDGET_MS, summary
+      expected_instances = instances&.reject { |_class_name, count| count.zero? }
+      expect(metrics.instantiations).to eq(expected_instances), summary if instances
+      expect(metrics.allocations).to be <= max_allocations, summary if max_allocations
+      expect(metrics.response_bytes).to be <= max_response_bytes, summary if max_response_bytes
     end
+  end
+
+  def metrics_summary(label, metrics)
+    "#{label}: queries=#{metrics.queries}, duration=#{metrics.duration.round(1)}ms, " \
+      "db=#{metrics.db_runtime.round(1)}ms, sql=#{metrics.sql_runtime.round(1)}ms, " \
+      "view=#{metrics.view_runtime.round(1)}ms, allocations=#{metrics.allocations}, " \
+      "response=#{metrics.response_bytes}B, instantiations=#{metrics.instantiations.sort.to_h.inspect}"
   end
 end
