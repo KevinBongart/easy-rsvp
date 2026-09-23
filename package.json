@@ -9,13 +9,20 @@
     "trix": "2.1.19"
   },
   "devDependencies": {
-    "esbuild": "0.28.2"
+    "@eslint/js": "10.0.1",
+    "esbuild": "0.28.2",
+    "eslint": "10.11.0",
+    "globals": "17.12.0",
+    "stylelint": "17.15.0",
+    "stylelint-config-recommended-scss": "17.0.1"
   },
   "engines": {
     "node": "24.x"
   },
   "scripts": {
     "build": "esbuild app/javascript/application.js --bundle --minify --sourcemap --format=esm --outdir=app/assets/builds --public-path=/assets",
+    "lint:js": "eslint app/javascript",
+    "lint:scss": "stylelint \"app/assets/stylesheets/**/*.scss\"",
     "watch:js": "npm run build -- --watch"
   },
   "browserslist": [

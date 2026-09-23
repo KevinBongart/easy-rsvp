@@ -79,9 +79,9 @@ Prepare the local test database on first setup:
 RAILS_ENV=test bin/rails db:create db:schema:load
 ```
 
-Run the same checks as CircleCI (Bundler-audit, Brakeman, Rails Omakase linting,
-Rails eager loading, asset compilation, and the entire randomized RSpec suite,
-including headless Firefox):
+Run the same checks as CircleCI (Bundler-audit, Brakeman,
+Ruby/ERB/JavaScript/SCSS linting, Rails eager loading, asset compilation, and the
+entire randomized RSpec suite, including headless Firefox):
 
 ```sh
 bin/ci
@@ -90,6 +90,9 @@ bin/ci
 Useful focused commands:
 
 ```sh
+bundle exec erb_lint --lint-all               # all ERB templates
+npm run lint:js                               # application JavaScript
+npm run lint:scss                             # application SCSS
 bundle exec rspec --tag '~js'                 # fast model/request/feature/unit tests
 bundle exec rspec spec/system/javascript_smoke_spec.rb  # passing Firefox smoke flows
 bundle exec rspec --tag js                    # all Firefox smoke and failure-recovery specs

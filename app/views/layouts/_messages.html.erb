@@ -2,8 +2,7 @@
   <% if message.is_a?(String) %>
     <%= content_tag :div,
       class: "alert alert-#{name.to_s == 'notice' ? :success : :danger} alert-dismissible fade show",
-      role: :alert do
-    %>
+      role: :alert do %>
       <%= content_tag :div, message, id: "flash_#{name}" %>
       <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     <% end %>

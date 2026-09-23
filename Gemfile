@@ -27,6 +27,7 @@ group :development, :test do
   gem "byebug"
   gem "capybara"
   gem "dotenv-rails"
+  gem "erb_lint", "~> 0.9", require: false
   gem "launchy"
   gem "rspec-rails"
   gem "rspec_junit_formatter"
