@@ -700,16 +700,17 @@ provided; Bon App's accepted risks do not transfer.
   and style checks remain a separate, lower-priority cleanup so they do not obscure
   the failure modes this task was intended to cover.
 
-- [ ] **7.2 P2 — Add a real health route and deployment verification.**
+- [x] **7.2 P2 — Add a real health route and deployment verification.**
   Rails' lightweight `/up` route and a request regression are implemented. A
   Dokku `postdeploy` task now reports the exact `GIT_REV` to Honeybadger and
   propagates configuration/API failures instead of hiding missed deploy markers.
-  The 2026-09-22 production log confirms a successful release migration, Puma
-  startup, public cutover, and Honeybadger notification for the deployed main
-  revision. It also showed that Dokku was relying only on port and uptime checks;
-  `app.json` now requires `/up` to pass before traffic switches. Keep this item
-  open until a production deploy log confirms that named HTTP check and the
-  public read path remains healthy. Keep the real Dokku `Procfile`; no additional
+  The 2026-09-22 production log confirmed a successful release migration, Puma
+  startup, public cutover, and Honeybadger notification, while revealing that
+  Dokku relied only on port and uptime checks. After `app.json` began requiring
+  `/up`, CircleCI deployment 2075 on 2026-09-23 confirmed the named Rails health
+  check passed before cutover, the release migration completed, and the
+  Honeybadger notification succeeded. The owner also verified the public creation
+  page after deployment. Keep the real Dokku `Procfile`; no additional
   queue/deployment platform is needed.
 
 - [ ] **7.3 P2 — Extend backup/recovery verification when operationally needed.**
