@@ -15,7 +15,7 @@ RSpec.describe 'Public events', type: :request do
     expect(page.at_css('label[for="event_date_2i"]').text).to eq('Month')
     expect(page.at_css('label[for="event_date_3i"]').text).to eq('Day')
     expect(page.at_css('label[for="event_date_1i"]').text).to eq('Year')
-    expect(page.at_css('details:not([open]) > summary').text).to eq('Add a time')
+    expect(page.at_css('details:not([open]) > summary.schedule-summary').text).to eq('Add a time')
     expect(page.at_css('label[for="event_start_time"]').text).to eq('From')
     expect(page.at_css('label[for="event_end_time"]').text).to eq('To')
     expect(page.at_css('input#event_start_time')['placeholder']).to eq('7:00 PM')
