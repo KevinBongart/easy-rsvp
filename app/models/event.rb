@@ -1,12 +1,10 @@
 class Event < ApplicationRecord
   include Hashid::Rails
 
-  TIME_PATTERN = /\A(?<hour>\d{1,2}):(?<minute>\d{2})\z/
+  TIME_PATTERN = /\A(?<hour>\d{1,2})(?::(?<minute>\d{1,2}))?\s*(?<meridiem>[ap](?:\.?m\.?)?)?\z/i
 
   has_many :rsvps, dependent: :destroy
   has_rich_text :body
-
-  attr_writer :start_time, :end_time
 
   normalizes :time_zone, with: ->(time_zone) { time_zone.presence }
 
@@ -21,16 +19,18 @@ class Event < ApplicationRecord
   validate :schedule_ends_after_it_starts
   validate :schedule_uses_event_date
 
-  def timed
-    schedule_submitted? ? @timed : starts_at.present?
-  end
-
-  def timed=(value)
-    @timed = ActiveModel::Type::Boolean.new.cast(value)
-  end
-
   def timed?
-    timed
+    starts_at.present?
+  end
+
+  def start_time=(value)
+    @schedule_submitted = true
+    @start_time = value
+  end
+
+  def end_time=(value)
+    @schedule_submitted = true
+    @end_time = value
   end
 
   def start_time
@@ -52,18 +52,22 @@ class Event < ApplicationRecord
   private
 
   def schedule_submitted?
-    instance_variable_defined?(:@timed)
+    @schedule_submitted
   end
 
   def apply_submitted_schedule
-    unless timed?
-      self.starts_at = nil
-      self.ends_at = nil
+    self.starts_at = nil
+    self.ends_at = nil
+
+    if start_time.blank? && end_time.blank?
       self.time_zone = nil
       return
     end
 
     self.time_zone = time_zone.presence
+    errors.add(:start_time, :blank) if start_time.blank?
+    errors.add(:end_time, :blank) if end_time.blank?
+
     zone = schedule_zone
 
     if time_zone.blank?
@@ -71,18 +75,20 @@ class Event < ApplicationRecord
     elsif !zone
       errors.add(:time_zone, "isn't recognized")
     end
-    errors.add(:start_time, "can't be blank") if start_time.blank?
-    errors.add(:end_time, "can't be blank") if end_time.blank?
-    return unless date && zone
+    return unless date && zone && start_time.present? && end_time.present?
 
     self.starts_at = schedule_time(start_time, zone, :start_time)
     self.ends_at = schedule_time(end_time, zone, :end_time)
   end
 
   def schedule_time(value, zone, attribute)
-    match = TIME_PATTERN.match(value.to_s)
+    match = TIME_PATTERN.match(value.to_s.strip)
     hour = match && Integer(match[:hour], 10, exception: false)
-    minute = match && Integer(match[:minute], 10, exception: false)
+    minute = match && Integer(match[:minute] || "0", 10, exception: false)
+    meridiem = match && match[:meridiem]&.delete(".")&.downcase
+    twelve_hour_clock = meridiem || (hour&.between?(1, 12) && !match[:hour].start_with?("0"))
+
+    hour = twelve_hour_clock_hour(hour, meridiem) if twelve_hour_clock
 
     unless hour&.between?(0, 23) && minute&.between?(0, 59)
       errors.add(attribute, "isn't a valid time") if value.present?
@@ -96,6 +102,14 @@ class Event < ApplicationRecord
     end
 
     local_time
+  end
+
+  def twelve_hour_clock_hour(hour, meridiem)
+    return unless hour.between?(1, 12)
+
+    return hour % 12 if meridiem&.start_with?("a")
+
+    (hour % 12) + 12
   end
 
   def schedule_columns_are_complete
@@ -128,7 +142,7 @@ class Event < ApplicationRecord
   def local_schedule_time(value)
     return unless value && (zone = schedule_zone)
 
-    value.in_time_zone(zone).to_fs(:time_input)
+    value.in_time_zone(zone).to_fs(:event_time)
   end
 
   def schedule_zone

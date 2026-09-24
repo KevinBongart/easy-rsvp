@@ -23,6 +23,17 @@ RSpec.describe 'Organizer events', type: :request do
     expect(page.at_css('label[for="event_date_1i"]').text).to eq('Year')
   end
 
+  it 'expands and formats the schedule fields for a timed event' do
+    timed_event = create(:event, :timed, date: Date.new(2026, 10, 10))
+
+    get edit_event_admin_path(timed_event, timed_event.admin_token)
+    page = Nokogiri::HTML(response.body)
+
+    expect(page.at_css('details[open]')).to be_present
+    expect(page.at_css('#event_start_time')['value']).to eq('6:00 PM')
+    expect(page.at_css('#event_end_time')['value']).to eq('9:00 PM')
+  end
+
   it 'renders Bootstrap 5 modal controls with unique form field IDs' do
     create_list(:rsvp, 2, event: event)
 
@@ -68,9 +79,8 @@ RSpec.describe 'Organizer events', type: :request do
     patch event_admin_path(event, token), params: {
       event: {
         date: '2026-11-01',
-        timed: '1',
-        start_time: '09:00',
-        end_time: '11:00',
+        start_time: '9:00 AM',
+        end_time: '11:00 AM',
         time_zone: 'America/New_York'
       }
     }
@@ -83,6 +93,17 @@ RSpec.describe 'Organizer events', type: :request do
       time_zone: 'America/New_York',
       admin_token: token
     )
+  end
+
+  it 'removes an existing schedule when both time fields are cleared' do
+    timed_event = create(:event, :timed)
+
+    patch event_admin_path(timed_event, timed_event.admin_token), params: {
+      event: { start_time: '', end_time: '', time_zone: timed_event.time_zone }
+    }
+
+    expect(response).to redirect_to(event_admin_path(timed_event, timed_event.admin_token))
+    expect(timed_event.reload).to have_attributes(starts_at: nil, ends_at: nil, time_zone: nil)
   end
 
   it 'renders validation feedback and preserves the saved event on invalid update' do

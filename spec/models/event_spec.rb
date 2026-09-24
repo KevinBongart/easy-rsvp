@@ -28,7 +28,6 @@ RSpec.describe Event, type: :model do
     event = build(
       :event,
       date: Date.new(2026, 10, 10),
-      timed: true,
       start_time: '18:00',
       end_time: '21:30',
       time_zone: 'Europe/Paris'
@@ -40,14 +39,63 @@ RSpec.describe Event, type: :model do
   end
 
   it 'requires both a start and end time for a timed event' do
-    event = build(:event, timed: true, start_time: '18:00', end_time: '', time_zone: 'Europe/Paris')
+    event = build(:event, start_time: '18:00', end_time: '', time_zone: 'Europe/Paris')
 
     expect(event).not_to be_valid
-    expect(event.errors[:end_time]).to include("can't be blank")
+    expect(event.errors.added?(:end_time, :blank)).to be(true)
+  end
+
+  it 'treats blank start and end fields as a date-only event' do
+    event = build(:event, start_time: '', end_time: '', time_zone: 'Europe/Paris')
+
+    expect(event).to be_valid
+    expect(event).to have_attributes(starts_at: nil, ends_at: nil, time_zone: nil)
+  end
+
+  it 'accepts a bare hour as that hour in the evening' do
+    event = build(
+      :event,
+      date: Date.new(2026, 10, 10),
+      start_time: '7',
+      end_time: '10',
+      time_zone: 'Europe/Paris'
+    )
+
+    expect(event).to be_valid
+    expect(event.starts_at).to eq(Time.utc(2026, 10, 10, 17, 0))
+    expect(event.ends_at).to eq(Time.utc(2026, 10, 10, 20, 0))
+  end
+
+  it 'accepts explicit morning times' do
+    event = build(
+      :event,
+      date: Date.new(2026, 10, 10),
+      start_time: '7 am',
+      end_time: '10:30 AM',
+      time_zone: 'Europe/Paris'
+    )
+
+    expect(event).to be_valid
+    expect(event.starts_at).to eq(Time.utc(2026, 10, 10, 5, 0))
+    expect(event.ends_at).to eq(Time.utc(2026, 10, 10, 8, 30))
+  end
+
+  it 'keeps zero-padded input in 24-hour time' do
+    event = build(
+      :event,
+      date: Date.new(2026, 10, 10),
+      start_time: '09:00',
+      end_time: '11:00 AM',
+      time_zone: 'Europe/Paris'
+    )
+
+    expect(event).to be_valid
+    expect(event.starts_at).to eq(Time.utc(2026, 10, 10, 7, 0))
+    expect(event.ends_at).to eq(Time.utc(2026, 10, 10, 9, 0))
   end
 
   it 'requires the end time to be after the start time' do
-    event = build(:event, timed: true, start_time: '18:00', end_time: '17:00', time_zone: 'Europe/Paris')
+    event = build(:event, start_time: '18:00', end_time: '17:00', time_zone: 'Europe/Paris')
 
     expect(event).not_to be_valid
     expect(event.errors[:end_time]).to include('must be after the start time')
@@ -56,7 +104,6 @@ RSpec.describe Event, type: :model do
   it 'requires a recognized time zone for a timed event' do
     event = build(
       :event,
-      timed: true,
       start_time: '18:00',
       end_time: '21:00',
       time_zone: 'Central Time (US & Canada)'
@@ -67,7 +114,7 @@ RSpec.describe Event, type: :model do
   end
 
   it 'requires a time zone for a timed event' do
-    event = build(:event, timed: true, start_time: '18:00', end_time: '21:00', time_zone: '')
+    event = build(:event, start_time: '18:00', end_time: '21:00', time_zone: '')
 
     expect(event).not_to be_valid
     expect(event.errors[:time_zone]).to include("can't be blank")
@@ -76,7 +123,7 @@ RSpec.describe Event, type: :model do
   it 'can return a timed event to a date-only event' do
     event = create(:event, :timed)
 
-    expect(event.update(timed: false)).to be(true)
+    expect(event.update(start_time: '', end_time: '', time_zone: 'Europe/Paris')).to be(true)
     expect(event.reload).to have_attributes(starts_at: nil, ends_at: nil, time_zone: nil)
   end
 

@@ -1,69 +1,63 @@
-<div data-controller="schedule">
-  <fieldset>
-    <legend class="form-label fs-6 float-none mb-2">When is this happening?</legend>
-    <%= label_tag 'event_date_2i', 'Month', class: 'visually-hidden' %>
-    <%= label_tag 'event_date_3i', 'Day', class: 'visually-hidden' %>
-    <%= label_tag 'event_date_1i', 'Year', class: 'visually-hidden' %>
-    <%= f.input :date,
-      required: false,
-      label: false,
-      order: [:month, :day, :year],
-      start_year: Date.current.year %>
+<fieldset>
+  <legend class="form-label fs-6 float-none mb-2">When is this happening?</legend>
+  <%= label_tag 'event_date_2i', 'Month', class: 'visually-hidden' %>
+  <%= label_tag 'event_date_3i', 'Day', class: 'visually-hidden' %>
+  <%= label_tag 'event_date_1i', 'Year', class: 'visually-hidden' %>
+  <%= f.input :date,
+    required: false,
+    label: false,
+    order: [:month, :day, :year],
+    start_year: Date.current.year %>
 
-    <%= f.input :timed,
-      as: :boolean,
-      label: 'Add a time',
-      input_html: {
-        data: {
-          schedule_target: 'toggle',
-          action: 'schedule#toggle'
-        }
-      } %>
-
-    <div data-schedule-target="fields" <%= 'hidden' unless f.object.timed? %>>
-      <div class="row">
-        <div class="col-md-6">
-          <%= f.input :start_time,
-            as: :string,
-            label: 'Start time',
-            required: false,
-            input_html: {
-              type: 'time',
-              disabled: !f.object.timed?,
-              required: f.object.timed?
-            } %>
-        </div>
-        <div class="col-md-6">
-          <%= f.input :end_time,
-            as: :string,
-            label: 'End time',
-            required: false,
-            input_html: {
-              type: 'time',
-              disabled: !f.object.timed?,
-              required: f.object.timed?
-            } %>
-        </div>
+  <% schedule_open = f.object.timed? || f.object.start_time.present? || f.object.end_time.present? %>
+  <details data-controller="schedule" data-action="toggle->schedule#detectTimeZone" <%= 'open' if schedule_open %>>
+    <summary class="link-primary mb-3">Add a time</summary>
+    <div class="row g-2">
+      <div class="col-md-3">
+        <%= f.input :start_time,
+          as: :string,
+          label: 'From',
+          required: false,
+          error: schedule_time_error(f.object, :start_time),
+          input_html: {
+            placeholder: '7:00 PM',
+            autocomplete: 'off',
+            data: {
+              action: 'blur->schedule#normalizeTime'
+            }
+          } %>
       </div>
-
-      <%= f.input :time_zone,
-        as: :string,
-        label: 'Time zone',
-        required: false,
-        hint: 'Detected from your browser. Change it if the event is somewhere else.',
-        input_html: {
-          list: 'event-time-zones',
-          disabled: !f.object.timed?,
-          required: f.object.timed?,
-          data: {
-            schedule_target: 'timeZone'
-          }
-        } %>
-      <datalist id="event-time-zones">
-        <% time_zone_identifiers.each do |time_zone| %>
-          <option value="<%= time_zone %>"></option>
-        <% end %>
-      </datalist>
+      <div class="col-md-3">
+        <%= f.input :end_time,
+          as: :string,
+          label: 'To',
+          required: false,
+          error: schedule_time_error(f.object, :end_time),
+          input_html: {
+            placeholder: '10:00 PM',
+            autocomplete: 'off',
+            data: {
+              action: 'blur->schedule#normalizeTime'
+            }
+          } %>
+      </div>
+      <div class="col-md-6">
+        <%= f.input :time_zone,
+          as: :string,
+          label: 'Time zone',
+          required: false,
+          input_html: {
+            list: 'event-time-zones',
+            data: {
+              schedule_target: 'timeZone'
+            }
+          } %>
+      </div>
     </div>
-  </fieldset>
-</div>
+    <datalist id="event-time-zones">
+      <% time_zone_identifiers.each do |time_zone| %>
+        <option value="<%= time_zone %>"></option>
+      <% end %>
+    </datalist>
+  </details>
+</fieldset>

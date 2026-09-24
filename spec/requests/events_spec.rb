@@ -15,8 +15,13 @@ RSpec.describe 'Public events', type: :request do
     expect(page.at_css('label[for="event_date_2i"]').text).to eq('Month')
     expect(page.at_css('label[for="event_date_3i"]').text).to eq('Day')
     expect(page.at_css('label[for="event_date_1i"]').text).to eq('Year')
-    expect(page.at_css('label[for="event_timed"]').text).to include('Add a time')
+    expect(page.at_css('details:not([open]) > summary').text).to eq('Add a time')
+    expect(page.at_css('label[for="event_start_time"]').text).to eq('From')
+    expect(page.at_css('label[for="event_end_time"]').text).to eq('To')
+    expect(page.at_css('input#event_start_time')['placeholder']).to eq('7:00 PM')
+    expect(page.at_css('input#event_end_time')['placeholder']).to eq('10:00 PM')
     expect(page.at_css('input#event_time_zone')['list']).to eq('event-time-zones')
+    expect(page.text).not_to include('Detected from your browser')
   end
 
   it 'loads the compiled asset entrypoints with Turbo tracking and integrity protection' do
@@ -46,7 +51,6 @@ RSpec.describe 'Public events', type: :request do
         event: {
           title: 'Dinner',
           date: '2026-10-10',
-          timed: '1',
           start_time: '18:00',
           end_time: '21:30',
           time_zone: 'Europe/Paris'
@@ -68,7 +72,6 @@ RSpec.describe 'Public events', type: :request do
         event: {
           title: 'Dinner',
           date: '2026-10-10',
-          timed: '1',
           start_time: '18:00',
           end_time: '',
           time_zone: 'Europe/Paris'
@@ -77,13 +80,33 @@ RSpec.describe 'Public events', type: :request do
     end.not_to change(Event, :count)
 
     expect(response).to have_http_status(:unprocessable_content)
-    expect(response.body).to include("End time can&#39;t be blank")
+    expect(response.body).to include('Your event needs both a start and end time')
+    expect(Nokogiri::HTML(response.body).at_css('details[open]')).to be_present
+  end
+
+  it 'creates a date-only event when both exposed time fields are blank' do
+    expect do
+      post events_path, params: {
+        event: {
+          title: 'Dinner',
+          date: '2026-10-10',
+          start_time: '',
+          end_time: '',
+          time_zone: 'Europe/Paris'
+        }
+      }
+    end.to change(Event, :count).by(1)
+
+    expect(Event.order(:id).last).to have_attributes(starts_at: nil, ends_at: nil, time_zone: nil)
   end
 
   it 're-renders an invalid form without creating an event' do
     expect { post events_path, params: { event: { title: '', date: '' } } }.not_to change(Event, :count)
     expect(response).to have_http_status(:unprocessable_content)
     expect(response.body).to include('Your event needs a name!', '<trix-editor')
+    page = Nokogiri::HTML(response.body)
+    expect(page.at_css('#event_title')['class'].split).to include('is-invalid')
+    expect(page.css('.is-valid')).to be_empty
   end
 
   it 'does not accept protected creation attributes' do
@@ -112,7 +135,15 @@ RSpec.describe 'Public events', type: :request do
 
     get event_path(event)
 
-    expect(response.body).to include('6:00 PM–9:00 PM (Europe/Paris)')
+    expect(response.body).to include('6:00 PM–9:00 PM (CEST)')
+  end
+
+  it 'uses the time-zone abbreviation in effect on the event date' do
+    event = create(:event, :timed, date: Date.new(2026, 1, 10))
+
+    get event_path(event)
+
+    expect(response.body).to include('6:00 PM–9:00 PM (CET)')
   end
 
   it 'does not add an organizer link to the public page in development' do

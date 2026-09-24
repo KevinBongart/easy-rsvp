@@ -37,6 +37,6 @@ class OrganizerEventsController < ApplicationController
 
   # Never trust parameters from the scary internet, only allow the white list through.
   def event_params
-    params.require(:event).permit(:title, :date, :body, :show_rsvp_names, :timed, :start_time, :end_time, :time_zone)
+    params.require(:event).permit(:title, :date, :body, :show_rsvp_names, :start_time, :end_time, :time_zone)
   end
 end

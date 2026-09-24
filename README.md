@@ -38,8 +38,10 @@ republishing restores public access. Deleting an event through its
 token-authorized endpoint also deletes its RSVPs, although the current interface
 does not expose an event-deletion control.
 
-Events are date-only by default. Organizers can add a start time, required end
-time, and browser-detected IANA time zone; both times must be on the event date.
+Events are date-only by default. A disclosure reveals optional start, end, and
+browser-detected IANA time-zone fields. Entering either time requires both; a bare
+hour such as `7` means `7:00 PM`. Clearing both times removes the schedule, and
+both times must be on the event date.
 Every published event offers an `.ics` download. Date-only events become all-day
 calendar entries, while timed events use exact UTC instants for consistent
 display in each calendar user's chosen time zone.
@@ -47,7 +49,8 @@ display in each calendar user's chosen time zone.
 The HTTP Basic-authenticated dashboard shows creation-date statistics; an
 event's scheduled date does not affect those charts. Its event list shows
 attachment count and stored size, can show only events with attachments, and can
-sort by ID, RSVP count, or attachment size.
+show only events with a specific time. It can sort by ID, RSVP count, or
+attachment size.
 
 ## Configuration
 
