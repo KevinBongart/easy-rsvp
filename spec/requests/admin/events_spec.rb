@@ -87,6 +87,8 @@ RSpec.describe 'Site administrator dashboard', type: :request do
     doc = Nokogiri::HTML(response.body)
 
     expect(doc.css('tbody tr').map { |row| row.css('td')[0].text }).to eq([ timed.title ])
+    expect(doc.at_css('tbody tr td:nth-child(3)').text).to include('6:00 PM–9:00 PM (CEST)')
+    expect(doc.css('.admin-sort strong').map(&:text)).to include('Showing only events with a time')
     links = doc.css('a').index_by(&:text)
     expect(links.fetch('Sort by ID')['href']).to include('timed=1')
     expect(links.fetch('Only with attachments')['href']).to include('timed=1')

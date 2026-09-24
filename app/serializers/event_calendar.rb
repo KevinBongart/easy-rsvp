@@ -23,7 +23,10 @@ class EventCalendar
     calendar_event.dtstamp = event.updated_at.utc
     calendar_event.last_modified = event.updated_at.utc
     calendar_event.summary = event.title
-    calendar_event.description = event.body.to_plain_text.presence
+    calendar_event.description = [
+      event.body.to_plain_text.presence,
+      "Event details: #{event_url}"
+    ].compact.join("\n\n")
     calendar_event.url = event_url
 
     if event.timed?

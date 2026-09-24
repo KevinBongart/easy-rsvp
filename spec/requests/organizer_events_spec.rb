@@ -11,6 +11,9 @@ RSpec.describe 'Organizer events', type: :request do
     expect(page.css('a.event-url').length).to eq(2)
     expect(page.at_css('[role="status"][aria-live="polite"]')).to be_present
     expect(page.css('a').count { |link| link.text == 'Edit event' }).to eq(2)
+    expect(page.at_css('h1.event-heading').text.squish).to eq(event.title)
+    expect(page.at_css('.event-metadata').text).to include(event.date.to_fs(:week_day_and_date), 'Add to calendar')
+    expect(page.at_css('.calendar-link svg[aria-hidden="true"]')).to be_present
   end
 
   it 'labels every part of the event date on the edit form' do
@@ -118,6 +121,7 @@ RSpec.describe 'Organizer events', type: :request do
     event.update!(published: false)
     get event_admin_path(event, event.admin_token)
     expect(response).to have_http_status(:ok)
+    expect(Nokogiri::HTML(response.body).at_css('.calendar-link')).to be_nil
   end
 
   it 'toggles publication both ways' do

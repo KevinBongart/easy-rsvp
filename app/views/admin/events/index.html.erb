@@ -42,9 +42,11 @@
   <% end %>
   <span aria-hidden="true">·</span>
   <% if params[:timed] == "1" %>
+    <strong>Showing only events with a time</strong>
+    <span aria-hidden="true">·</span>
     <%= link_to "Include date-only events", admin_events_path(sort: params[:sort].presence, attachments: params[:attachments].presence) %>
   <% else %>
-    <%= link_to "Only with a time", admin_events_path(sort: params[:sort].presence, attachments: params[:attachments].presence, timed: "1") %>
+    <%= link_to "Only events with a time", admin_events_path(sort: params[:sort].presence, attachments: params[:attachments].presence, timed: "1") %>
   <% end %>
 </div>
 
@@ -64,7 +66,12 @@
       <tr>
         <th scope="row" class="text-nowrap"><%= link_to event.id, event %></th>
         <td><%= link_to event.title, event %></td>
-        <td class="text-nowrap"><%= event.date %></td>
+        <td class="text-nowrap">
+          <%= event.date %>
+          <% if (time = event_time(event)) %>
+            <small class="d-block text-muted"><%= time %></small>
+          <% end %>
+        </td>
         <td class="text-nowrap text-end"><code class="small"><%= event.rsvps_count %></code></td>
         <td class="text-nowrap">
           <% if event.attachments_count.to_i.positive? %>

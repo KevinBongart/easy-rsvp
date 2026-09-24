@@ -1,17 +1,7 @@
-<h1 class="event-heading">
-  <%= @event.title %>
-
-  <small class='text-muted'>
-    //
-    <%= event_schedule(@event) %>
-  </small>
-</h1>
+<%= render 'events/heading', event: @event %>
 
 <p>
   <%= link_to "Edit event", edit_event_admin_path(@event, @event.admin_token), class: 'btn btn-primary' %>
-  <% if @event.published? %>
-    <%= link_to 'Add to calendar', calendar_event_path(@event, format: :ics), class: 'btn btn-outline-primary' %>
-  <% end %>
 </p>
 
 <ul>

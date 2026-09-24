@@ -6,11 +6,22 @@ RSpec.describe EventCalendar do
     event_url = "https://example.com/#{event.to_param}"
 
     calendar = described_class.new(event, event_url: event_url).to_ical
+    calendar_event = Icalendar::Calendar.parse(calendar).first.events.first
 
     expect(calendar).to include("UID:#{event.hashid}@easy-rsvp.com")
     expect(calendar).to include('SUMMARY:Dinner\, drinks')
-    expect(calendar).to include("DESCRIPTION:Bring food\\;\\nand friends")
+    expect(calendar).to include("DESCRIPTION:Bring food\\;\\nand friends\\n\\nEvent details:")
+    expect(calendar_event.description.to_s).to eq("Bring food;\nand friends\n\nEvent details: #{event_url}")
     expect(calendar).to include("URL;VALUE=URI:#{event_url}")
+  end
+
+  it 'puts the public event link in the description when the event has no details' do
+    event = create(:event, body: nil)
+    event_url = "https://example.com/#{event.to_param}"
+
+    calendar_event = Icalendar::Calendar.parse(described_class.new(event, event_url: event_url).to_ical).first.events.first
+
+    expect(calendar_event.description.to_s).to eq("Event details: #{event_url}")
   end
 
   it 'represents a date-only event as one non-inclusive all-day date range' do

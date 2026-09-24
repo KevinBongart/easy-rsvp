@@ -126,8 +126,11 @@ RSpec.describe 'Public events', type: :request do
   it 'renders a published event without disclosing its organizer credential' do
     event = create(:event)
     get event_path(event)
-    expect(response.body).to include(event.title)
-    expect(response.body).to include(calendar_event_path(event, format: :ics))
+    page = Nokogiri::HTML(response.body)
+    expect(page.at_css('h1.event-heading').text.squish).to eq(event.title)
+    expect(page.at_css('.event-metadata').text).to include(event.date.to_fs(:week_day_and_date), 'Add to calendar')
+    expect(page.at_css('.calendar-link svg[aria-hidden="true"]')).to be_present
+    expect(page.at_css('.calendar-link')['href']).to eq(calendar_event_path(event, format: :ics))
     expect(response.body).not_to include(event.admin_token)
     expect(response.body).not_to include(event_admin_path(event, event.admin_token))
   end
