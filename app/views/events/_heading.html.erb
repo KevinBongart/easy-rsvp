@@ -5,7 +5,9 @@
 
   <% if event.published? %>
     <div class="small mt-1">
-      <%= link_to calendar_event_path(event, format: :ics), class: 'calendar-link d-inline-flex align-items-center gap-1' do %>
+      <%= link_to calendar_event_path(event, format: :ics),
+        class: 'calendar-link d-inline-flex align-items-center gap-1',
+        data: { turbo: false, turbo_prefetch: false } do %>
         <%# Bootstrap Icons calendar-plus, licensed under MIT. %>
         <svg class="bi bi-calendar-plus" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" focusable="false">
           <path d="M8 7a.5.5 0 0 1 .5.5V9H10a.5.5 0 0 1 0 1H8.5v1.5a.5.5 0 0 1-1 0V10H6a.5.5 0 0 1 0-1h1.5V7.5A.5.5 0 0 1 8 7" />

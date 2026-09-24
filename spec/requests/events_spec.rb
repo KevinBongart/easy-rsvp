@@ -132,6 +132,8 @@ RSpec.describe 'Public events', type: :request do
     expect(page.at_css('.event-metadata > .fs-2.text-muted')).to be_present
     expect(page.at_css('.calendar-link svg.bi-calendar-plus[aria-hidden="true"]')).to be_present
     expect(page.at_css('.calendar-link')['href']).to eq(calendar_event_path(event, format: :ics))
+    expect(page.at_css('.calendar-link')['data-turbo']).to eq('false')
+    expect(page.at_css('.calendar-link')['data-turbo-prefetch']).to eq('false')
     expect(page.at_css('.calendar-link').parent['class'].split).to include('small')
     expect(page.at_css('.calendar-link')['class'].split).not_to include('text-muted')
     expect(response.body).not_to include(event.admin_token)
