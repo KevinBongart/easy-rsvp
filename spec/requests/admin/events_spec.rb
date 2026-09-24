@@ -27,6 +27,9 @@ RSpec.describe 'Site administrator dashboard', type: :request do
     event = create(:event)
     get admin_events_path, headers: dashboard_headers
     expect(response).to have_http_status(:ok)
+    doc = Nokogiri::HTML(response.body)
+    expect(doc.at_css('title').text.squish).to eq('Events admin · Easy RSVP')
+    expect(doc.at_css('h1').text).to eq('Events admin')
     expect(response.body).to include(event.title, event.admin_token)
   end
 

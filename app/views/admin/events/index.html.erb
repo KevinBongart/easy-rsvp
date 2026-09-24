@@ -1,3 +1,7 @@
+<% content_for :title, "Events admin · Easy RSVP" %>
+
+<h1>Events admin</h1>
+
 <div class="admin-statistics mb-3">
   <div class="mb-2">
     <strong>Total events created<% if (oldest_date = @event_stats.oldest_creation_date) %> since <%= oldest_date %><% end %>:</strong> <%= @event_stats.total_events %>

@@ -1,15 +1,17 @@
 <h1 class="event-heading mb-1"><%= event.title %></h1>
 
-<div class="event-metadata d-flex flex-wrap align-items-center gap-2 fs-2 text-muted mb-3">
-  <span><%= event_schedule(event) %></span>
+<div class="event-metadata mb-3">
+  <div class="fs-2 text-muted"><%= event_schedule(event) %></div>
 
   <% if event.published? %>
-    <%= link_to calendar_event_path(event, format: :ics), class: 'calendar-link d-inline-flex align-items-center gap-1 text-muted' do %>
-      <svg width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" focusable="false">
-        <rect x="1.5" y="2.5" width="13" height="12" rx="2" fill="none" stroke="currentColor" />
-        <path d="M4 1v3M12 1v3M1.5 6h13" fill="none" stroke="currentColor" stroke-linecap="round" />
-      </svg>
-      <span>Add to calendar</span>
-    <% end %>
+    <div class="small mt-1">
+      <%= link_to calendar_event_path(event, format: :ics), class: 'calendar-link d-inline-flex align-items-center gap-1' do %>
+        <svg width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" focusable="false">
+          <rect x="1.5" y="2.5" width="13" height="12" rx="2" fill="none" stroke="currentColor" />
+          <path d="M4 1v3M12 1v3M1.5 6h13" fill="none" stroke="currentColor" stroke-linecap="round" />
+        </svg>
+        <span>Add to calendar</span>
+      <% end %>
+    </div>
   <% end %>
 </div>
