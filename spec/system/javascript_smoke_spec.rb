@@ -81,7 +81,7 @@ RSpec.describe 'Firefox JavaScript smoke', type: :system, js: true do
     fill_in 'Time zone', with: 'Europe/Paris'
     find('.schedule-summary', text: 'Nevermind, just the date').click
 
-    expect(page).to have_unchecked_field('event_schedule_enabled', visible: :hidden)
+    expect(find('#event_schedule_enabled', visible: :all)).not_to be_checked
     expect(page).to have_field('From', with: '7:00 PM', visible: :hidden)
     expect(page).to have_field('To', with: '10:00 PM', visible: :hidden)
     find('.schedule-summary', text: 'Add a time').click
