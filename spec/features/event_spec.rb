@@ -13,8 +13,9 @@ describe 'event creation' do
 
     click_button 'Create your event, for free!'
 
-    expect(page).to have_content "Batman's surprise birthday // "
-    expect(page).to have_content "Apr 07 #{Date.today.year}"
+    expect(page).to have_css 'h1.event-heading', exact_text: "Batman's surprise birthday"
+    expect(page).to have_css '.event-metadata', text: "Apr 07 #{Date.today.year}"
+    expect(page).to have_link 'Add to calendar'
 
     click_link 'public-link'
 

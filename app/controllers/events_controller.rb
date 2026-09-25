@@ -1,5 +1,5 @@
 class EventsController < ApplicationController
-  before_action :set_event, only: [ :show ]
+  before_action :set_event, only: [ :show, :calendar ]
   before_action :set_placeholders, only: [ :new ]
 
   def show
@@ -25,6 +25,13 @@ class EventsController < ApplicationController
     end
   end
 
+  def calendar
+    send_data EventCalendar.new(@event, event_url: calendar_event_url).to_ical,
+      filename: "#{@event.title.parameterize.presence || 'event'}.ics",
+      type: "text/calendar; charset=utf-8",
+      disposition: "attachment"
+  end
+
   private
 
   def set_event
@@ -44,6 +51,13 @@ class EventsController < ApplicationController
   end
 
   def event_params
-    params.require(:event).permit(:title, :date, :body)
+    params.require(:event).permit(:title, :date, :body, :schedule_enabled, :start_time, :end_time, :time_zone)
+  end
+
+  def calendar_event_url
+    origin = Rails.configuration.x.public_origin
+    return event_url(@event) unless origin
+
+    "#{origin.delete_suffix('/')}#{event_path(@event)}"
   end
 end

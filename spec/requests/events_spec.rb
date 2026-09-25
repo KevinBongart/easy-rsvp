@@ -15,6 +15,22 @@ RSpec.describe 'Public events', type: :request do
     expect(page.at_css('label[for="event_date_2i"]').text).to eq('Month')
     expect(page.at_css('label[for="event_date_3i"]').text).to eq('Day')
     expect(page.at_css('label[for="event_date_1i"]').text).to eq('Year')
+    expect(page.at_css('.event_date > .d-flex.gap-2')).to be_present
+    expect(page.css('.event_date .form-select.mx-1')).to be_empty
+    expect(page.at_css('label.schedule-summary .schedule-summary-closed').text).to eq('Add a time')
+    expect(page.at_css('label.schedule-summary .schedule-summary-open').text).to eq('Nevermind, just the date')
+    expect(page.at_css('input#event_schedule_enabled')['type']).to eq('checkbox')
+    expect(page.at_css('input#event_schedule_enabled')['checked']).to be_nil
+    expect(page.at_css('input#event_schedule_enabled')['aria-controls']).to eq('event-schedule-fields')
+    expect(page.at_css('label.schedule-summary')['for']).to eq('event_schedule_enabled')
+    expect(page.at_css('input[type="hidden"][name="event[schedule_enabled]"][value="0"]')).to be_present
+    expect(page.at_css('label[for="event_start_time"]').text).to eq('From')
+    expect(page.at_css('label[for="event_end_time"]').text).to eq('To')
+    expect(page.at_css('input#event_start_time')['placeholder']).to eq('7:00 PM')
+    expect(page.at_css('input#event_end_time')['placeholder']).to eq('10:00 PM')
+    expect(page.at_css('input#event_time_zone')['list']).to eq('event-time-zones')
+    expect(page.css('.schedule-time-fields > .col-md-4').length).to eq(3)
+    expect(page.text).not_to include('Detected from your browser')
   end
 
   it 'loads the compiled asset entrypoints with Turbo tracking and integrity protection' do
@@ -38,10 +54,86 @@ RSpec.describe 'Public events', type: :request do
     expect(response).to redirect_to(event_admin_path(event, event.admin_token))
   end
 
+  it 'creates an event with required start and end times in its selected time zone' do
+    expect do
+      post events_path, params: {
+        event: {
+          title: 'Dinner',
+          date: '2026-10-10',
+          schedule_enabled: '1',
+          start_time: '18:00',
+          end_time: '21:30',
+          time_zone: 'Europe/Paris'
+        }
+      }
+    end.to change(Event, :count).by(1)
+
+    event = Event.order(:id).last
+    expect(event).to have_attributes(
+      starts_at: Time.utc(2026, 10, 10, 16, 0),
+      ends_at: Time.utc(2026, 10, 10, 19, 30),
+      time_zone: 'Europe/Paris'
+    )
+  end
+
+  it 'rejects a timed event without an end time' do
+    expect do
+      post events_path, params: {
+        event: {
+          title: 'Dinner',
+          date: '2026-10-10',
+          start_time: '18:00',
+          end_time: '',
+          time_zone: 'Europe/Paris'
+        }
+      }
+    end.not_to change(Event, :count)
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(response.body).to include('Your event needs both a start and end time')
+    expect(Nokogiri::HTML(response.body).at_css('input#event_schedule_enabled[checked]')).to be_present
+  end
+
+  it 'creates a date-only event when both exposed time fields are blank' do
+    expect do
+      post events_path, params: {
+        event: {
+          title: 'Dinner',
+          date: '2026-10-10',
+          start_time: '',
+          end_time: '',
+          time_zone: 'Europe/Paris'
+        }
+      }
+    end.to change(Event, :count).by(1)
+
+    expect(Event.order(:id).last).to have_attributes(starts_at: nil, ends_at: nil, time_zone: nil)
+  end
+
+  it 'creates a date-only event when its retained time fields are disabled' do
+    expect do
+      post events_path, params: {
+        event: {
+          title: 'Dinner',
+          date: '2026-10-10',
+          schedule_enabled: '0',
+          start_time: '6:00 PM',
+          end_time: '9:00 PM',
+          time_zone: 'Europe/Paris'
+        }
+      }
+    end.to change(Event, :count).by(1)
+
+    expect(Event.order(:id).last).to have_attributes(starts_at: nil, ends_at: nil, time_zone: nil)
+  end
+
   it 're-renders an invalid form without creating an event' do
     expect { post events_path, params: { event: { title: '', date: '' } } }.not_to change(Event, :count)
     expect(response).to have_http_status(:unprocessable_content)
     expect(response.body).to include('Your event needs a name!', '<trix-editor')
+    page = Nokogiri::HTML(response.body)
+    expect(page.at_css('#event_title')['class'].split).to include('is-invalid')
+    expect(page.css('.is-valid')).to be_empty
   end
 
   it 'does not accept protected creation attributes' do
@@ -59,9 +151,34 @@ RSpec.describe 'Public events', type: :request do
   it 'renders a published event without disclosing its organizer credential' do
     event = create(:event)
     get event_path(event)
-    expect(response.body).to include(event.title)
+    page = Nokogiri::HTML(response.body)
+    expect(page.at_css('h1.event-heading').text.squish).to eq(event.title)
+    expect(page.at_css('.event-metadata').text).to include(event.date.to_fs(:week_day_and_date), 'Add to calendar')
+    expect(page.at_css('.event-metadata > .fs-2.text-muted')).to be_present
+    expect(page.at_css('.calendar-link svg.bi-calendar-plus[aria-hidden="true"]')).to be_present
+    expect(page.at_css('.calendar-link')['href']).to eq(calendar_event_path(event, format: :ics))
+    expect(page.at_css('.calendar-link')['data-turbo']).to eq('false')
+    expect(page.at_css('.calendar-link')['data-turbo-prefetch']).to eq('false')
+    expect(page.at_css('.calendar-link').parent['class'].split).to include('small')
+    expect(page.at_css('.calendar-link')['class'].split).not_to include('text-muted')
     expect(response.body).not_to include(event.admin_token)
     expect(response.body).not_to include(event_admin_path(event, event.admin_token))
+  end
+
+  it 'renders a timed event in its selected time zone' do
+    event = create(:event, :timed, date: Date.new(2026, 10, 10))
+
+    get event_path(event)
+
+    expect(response.body).to include('6:00 PM–9:00 PM (CEST)')
+  end
+
+  it 'uses the time-zone abbreviation in effect on the event date' do
+    event = create(:event, :timed, date: Date.new(2026, 1, 10))
+
+    get event_path(event)
+
+    expect(response.body).to include('6:00 PM–9:00 PM (CET)')
   end
 
   it 'does not add an organizer link to the public page in development' do
@@ -88,6 +205,52 @@ RSpec.describe 'Public events', type: :request do
     get event_path(event)
     expect(response).to redirect_to(root_path)
     expect(flash[:alert]).to eq('This event is no longer viewable.')
+  end
+
+  it 'downloads a date-only event as an all-day calendar entry' do
+    event = create(:event, title: 'Dinner, drinks')
+
+    get calendar_event_path(event, format: :ics)
+
+    expect(response).to have_http_status(:ok)
+    expect(response.media_type).to eq('text/calendar')
+    expect(response.headers['Content-Disposition']).to include('attachment', 'dinner-drinks.ics')
+    calendar_event = Icalendar::Calendar.parse(response.body).first.events.first
+    expect(calendar_event.summary.to_s).to eq('Dinner, drinks')
+    expect(calendar_event.dtstart.to_date).to eq(event.date)
+    expect(calendar_event.dtend.to_date).to eq(event.date + 1.day)
+    expect(response.body).not_to include(event.admin_token)
+  end
+
+  it 'downloads a timed event as exact UTC instants' do
+    event = create(:event, :timed, date: Date.new(2026, 10, 10))
+
+    get calendar_event_path(event, format: :ics)
+
+    calendar = Icalendar::Calendar.parse(response.body).first
+    calendar_event = calendar.events.first
+    expect(calendar.timezones).to be_empty
+    expect(calendar_event.dtstart.to_time).to eq(event.starts_at)
+    expect(calendar_event.dtend.to_time).to eq(event.ends_at)
+  end
+
+  it 'uses the canonical public origin for a calendar link' do
+    event = create(:event)
+    allow(Rails.configuration.x).to receive(:public_origin).and_return('https://www.easy-rsvp.com')
+
+    get calendar_event_path(event, format: :ics), headers: { 'HOST' => 'alternate.example' }
+
+    calendar_event = Icalendar::Calendar.parse(response.body).first.events.first
+    expect(calendar_event.url.to_s).to eq("https://www.easy-rsvp.com#{event_path(event)}")
+    expect(calendar_event.uid.to_s).to eq("#{event.hashid}@easy-rsvp.com")
+  end
+
+  it 'does not expose a calendar download for an unpublished event' do
+    event = create(:event, :unpublished)
+
+    get calendar_event_path(event, format: :ics)
+
+    expect(response).to redirect_to(root_path)
   end
 
   it 'returns 404 for an unknown event hashid' do

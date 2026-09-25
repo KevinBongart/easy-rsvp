@@ -1,0 +1,11 @@
+<h1 class="event-heading mb-1"><%= event.title %></h1>
+
+<div class="event-metadata mb-3">
+  <div class="fs-2 text-muted"><%= event_schedule(event) %></div>
+
+  <% if show_calendar && event.published? %>
+    <div class="small mt-1">
+      <%= render 'events/calendar_link', event: event %>
+    </div>
+  <% end %>
+</div>

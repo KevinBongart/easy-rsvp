@@ -27,6 +27,9 @@ RSpec.describe 'Site administrator dashboard', type: :request do
     event = create(:event)
     get admin_events_path, headers: dashboard_headers
     expect(response).to have_http_status(:ok)
+    doc = Nokogiri::HTML(response.body)
+    expect(doc.at_css('title').text.squish).to eq('Events admin · Easy RSVP')
+    expect(doc.at_css('h1').text).to eq('Events admin')
     expect(response.body).to include(event.title, event.admin_token)
   end
 
@@ -74,7 +77,25 @@ RSpec.describe 'Site administrator dashboard', type: :request do
     expect(links.fetch('Sort by ID')['href']).to include('attachments=1')
     expect(doc.at_css('.admin-sort strong').text).to eq('Sorted by attachment size')
     expect(links).not_to have_key('Sort by attachment size')
-    expect(links.fetch('Show all events')['href']).to include('sort=attachments')
+    expect(links.fetch('Include events without attachments')['href']).to include('sort=attachments')
+  end
+
+  it 'filters events to those with a specific time and preserves other controls' do
+    timed = create(:event, :timed, title: 'Dinner at seven')
+    create(:event, title: 'All-day picnic')
+
+    get admin_events_path,
+      params: { timed: '1', sort: 'rsvps' },
+      headers: dashboard_headers
+    doc = Nokogiri::HTML(response.body)
+
+    expect(doc.css('tbody tr').map { |row| row.css('td')[0].text }).to eq([ timed.title ])
+    expect(doc.at_css('tbody tr td:nth-child(3)').text).to include('6:00 PM–9:00 PM (CEST)')
+    expect(doc.css('.admin-sort strong').map(&:text)).to include('Showing only events with a time')
+    links = doc.css('a').index_by(&:text)
+    expect(links.fetch('Sort by ID')['href']).to include('timed=1')
+    expect(links.fetch('Only with attachments')['href']).to include('timed=1')
+    expect(links.fetch('Include date-only events')['href']).to include('sort=rsvps')
   end
 
   it 'renders an empty state without broken statistics' do

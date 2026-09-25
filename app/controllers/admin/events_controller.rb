@@ -75,6 +75,7 @@ module Admin
         "COALESCE(attachment_stats.attachments_size, 0) AS attachments_size"
       )
       events = events.where("COALESCE(attachment_stats.attachments_count, 0) > 0") if params[:attachments] == "1"
+      events = events.where.not(starts_at: nil) if params[:timed] == "1"
 
       case params[:sort]
       when "rsvps"

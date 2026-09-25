@@ -1,12 +1,4 @@
-<h1 class="event-heading">
-  <%= @event.title %>
-
-  <small class='text-muted'>
-    //
-    <%= @event.date.to_formatted_s(:week_day_and_date) %>
-  </small>
-
-</h1>
+<%= render 'events/heading', event: @event, show_calendar: true %>
 
 <%= @event.body %>
 

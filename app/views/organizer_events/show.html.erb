@@ -1,14 +1,10 @@
-<h1 class="event-heading">
-  <%= @event.title %>
+<%= render 'events/heading', event: @event, show_calendar: false %>
 
-  <small class='text-muted'>
-    //
-    <%= @event.date.to_formatted_s(:week_day_and_date) %>
-  </small>
-</h1>
-
-<p>
+<p class="organizer-actions d-flex align-items-center gap-2">
   <%= link_to "Edit event", edit_event_admin_path(@event, @event.admin_token), class: 'btn btn-primary' %>
+  <% if @event.published? %>
+    <span class="small"><%= render 'events/calendar_link', event: @event %></span>
+  <% end %>
 </p>
 
 <ul>

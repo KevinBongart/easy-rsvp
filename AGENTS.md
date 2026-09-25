@@ -60,10 +60,17 @@ asset-compilation, and RSpec checks.
 
 - `Event`: title/date/publication validation, Action Text `body`, public hashid/slug,
   organizer token, non-null publication and RSVP-name visibility flags, dependent
-  destruction of RSVPs. The legacy `events.body` values were backfilled into
-  Action Text before that column was removed in a later deployment. Missing
-  Action Text rows are repaired during removal; divergent legacy values are
-  retained in `legacy_event_body_conflicts` for explicit review.
+  destruction of RSVPs. Events may remain date-only or add a complete same-day
+  schedule: start time, required later end time, and IANA time zone. Blank start
+  and end fields remove the schedule; entering either one requires both. Bare
+  hours such as `7` mean `7:00 PM`. Timed values
+  are stored as UTC timestamps and rendered in their event time zone. Published
+  events expose an iCalendar download; date-only entries are all-day events and
+  timed entries use exact UTC instants so calendar clients can display them in
+  the viewer's chosen time zone. The legacy `events.body` values were
+  backfilled into Action Text before that column was removed in a later deployment.
+  Missing Action Text rows are repaired during removal; divergent legacy values
+  are retained in `legacy_event_body_conflicts` for explicit review.
 - `Rsvp`: belongs to an event, name/response presence validation,
   `RESPONSES = [:yes, :maybe, :no]`, with non-null database columns, a nonblank
   name check, and a supported-response check validated against existing rows.
@@ -92,7 +99,7 @@ asset-compilation, and RSpec checks.
   total includes the oldest creation date; current-year and current-month counts
   and projections are visible beside their charts. The event list reports and can
   filter on persisted Action Text embeds using a correlated SQL query rather than
-  loading attachments per event.
+  loading attachments per event, and can filter to events with a specific time.
 Use `db/schema.rb` and `config/routes.rb` for exact constraints and paths.
 Keep controllers focused on HTTP; share repeated event-ID parsing and access
 rules only after their different authorization boundaries are covered by tests.

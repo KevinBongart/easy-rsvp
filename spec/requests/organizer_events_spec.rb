@@ -11,6 +11,12 @@ RSpec.describe 'Organizer events', type: :request do
     expect(page.css('a.event-url').length).to eq(2)
     expect(page.at_css('[role="status"][aria-live="polite"]')).to be_present
     expect(page.css('a').count { |link| link.text == 'Edit event' }).to eq(2)
+    expect(page.at_css('h1.event-heading').text.squish).to eq(event.title)
+    expect(page.at_css('.event-metadata').text).to include(event.date.to_fs(:week_day_and_date))
+    expect(page.at_css('.event-metadata').text).not_to include('Add to calendar')
+    expect(page.at_css('.organizer-actions > .btn').text).to eq('Edit event')
+    expect(page.at_css('.organizer-actions > .small .calendar-link').text.squish).to eq('Add to calendar')
+    expect(page.at_css('.organizer-actions .calendar-link svg[aria-hidden="true"]')).to be_present
   end
 
   it 'labels every part of the event date on the edit form' do
@@ -21,6 +27,17 @@ RSpec.describe 'Organizer events', type: :request do
     expect(page.at_css('label[for="event_date_2i"]').text).to eq('Month')
     expect(page.at_css('label[for="event_date_3i"]').text).to eq('Day')
     expect(page.at_css('label[for="event_date_1i"]').text).to eq('Year')
+  end
+
+  it 'expands and formats the schedule fields for a timed event' do
+    timed_event = create(:event, :timed, date: Date.new(2026, 10, 10))
+
+    get edit_event_admin_path(timed_event, timed_event.admin_token)
+    page = Nokogiri::HTML(response.body)
+
+    expect(page.at_css('input#event_schedule_enabled[checked]')).to be_present
+    expect(page.at_css('#event_start_time')['value']).to eq('6:00 PM')
+    expect(page.at_css('#event_end_time')['value']).to eq('9:00 PM')
   end
 
   it 'renders Bootstrap 5 modal controls with unique form field IDs' do
@@ -62,6 +79,55 @@ RSpec.describe 'Organizer events', type: :request do
     expect(response).to redirect_to(event_admin_path(event, token))
   end
 
+  it 'updates the event schedule without rotating the credential' do
+    token = event.admin_token
+
+    patch event_admin_path(event, token), params: {
+      event: {
+        date: '2026-11-01',
+        start_time: '9:00 AM',
+        end_time: '11:00 AM',
+        time_zone: 'America/New_York'
+      }
+    }
+
+    expect(response).to redirect_to(event_admin_path(event, token))
+    expect(event.reload).to have_attributes(
+      date: Date.new(2026, 11, 1),
+      starts_at: Time.utc(2026, 11, 1, 14, 0),
+      ends_at: Time.utc(2026, 11, 1, 16, 0),
+      time_zone: 'America/New_York',
+      admin_token: token
+    )
+  end
+
+  it 'removes an existing schedule when both time fields are cleared' do
+    timed_event = create(:event, :timed)
+
+    patch event_admin_path(timed_event, timed_event.admin_token), params: {
+      event: { start_time: '', end_time: '', time_zone: timed_event.time_zone }
+    }
+
+    expect(response).to redirect_to(event_admin_path(timed_event, timed_event.admin_token))
+    expect(timed_event.reload).to have_attributes(starts_at: nil, ends_at: nil, time_zone: nil)
+  end
+
+  it 'removes an existing schedule when the organizer chooses just the date' do
+    timed_event = create(:event, :timed)
+
+    patch event_admin_path(timed_event, timed_event.admin_token), params: {
+      event: {
+        schedule_enabled: '0',
+        start_time: '6:00 PM',
+        end_time: '9:00 PM',
+        time_zone: timed_event.time_zone
+      }
+    }
+
+    expect(response).to redirect_to(event_admin_path(timed_event, timed_event.admin_token))
+    expect(timed_event.reload).to have_attributes(starts_at: nil, ends_at: nil, time_zone: nil)
+  end
+
   it 'renders validation feedback and preserves the saved event on invalid update' do
     original = event.title
     patch event_admin_path(event, event.admin_token), params: { event: { title: '' } }
@@ -74,6 +140,7 @@ RSpec.describe 'Organizer events', type: :request do
     event.update!(published: false)
     get event_admin_path(event, event.admin_token)
     expect(response).to have_http_status(:ok)
+    expect(Nokogiri::HTML(response.body).at_css('.calendar-link')).to be_nil
   end
 
   it 'toggles publication both ways' do

@@ -46,6 +46,56 @@ RSpec.describe 'Firefox JavaScript smoke', type: :system, js: true do
     expect(page).to have_css('.trix-content', text: 'And a hat.')
   end
 
+  it 'reveals flexible time fields, detects a time zone, and requires both times' do
+    visit root_path
+    fill_in 'What are you planning?', with: 'Timed picnic'
+
+    expect(page).to have_field('From', visible: :hidden)
+    find('.schedule-summary', text: 'Add a time').click
+    expect(page).to have_field('From', visible: :visible)
+    expect(find_field('Time zone').value).to be_present
+
+    fill_in 'From', with: '7'
+    fill_in 'Time zone', with: 'Europe/Paris'
+    expect(find_field('From').value).to eq('7:00 PM')
+    click_button 'Create your event, for free!'
+    expect(page).to have_current_path(root_path)
+    expect(page).to have_content('Your event needs both a start and end time')
+
+    fill_in 'To', with: '10'
+    click_button 'Create your event, for free!'
+
+    event = Event.order(:id).last
+    expect(page).to have_current_path(event_admin_path(event, event.admin_token))
+    expect(page).to have_content('7:00 PM–10:00 PM (CEST)')
+  end
+
+  it 'keeps entered times in the form but saves just the date when the schedule is closed' do
+    visit root_path
+    fill_in 'What are you planning?', with: 'Date-only picnic'
+    find('.schedule-summary', text: 'Add a time').click
+    expect(page).to have_css('.schedule-summary', text: 'Nevermind, just the date')
+
+    fill_in 'From', with: '7'
+    fill_in 'To', with: '10'
+    fill_in 'Time zone', with: 'Europe/Paris'
+    find('.schedule-summary', text: 'Nevermind, just the date').click
+
+    expect(find('#event_schedule_enabled', visible: :all)).not_to be_checked
+    expect(page).to have_field('From', with: '7:00 PM', visible: :hidden)
+    expect(page).to have_field('To', with: '10:00 PM', visible: :hidden)
+    find('.schedule-summary', text: 'Add a time').click
+    expect(page).to have_field('From', with: '7:00 PM')
+    expect(page).to have_field('To', with: '10:00 PM')
+    find('.schedule-summary', text: 'Nevermind, just the date').click
+    click_button 'Create your event, for free!'
+
+    event = Event.order(:id).last
+    expect(event).not_to be_timed
+    expect(event.time_zone).to be_nil
+    expect(page).to have_current_path(event_admin_path(event, event.admin_token))
+  end
+
   it 'uploads a dropped image through Trix and displays the persisted image after reload' do
     visit root_path
     fill_in 'What are you planning?', with: 'Photo picnic'
@@ -63,7 +113,7 @@ RSpec.describe 'Firefox JavaScript smoke', type: :system, js: true do
     expect(ActiveStorage::Blob.last.service_name).to eq('test')
     click_button 'Create your event, for free!'
     expect_loaded_image('.trix-content img')
-    expect(find('.trix-content img[src]')[:src]).not_to include('/representations/')
+    expect(page).to have_css('.trix-content img[src]:not([src*="/representations/"])')
     click_link 'public-link'
     page.refresh
     expect_loaded_image('.trix-content img')

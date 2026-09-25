@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_19_170000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_23_191715) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -58,10 +58,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_19_170000) do
     t.string "admin_token", null: false
     t.datetime "created_at", precision: nil, null: false
     t.date "date", null: false
+    t.datetime "ends_at"
     t.boolean "published", default: true, null: false
     t.boolean "show_rsvp_names", default: true, null: false
+    t.datetime "starts_at"
+    t.string "time_zone"
     t.string "title", null: false
     t.datetime "updated_at", precision: nil, null: false
+    t.check_constraint "ends_at IS NULL OR starts_at IS NULL OR ends_at > starts_at", name: "events_schedule_ordered"
+    t.check_constraint "starts_at IS NULL AND ends_at IS NULL AND time_zone IS NULL OR starts_at IS NOT NULL AND ends_at IS NOT NULL AND time_zone IS NOT NULL AND btrim(time_zone::text) <> ''::text", name: "events_schedule_complete"
+    t.check_constraint "starts_at IS NULL OR ((starts_at AT TIME ZONE 'UTC'::text) AT TIME ZONE time_zone)::date = date AND ((ends_at AT TIME ZONE 'UTC'::text) AT TIME ZONE time_zone)::date = date", name: "events_schedule_matches_date"
   end
 
   create_table "image_uploads", force: :cascade do |t|

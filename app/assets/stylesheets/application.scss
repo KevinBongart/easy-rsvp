@@ -28,6 +28,88 @@
   color: #28a745;
 }
 
+// Simple Form no longer emits `is-valid`, and this also neutralizes the class
+// in a development process that loaded the previous initializer configuration.
+.form-control.is-valid:not(.is-invalid) {
+  padding-right: bootstrap.$input-padding-x;
+  background-image: none;
+  border-color: bootstrap.$input-border-color;
+
+  &:focus {
+    border-color: bootstrap.$input-focus-border-color;
+    box-shadow: bootstrap.$input-focus-box-shadow;
+  }
+}
+
+.form-select.is-valid:not(.is-invalid) {
+  border-color: bootstrap.$form-select-border-color;
+
+  &:focus {
+    border-color: bootstrap.$form-select-focus-border-color;
+    box-shadow: bootstrap.$form-select-focus-box-shadow;
+  }
+}
+
+.form-select.is-valid:not(.is-invalid):not([multiple]):not([size]),
+.form-select.is-valid:not(.is-invalid):not([multiple])[size="1"] {
+  --bs-form-select-bg-icon: none;
+
+  padding-right: bootstrap.$form-select-indicator-padding;
+  background-position: bootstrap.$form-select-bg-position;
+  background-size: bootstrap.$form-select-bg-size;
+}
+
+.form-check-input.is-valid:not(.is-invalid) {
+  border: bootstrap.$form-check-input-border;
+
+  &:checked {
+    background-color: bootstrap.$form-check-input-checked-bg-color;
+    border-color: bootstrap.$form-check-input-checked-border-color;
+  }
+
+  &:focus {
+    border-color: bootstrap.$form-check-input-focus-border;
+    box-shadow: bootstrap.$form-check-input-focus-box-shadow;
+  }
+
+  ~ .form-check-label {
+    color: inherit;
+  }
+}
+
+.schedule-summary {
+  display: block;
+  width: fit-content;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.schedule-summary-open {
+  display: none;
+}
+
+.schedule-toggle:focus-visible + .schedule-summary {
+  outline: 0.25rem solid rgba(bootstrap.$primary, 0.25);
+  outline-offset: 0.125rem;
+}
+
+.schedule-toggle:checked + .schedule-summary {
+  .schedule-summary-closed {
+    display: none;
+  }
+
+  .schedule-summary-open {
+    display: inline;
+  }
+}
+
+.schedule-toggle:not(:checked) ~ .schedule-time-fields {
+  display: none;
+}
+
 .event-heading,
 .event-url {
   overflow-wrap: anywhere;

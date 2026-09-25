@@ -12,3 +12,6 @@ application.register("reveal", RevealController)
 
 import RichTextController from "./rich_text_controller"
 application.register("rich-text", RichTextController)
+
+import ScheduleController from "./schedule_controller"
+application.register("schedule", ScheduleController)

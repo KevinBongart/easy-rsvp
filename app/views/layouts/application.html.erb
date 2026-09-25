@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <title>
-      <%= @event&.title || "Easy RSVP" %>
+      <%= content_for?(:title) ? yield(:title) : (@event&.title || "Easy RSVP") %>
     </title>
 
     <%= csrf_meta_tags %>

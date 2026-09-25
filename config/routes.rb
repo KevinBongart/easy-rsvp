@@ -7,6 +7,11 @@ Rails.application.routes.draw do
   post "/rails/active_storage/direct_uploads" => "rich_text_direct_uploads#create", as: :rich_text_direct_uploads
 
   resources :events, path: "/", only: [ :new, :create, :show ] do
+    get :calendar,
+      on: :member,
+      defaults: { format: :ics },
+      constraints: { format: :ics }
+
     resources :admin,
       controller: :organizer_events,
       param: :admin_token,
