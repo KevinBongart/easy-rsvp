@@ -23,6 +23,7 @@ RSpec.describe 'Public events', type: :request do
     expect(page.at_css('input#event_start_time')['placeholder']).to eq('7:00 PM')
     expect(page.at_css('input#event_end_time')['placeholder']).to eq('10:00 PM')
     expect(page.at_css('input#event_time_zone')['list']).to eq('event-time-zones')
+    expect(page.css('.schedule-time-fields > .col-md-4').length).to eq(3)
     expect(page.text).not_to include('Detected from your browser')
   end
 

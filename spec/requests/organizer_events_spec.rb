@@ -12,8 +12,11 @@ RSpec.describe 'Organizer events', type: :request do
     expect(page.at_css('[role="status"][aria-live="polite"]')).to be_present
     expect(page.css('a').count { |link| link.text == 'Edit event' }).to eq(2)
     expect(page.at_css('h1.event-heading').text.squish).to eq(event.title)
-    expect(page.at_css('.event-metadata').text).to include(event.date.to_fs(:week_day_and_date), 'Add to calendar')
-    expect(page.at_css('.calendar-link svg[aria-hidden="true"]')).to be_present
+    expect(page.at_css('.event-metadata').text).to include(event.date.to_fs(:week_day_and_date))
+    expect(page.at_css('.event-metadata').text).not_to include('Add to calendar')
+    expect(page.at_css('.organizer-actions > .btn').text).to eq('Edit event')
+    expect(page.at_css('.organizer-actions > .small .calendar-link').text.squish).to eq('Add to calendar')
+    expect(page.at_css('.organizer-actions .calendar-link svg[aria-hidden="true"]')).to be_present
   end
 
   it 'labels every part of the event date on the edit form' do

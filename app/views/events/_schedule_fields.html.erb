@@ -12,8 +12,8 @@
   <% schedule_open = f.object.timed? || f.object.start_time.present? || f.object.end_time.present? %>
   <details data-controller="schedule" data-action="toggle->schedule#detectTimeZone" <%= 'open' if schedule_open %>>
     <summary class="schedule-summary link-primary mb-3">Add a time</summary>
-    <div class="row g-2">
-      <div class="col-md-3">
+    <div class="schedule-time-fields row g-2">
+      <div class="col-md-4">
         <%= f.input :start_time,
           as: :string,
           label: 'From',
@@ -27,7 +27,7 @@
             }
           } %>
       </div>
-      <div class="col-md-3">
+      <div class="col-md-4">
         <%= f.input :end_time,
           as: :string,
           label: 'To',
@@ -41,7 +41,7 @@
             }
           } %>
       </div>
-      <div class="col-md-6">
+      <div class="col-md-4">
         <%= f.input :time_zone,
           as: :string,
           label: 'Time zone',
