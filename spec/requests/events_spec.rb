@@ -17,7 +17,13 @@ RSpec.describe 'Public events', type: :request do
     expect(page.at_css('label[for="event_date_1i"]').text).to eq('Year')
     expect(page.at_css('.event_date > .d-flex.gap-2')).to be_present
     expect(page.css('.event_date .form-select.mx-1')).to be_empty
-    expect(page.at_css('details:not([open]) > summary.schedule-summary').text).to eq('Add a time')
+    expect(page.at_css('label.schedule-summary .schedule-summary-closed').text).to eq('Add a time')
+    expect(page.at_css('label.schedule-summary .schedule-summary-open').text).to eq('Nevermind, just the date')
+    expect(page.at_css('input#event_schedule_enabled')['type']).to eq('checkbox')
+    expect(page.at_css('input#event_schedule_enabled')['checked']).to be_nil
+    expect(page.at_css('input#event_schedule_enabled')['aria-controls']).to eq('event-schedule-fields')
+    expect(page.at_css('label.schedule-summary')['for']).to eq('event_schedule_enabled')
+    expect(page.at_css('input[type="hidden"][name="event[schedule_enabled]"][value="0"]')).to be_present
     expect(page.at_css('label[for="event_start_time"]').text).to eq('From')
     expect(page.at_css('label[for="event_end_time"]').text).to eq('To')
     expect(page.at_css('input#event_start_time')['placeholder']).to eq('7:00 PM')
@@ -54,6 +60,7 @@ RSpec.describe 'Public events', type: :request do
         event: {
           title: 'Dinner',
           date: '2026-10-10',
+          schedule_enabled: '1',
           start_time: '18:00',
           end_time: '21:30',
           time_zone: 'Europe/Paris'
@@ -84,7 +91,7 @@ RSpec.describe 'Public events', type: :request do
 
     expect(response).to have_http_status(:unprocessable_content)
     expect(response.body).to include('Your event needs both a start and end time')
-    expect(Nokogiri::HTML(response.body).at_css('details[open]')).to be_present
+    expect(Nokogiri::HTML(response.body).at_css('input#event_schedule_enabled[checked]')).to be_present
   end
 
   it 'creates a date-only event when both exposed time fields are blank' do
@@ -95,6 +102,23 @@ RSpec.describe 'Public events', type: :request do
           date: '2026-10-10',
           start_time: '',
           end_time: '',
+          time_zone: 'Europe/Paris'
+        }
+      }
+    end.to change(Event, :count).by(1)
+
+    expect(Event.order(:id).last).to have_attributes(starts_at: nil, ends_at: nil, time_zone: nil)
+  end
+
+  it 'creates a date-only event when its retained time fields are disabled' do
+    expect do
+      post events_path, params: {
+        event: {
+          title: 'Dinner',
+          date: '2026-10-10',
+          schedule_enabled: '0',
+          start_time: '6:00 PM',
+          end_time: '9:00 PM',
           time_zone: 'Europe/Paris'
         }
       }

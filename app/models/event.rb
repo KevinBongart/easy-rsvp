@@ -23,6 +23,17 @@ class Event < ApplicationRecord
     starts_at.present?
   end
 
+  def schedule_enabled=(value)
+    @schedule_submitted = true
+    @schedule_enabled = value.to_s.present? ? ActiveModel::Type::Boolean.new.cast(value) : nil
+  end
+
+  def schedule_enabled?
+    return @schedule_enabled unless @schedule_enabled.nil?
+
+    timed? || start_time.present? || end_time.present?
+  end
+
   def start_time=(value)
     @schedule_submitted = true
     @start_time = value
@@ -58,6 +69,11 @@ class Event < ApplicationRecord
   def apply_submitted_schedule
     self.starts_at = nil
     self.ends_at = nil
+
+    unless schedule_enabled?
+      self.time_zone = nil
+      return
+    end
 
     if start_time.blank? && end_time.blank?
       self.time_zone = nil

@@ -127,6 +127,18 @@ RSpec.describe Event, type: :model do
     expect(event.reload).to have_attributes(starts_at: nil, ends_at: nil, time_zone: nil)
   end
 
+  it 'ignores retained time fields when the schedule is disabled' do
+    event = create(:event, :timed)
+
+    expect(event.update(
+      schedule_enabled: false,
+      start_time: '6:00 PM',
+      end_time: '9:00 PM',
+      time_zone: 'Europe/Paris'
+    )).to be(true)
+    expect(event.reload).to have_attributes(starts_at: nil, ends_at: nil, time_zone: nil)
+  end
+
   it 'rejects an incomplete schedule at the database boundary' do
     event = create(:event)
 

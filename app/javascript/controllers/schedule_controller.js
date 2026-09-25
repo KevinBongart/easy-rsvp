@@ -1,14 +1,18 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["timeZone"]
+  static targets = ["enabled", "timeZone"]
 
   connect() {
-    if (this.element.open) this.detectTimeZone()
+    this.detectTimeZone()
+  }
+
+  toggleSchedule() {
+    this.detectTimeZone()
   }
 
   detectTimeZone() {
-    if (!this.element.open || this.timeZoneTarget.value) return
+    if (!this.enabledTarget.checked || this.timeZoneTarget.value) return
 
     const detectedTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
     if (detectedTimeZone) this.timeZoneTarget.value = detectedTimeZone

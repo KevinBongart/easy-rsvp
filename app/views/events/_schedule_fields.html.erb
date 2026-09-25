@@ -9,10 +9,21 @@
     order: [:month, :day, :year],
     start_year: Date.current.year %>
 
-  <% schedule_open = f.object.timed? || f.object.start_time.present? || f.object.end_time.present? %>
-  <details data-controller="schedule" data-action="toggle->schedule#detectTimeZone" <%= 'open' if schedule_open %>>
-    <summary class="schedule-summary link-primary mb-3">Add a time</summary>
-    <div class="schedule-time-fields row g-2">
+  <% schedule_open = f.object.schedule_enabled? %>
+  <div class="schedule-disclosure" data-controller="schedule">
+    <%= f.check_box :schedule_enabled,
+      checked: schedule_open,
+      class: 'schedule-toggle visually-hidden',
+      aria: { controls: 'event-schedule-fields' },
+      data: {
+        action: 'change->schedule#toggleSchedule',
+        schedule_target: 'enabled'
+      } %>
+    <%= f.label :schedule_enabled, class: 'schedule-summary link-primary mb-3' do %>
+      <span class="schedule-summary-closed">Add a time</span>
+      <span class="schedule-summary-open">Nevermind, just the date</span>
+    <% end %>
+    <div class="schedule-time-fields row g-2" id="event-schedule-fields">
       <div class="col-md-4">
         <%= f.input :start_time,
           as: :string,
@@ -59,5 +70,5 @@
         <option value="<%= time_zone %>"></option>
       <% end %>
     </datalist>
-  </details>
+  </div>
 </fieldset>

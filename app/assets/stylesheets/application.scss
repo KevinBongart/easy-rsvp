@@ -78,17 +78,36 @@
 }
 
 .schedule-summary {
+  display: block;
   width: fit-content;
-  list-style: none;
   cursor: pointer;
-
-  &::-webkit-details-marker {
-    display: none;
-  }
 
   &:hover {
     text-decoration: underline;
   }
+}
+
+.schedule-summary-open {
+  display: none;
+}
+
+.schedule-toggle:focus-visible + .schedule-summary {
+  outline: 0.25rem solid rgba(bootstrap.$primary, 0.25);
+  outline-offset: 0.125rem;
+}
+
+.schedule-toggle:checked + .schedule-summary {
+  .schedule-summary-closed {
+    display: none;
+  }
+
+  .schedule-summary-open {
+    display: inline;
+  }
+}
+
+.schedule-toggle:not(:checked) ~ .schedule-time-fields {
+  display: none;
 }
 
 .event-heading,

@@ -35,7 +35,7 @@ RSpec.describe 'Organizer events', type: :request do
     get edit_event_admin_path(timed_event, timed_event.admin_token)
     page = Nokogiri::HTML(response.body)
 
-    expect(page.at_css('details[open]')).to be_present
+    expect(page.at_css('input#event_schedule_enabled[checked]')).to be_present
     expect(page.at_css('#event_start_time')['value']).to eq('6:00 PM')
     expect(page.at_css('#event_end_time')['value']).to eq('9:00 PM')
   end
@@ -106,6 +106,22 @@ RSpec.describe 'Organizer events', type: :request do
 
     patch event_admin_path(timed_event, timed_event.admin_token), params: {
       event: { start_time: '', end_time: '', time_zone: timed_event.time_zone }
+    }
+
+    expect(response).to redirect_to(event_admin_path(timed_event, timed_event.admin_token))
+    expect(timed_event.reload).to have_attributes(starts_at: nil, ends_at: nil, time_zone: nil)
+  end
+
+  it 'removes an existing schedule when the organizer chooses just the date' do
+    timed_event = create(:event, :timed)
+
+    patch event_admin_path(timed_event, timed_event.admin_token), params: {
+      event: {
+        schedule_enabled: '0',
+        start_time: '6:00 PM',
+        end_time: '9:00 PM',
+        time_zone: timed_event.time_zone
+      }
     }
 
     expect(response).to redirect_to(event_admin_path(timed_event, timed_event.admin_token))
