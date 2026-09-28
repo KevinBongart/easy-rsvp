@@ -2,7 +2,7 @@
 
 Status: cross-repository default
 
-Last reviewed: 2026-09-23
+Last reviewed: 2026-09-28
 
 ## Purpose
 
@@ -122,7 +122,10 @@ stable feedback.
 
 ### Write modern, readable Ruby
 
-- Prefer keyword arguments for non-obvious inputs.
+- Prefer keyword arguments for non-obvious inputs. At a public service boundary,
+  spell out the accepted keywords and forward them explicitly. Ruby's `...`
+  argument forwarding is useful for transparent wrappers, but it hides a small,
+  stable domain contract when a service accepts only two or three known inputs.
 - Keep public interfaces small and split complex work into well-named private
   methods or collaborators.
 - Prefer clear collection operations and early returns to deep nesting.
@@ -134,6 +137,15 @@ stable feedback.
   `EventProcessor`; `MealPlacement` is better than `RecordMover`.
 - Replace magic strings and numbers that carry domain meaning with named
   constants. Names should describe the concept, not its storage representation.
+- Reuse the domain's existing constants when composing related field sets or
+  allowlists. For example, build a prefill list from the model's entrant,
+  address, and coordinator attribute groups instead of copying those symbols
+  into a service. Keep one owner for each group and freeze composed constants.
+- Do not return undocumented magic symbols from a workflow. Use named constants,
+  a small result type, or narrowly scoped domain exceptions according to whether
+  the outcome is data or aborts the operation. Controllers may rescue expected
+  domain failures to select an HTTP response; persistence and programming errors
+  should continue to propagate.
 - Avoid clever metaprogramming, speculative DSLs, and inheritance hierarchies
   that save a few lines while hiding control flow.
 - Default to self-explanatory code rather than comments. Add comments for
@@ -161,6 +173,10 @@ Prefer a small amount of obvious duplication over a generic abstraction that
 erases the domain language. High-risk duplicated rules—payments, permissions,
 normalization, retries, state transitions—should be centralized earlier than
 cosmetic duplication.
+
+Search for an existing constant or helper before introducing another list of the
+same fields. A new abstraction should reduce the number of owners of a rule, not
+move duplicated knowledge into a new file.
 
 Never override an inherited method with an identical copy. Rely on inheritance
 or change the shared owner explicitly.
@@ -221,6 +237,10 @@ Good service candidates include:
 
 Do not create a service that merely wraps one Active Record call without adding a
 domain boundary. Do not turn `app/services` into a miscellaneous directory.
+Keep small application-specific operational tasks direct. Dependency-injected
+command runners, clocks, process IDs, streams, result objects, archive validators,
+and rollback frameworks are justified only by a real reuse, safety, or testing
+need; they should not surround two fixed platform commands by default.
 
 API-shape normalization belongs in a service or serializer, not in controllers or
 presenters. Presenters should receive application-shaped data rather than learn
@@ -292,6 +312,24 @@ same application.
 - Test important constraints by bypassing model validations.
 - Make retryable submissions idempotent with a token or natural key rather than
   guessing whether two similar records were intentional.
+- Before dropping a legacy column, inspect an authorized representative
+  production snapshot, include soft-deleted rows, and record aggregate evidence
+  without exposing personal data. If production can change between inspection
+  and deployment, let the migration refuse to drop a column that has acquired a
+  meaningful value.
+
+### Lock the scope of the invariant
+
+Choose a database lock by the invariant it protects. A per-user limit must
+serialize on the user row; locking one child record cannot prevent concurrent
+writes to two different children. A lock on one submission protects only that
+submission. Active Record updates also acquire row locks for the rows they write,
+held until the surrounding transaction commits.
+
+All code paths participating in an invariant must acquire the same locks in the
+same order. Adding a lock to one path cannot make an external payment call
+idempotent or undo a provider-side charge; use provider idempotency keys and an
+explicit payment state transition for that boundary.
 
 ### Tenant and ownership boundaries
 
@@ -361,10 +399,18 @@ framework rules or scattering hex values. Keep the Bootstrap CSS and JavaScript
 versions aligned. Avoid unpinned CDN dependencies; local gem/importmap assets are
 preferred when practical.
 
+Use a real form or `button_to` for non-GET mutations and style it with the
+design system when it should look like a link. Do not trade the correct HTTP verb
+and CSRF behavior for anchor markup.
+
 Use the current asset pipeline. Do not combine Propshaft with an obsolete
 Sprockets/LibSass stack unless the migration state is explicit and temporary.
 Do not introduce CoffeeScript, Turbolinks, jQuery-dependent UI, LibSass, Uglifier,
 or indiscriminate `require_tree` loading in new code.
+
+Before a Bootstrap or asset-stack upgrade, inventory JavaScript-dependent form
+helpers and plugins such as nested-field libraries. Keep that upgrade isolated
+until their add/remove flows have browser coverage and representative visual QA.
 
 ### JavaScript is a last-mile enhancement
 
@@ -435,6 +481,12 @@ maintained.
 
 Always inspect the real feature page after choosing a variant. A good isolated
 component can still make the surrounding calendar, table, or form unusably dense.
+
+For UI-preserving refactors, compare a representative page region before and
+after rather than tightly cropping the changed control. Assert semantic DOM order
+for layout-sensitive actions so a button cannot silently move above the field it
+acts on. Prefer the design system's existing component and utility classes—such
+as Bootstrap's link-style button—over new CSS that recreates them.
 
 ## Testing strategy
 
@@ -516,6 +568,9 @@ spec in Selenium makes the suite slower and more fragile without adding value.
 - For concurrent or replayable writes, test both sequential replay and the
   database race path.
 - Preserve screenshots from failed browser tests in CI.
+- Keep before/after evidence wide enough to show surrounding headings, fields,
+  spacing, and action order. A close crop can prove color while hiding a layout
+  regression.
 
 ### Verification beyond automated tests
 
@@ -541,11 +596,18 @@ optional:
 - keep secrets in Rails credentials or environment variables, never the repo;
 - require the production master key when credentials are required;
 - use modern payment APIs and never store raw card details;
+- treat Devise modules as independent contracts: `validatable` supplies email
+  and password validation, while account confirmation requires `confirmable`;
+- when tightening password rules, apply them when a password is created or
+  changed and test that existing accounts with older hashes can still sign in
+  and save unrelated profile changes;
 - run Brakeman and dependency audits in CI;
 - add rate limiting where authentication, payment, or public write abuse warrants
   it;
-- configure CSP when external scripts or the application's risk profile make it
-  valuable.
+- enforce a small CSP that matches the assets the application actually loads.
+  A low-traffic application that will not monitor reports should prefer a basic
+  enforceable policy and safe HTML handling over an elaborate report-only
+  rollout nobody will observe.
 
 Record explicit owner decisions when a finding is accepted. Future assessments
 should respect a documented acceptance instead of repeatedly reopening it unless
@@ -614,6 +676,13 @@ split scan, lint, and test jobs when parallel feedback is useful.
 CI is not a substitute for local verification. Conversely, a local green suite
 does not turn an unexplained hosted failure into success. Distinguish code
 failures from runner/infrastructure failures with evidence.
+
+Document the boundary between CI and deployment. A CI production-asset job may
+verify that compilation succeeds in a disposable filesystem; it must not imply
+that those files are deployed. When Heroku or another platform checks out
+`main` and builds independently after green CI, say so in the job name and
+configuration, and keep build-time asset dependencies available in the
+production bundle.
 
 ## Deployment and operations
 
@@ -819,6 +888,14 @@ The PR description should lead with the product outcome and include:
 Keep unrelated cleanup out of the PR unless it is required to make the change
 safe.
 
+Preserve the review trail while a pull request is open. Address each material
+review round with a new commit so the reviewer can inspect the incremental diff.
+Do not amend, squash, force-push, or rebase away earlier review iterations unless
+the owner explicitly requests rewritten history. When the branch needs the
+latest target branch during review, prefer a normal merge or the hosting
+provider's update-branch operation. The repository may still squash the complete
+PR when merging if that is its established merge policy.
+
 Before merging a substantive pull request, have a context-isolated agent review
 the final diff against the target branch, repository instructions, and stated
 acceptance criteria. Give the reviewer the final code and requirements without
@@ -894,6 +971,8 @@ one at a time.
 - Update current documentation in the same change.
 - Use a dedicated branch for unrelated work rather than appending it to an open
   feature PR.
+- During review, commit follow-up changes separately and preserve the existing PR
+  commits. Make the latest feedback easy to inspect as its own diff.
 
 ### Verify and hand off honestly
 
