@@ -320,11 +320,13 @@ same application.
 
 ### Lock the scope of the invariant
 
-Choose a database lock by the invariant it protects. A per-user limit must
-serialize on the user row; locking one child record cannot prevent concurrent
-writes to two different children. A lock on one submission protects only that
-submission. Active Record updates also acquire row locks for the rows they write,
-held until the surrounding transaction commits.
+Choose a database lock by the invariant it protects. A per-user limit needs one
+serialization point shared by every participating write—commonly the user row,
+but potentially an advisory lock key, unique constraint, or serializable
+transaction. Locking one child record cannot prevent concurrent writes to two
+different children. A lock on one submission protects only that submission.
+Active Record updates also acquire row locks for the rows they write, held until
+the surrounding transaction commits.
 
 All code paths participating in an invariant must acquire the same locks in the
 same order. Adding a lock to one path cannot make an external payment call
@@ -681,8 +683,8 @@ Document the boundary between CI and deployment. A CI production-asset job may
 verify that compilation succeeds in a disposable filesystem; it must not imply
 that those files are deployed. When Heroku or another platform checks out
 `main` and builds independently after green CI, say so in the job name and
-configuration, and keep build-time asset dependencies available in the
-production bundle.
+configuration. Keep asset dependencies available during the production build;
+a multi-stage image may omit them from the final runtime artifact.
 
 ## Deployment and operations
 
