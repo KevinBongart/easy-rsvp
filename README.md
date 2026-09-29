@@ -261,7 +261,7 @@ bundle exec rspec spec/lib/production_database_pull_spec.rb
 
 ## Engineering and assessment
 
-- [Rails engineering playbook](docs/RAILS_ENGINEERING_PLAYBOOK.md), copied from Bon App
+- [Rails engineering playbook](https://github.com/KevinBongart/rails-engineering-playbook) — shared across repositories, cloned as a sibling directory
 - [Current application and agent reference](AGENTS.md)
 - [Codebase assessment and remediation plan](docs/CODEBASE_ASSESSMENT.md)
 

@@ -1,10 +1,19 @@
 # Easy RSVP — Agent Reference
 
-Read [the Rails engineering playbook](docs/RAILS_ENGINEERING_PLAYBOOK.md) for
+Read [the Rails engineering playbook](https://github.com/KevinBongart/rails-engineering-playbook) for
 the shared guidelines covering architecture, Ruby/Rails conventions, testing,
 frontend design, security, dependencies, CI, operations, documentation, and agent
-workflows. It was copied from `../bon_app` at the owner's request. This file
-records Easy RSVP's current implementation and app-specific exceptions.
+workflows. Clone it as a sibling of this repository and pull before relying on
+it:
+
+```sh
+git clone git@github.com:KevinBongart/rails-engineering-playbook.git ../rails-engineering-playbook
+git -C ../rails-engineering-playbook pull --ff-only
+```
+
+This file records Easy RSVP's current implementation and app-specific
+exceptions. When work here produces a guideline that would apply to other
+applications, add it to the playbook repository rather than to this file.
 
 Use [the codebase assessment and remediation plan](docs/CODEBASE_ASSESSMENT.md) when
 assessing this repository. The playbook describes the preferred direction;
