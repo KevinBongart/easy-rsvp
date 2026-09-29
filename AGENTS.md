@@ -128,6 +128,13 @@ require independent review when a bump includes conflicts, application or
 configuration changes, migrations, security-sensitive behavior, or unexplained
 failures.
 
+Preserve review iterations in open pull requests. Make every material response
+to review feedback a new commit so its incremental diff remains visible. Do not
+amend, squash, force-push, or rebase away earlier PR commits unless the owner
+explicitly requests rewritten history. Prefer merging the updated target branch
+when synchronization is necessary; the repository's final merge policy may still
+squash the completed PR.
+
 Use factories, transactional data, and block-scoped time travel. The harness
 supplies synthetic dashboard credentials and blocks external Ruby HTTP with
 WebMock, allowing localhost for WebDriver. Active Storage uses a dedicated
