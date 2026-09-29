@@ -5,7 +5,7 @@ uncommitted playbook/agent documentation, README/environment additions, and
 production-database pull implementation/specs from the preceding task.
 
 Status: **assessment and Phase 0 coverage complete; original pending regressions fixed; broader remediation remains**. This replaces the
-initial assessment brief. Standards: [Rails Engineering Playbook](RAILS_ENGINEERING_PLAYBOOK.md).
+initial assessment brief. Standards: [Rails Engineering Playbook](https://github.com/KevinBongart/rails-engineering-playbook).
 Application reference: [AGENTS.md](../AGENTS.md).
 
 ## Modern Rails assets and rich text — 2026-09-14
