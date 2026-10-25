@@ -80,22 +80,27 @@ RSpec.describe 'Site administrator dashboard', type: :request do
     expect(links.fetch('Include events without attachments')['href']).to include('sort=attachments')
   end
 
+  # Frozen to summer: the event factory dates events at Date.current + 7.days,
+  # so on a day near the end of October the event lands after the switch to
+  # CET and the abbreviation assertion below stops holding.
   it 'filters events to those with a specific time and preserves other controls' do
-    timed = create(:event, :timed, title: 'Dinner at seven')
-    create(:event, title: 'All-day picnic')
+    travel_to Time.zone.local(2026, 9, 10, 12) do
+      timed = create(:event, :timed, title: 'Dinner at seven')
+      create(:event, title: 'All-day picnic')
 
-    get admin_events_path,
-      params: { timed: '1', sort: 'rsvps' },
-      headers: dashboard_headers
-    doc = Nokogiri::HTML(response.body)
+      get admin_events_path,
+        params: { timed: '1', sort: 'rsvps' },
+        headers: dashboard_headers
+      doc = Nokogiri::HTML(response.body)
 
-    expect(doc.css('tbody tr').map { |row| row.css('td')[0].text }).to eq([ timed.title ])
-    expect(doc.at_css('tbody tr td:nth-child(3)').text).to include('6:00 PM–9:00 PM (CEST)')
-    expect(doc.css('.admin-sort strong').map(&:text)).to include('Showing only events with a time')
-    links = doc.css('a').index_by(&:text)
-    expect(links.fetch('Sort by ID')['href']).to include('timed=1')
-    expect(links.fetch('Only with attachments')['href']).to include('timed=1')
-    expect(links.fetch('Include date-only events')['href']).to include('sort=rsvps')
+      expect(doc.css('tbody tr').map { |row| row.css('td')[0].text }).to eq([ timed.title ])
+      expect(doc.at_css('tbody tr td:nth-child(3)').text).to include('6:00 PM–9:00 PM (CEST)')
+      expect(doc.css('.admin-sort strong').map(&:text)).to include('Showing only events with a time')
+      links = doc.css('a').index_by(&:text)
+      expect(links.fetch('Sort by ID')['href']).to include('timed=1')
+      expect(links.fetch('Only with attachments')['href']).to include('timed=1')
+      expect(links.fetch('Include date-only events')['href']).to include('sort=rsvps')
+    end
   end
 
   it 'renders an empty state without broken statistics' do
