@@ -200,7 +200,7 @@ GEM
       activerecord (>= 4.0)
       hashids (~> 1.0)
     hashids (1.0.6)
-    honeybadger (6.9.2)
+    honeybadger (6.10.0)
       logger
       ostruct
     i18n (1.15.2)
@@ -508,7 +508,7 @@ DEPENDENCIES
   erb_lint (~> 0.9)
   factory_bot_rails (~> 6.4)
   hashid-rails
-  honeybadger (~> 6.9)
+  honeybadger (~> 6.10)
   icalendar (~> 2.12)
   jsbundling-rails
   kaminari

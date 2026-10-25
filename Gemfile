@@ -10,7 +10,7 @@ gem "aws-sdk-s3", require: false
 gem "bootsnap", require: false
 gem "dartsass-rails", "~> 0.5.1"
 gem "hashid-rails"
-gem "honeybadger", "~> 6.9"
+gem "honeybadger", "~> 6.10"
 gem "icalendar", "~> 2.12"
 gem "jsbundling-rails"
 gem "kaminari"
