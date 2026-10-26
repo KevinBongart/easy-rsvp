@@ -1,13 +1,13 @@
 version: 2.1
 orbs:
-  ruby: circleci/ruby@2.1.1 # https://circleci.com/orbs/registry/orb/circleci/ruby
+  ruby: circleci/ruby@4.0.0 # https://circleci.com/orbs/registry/orb/circleci/ruby
   browser-tools: circleci/browser-tools@2.4.2
   node: circleci/node@7.2.1
 
 jobs:
   build:
     docker:
-      - image: cimg/ruby:3.3.12-node
+      - image: cimg/ruby:4.0.9-node
         environment:
           PGHOST: 127.0.0.1
           PGUSER: postgres
