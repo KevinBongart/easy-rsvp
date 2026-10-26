@@ -1,6 +1,6 @@
 version: 2.1
 orbs:
-  ruby: circleci/ruby@2.1.1 # https://circleci.com/orbs/registry/orb/circleci/ruby
+  ruby: circleci/ruby@4.0.0 # https://circleci.com/orbs/registry/orb/circleci/ruby
   browser-tools: circleci/browser-tools@2.4.2
   node: circleci/node@7.2.1
 
