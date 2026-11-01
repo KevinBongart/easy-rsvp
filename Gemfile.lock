@@ -1,3 +1,13 @@
+GIT
+  remote: https://github.com/KevinBongart/idiomatic-rails.git
+  revision: 2c81da47f4a3015656c2582eabd71aaf8c7b0d5f
+  specs:
+    idiomatic-rails (0.1.0)
+      actionview (>= 7.1)
+      activesupport (>= 7.1)
+      prism (>= 1.0)
+      rubocop (>= 1.72)
+
 GEM
   remote: https://rubygems.org/
   specs:
@@ -287,7 +297,7 @@ GEM
     nokogiri (1.19.4-x86_64-linux-musl)
       racc (~> 1.4)
     ostruct (0.6.3)
-    parallel (2.2.0)
+    parallel (2.3.0)
     parser (3.3.13.0)
       ast (~> 2.4.1)
       racc
@@ -362,7 +372,7 @@ GEM
       prism (>= 1.6.0)
       rbs (>= 4.0.0)
       tsort
-    regexp_parser (2.11.2)
+    regexp_parser (2.13.1)
     reline (0.7.0)
       io-console (~> 0.5)
     rexml (3.4.4)
@@ -385,14 +395,14 @@ GEM
     rspec-support (3.13.7)
     rspec_junit_formatter (0.6.0)
       rspec-core (>= 2, < 4, != 2.12.0)
-    rubocop (1.91.0)
+    rubocop (1.92.2)
       json (>= 2.3)
       language_server-protocol (~> 3.17.0.2)
       lint_roller (~> 1.1.0)
       parallel (>= 1.10)
       parser (>= 3.3.0.2)
       rainbow (>= 2.2.2, < 4.0)
-      regexp_parser (>= 2.9.3, < 3.0)
+      regexp_parser (>= 2.11.3, < 3.0)
       rubocop-ast (>= 1.49.0, < 2.0)
       ruby-progressbar (~> 1.7)
       unicode-display_width (>= 2.4.0, < 4.0)
@@ -510,6 +520,7 @@ DEPENDENCIES
   hashid-rails
   honeybadger (~> 6.10)
   icalendar (~> 2.12)
+  idiomatic-rails!
   jsbundling-rails
   kaminari
   launchy
