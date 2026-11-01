@@ -32,6 +32,7 @@ group :development, :test do
   gem "launchy"
   gem "rspec-rails"
   gem "rspec_junit_formatter"
+  gem "idiomatic-rails", github: "KevinBongart/idiomatic-rails", require: false
   gem "rubocop-rails-omakase", require: false
 end
 
