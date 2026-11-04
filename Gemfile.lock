@@ -205,11 +205,10 @@ GEM
       ostruct
     i18n (1.15.2)
       concurrent-ruby (~> 1.0)
-    icalendar (2.12.5)
+    icalendar (2.13.0)
       base64
       ice_cube (~> 0.16)
       logger
-      ostruct
     ice_cube (0.17.0)
     io-console (0.9.4)
     irb (1.18.0)
@@ -509,7 +508,7 @@ DEPENDENCIES
   factory_bot_rails (~> 6.4)
   hashid-rails
   honeybadger (~> 6.10)
-  icalendar (~> 2.12)
+  icalendar (~> 2.13)
   jsbundling-rails
   kaminari
   launchy
