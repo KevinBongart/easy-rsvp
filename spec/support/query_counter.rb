@@ -59,6 +59,14 @@ module QueryCounter
     )
   end
 
+  # Wall-clock timings on shared CI machines spike now and then (garbage
+  # collection, noisy neighbours). For requests that can safely run more than
+  # once, keep the fastest of a few runs: it reflects the code's cost, while
+  # query counts and allocations stay identical across runs.
+  def measure_fastest_request(runs: 3, &request)
+    Array.new(runs) { measure_request(&request) }.min_by(&:duration)
+  end
+
   def request_metrics_summary(metrics, label:)
     "#{label}: queries=#{metrics.queries}, duration=#{metrics.duration.round(1)}ms, " \
       "db=#{metrics.db_runtime.round(1)}ms, sql=#{metrics.sql_runtime.round(1)}ms, " \
