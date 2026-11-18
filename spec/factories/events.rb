@@ -8,6 +8,16 @@ FactoryBot.define do
       published { false }
     end
 
+    trait :spam do
+      spam_at { Time.current }
+      spam_source { 'operator' }
+    end
+
+    trait :flagged_as_spam do
+      spam_at { Time.current }
+      spam_source { 'automatic' }
+    end
+
     trait :private_names do
       show_rsvp_names { false }
     end

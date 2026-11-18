@@ -13,6 +13,7 @@ class Event < ApplicationRecord
 
   before_validation :apply_submitted_schedule, if: :schedule_submitted?
   before_create :set_admin_token
+  before_save :apply_spam_check, if: :spam_check_needed?
 
   validates :title, presence: true
   validates :date, presence: true
@@ -24,6 +25,16 @@ class Event < ApplicationRecord
 
   def spam?
     spam_at.present?
+  end
+
+  # Marked by an operator; final, and the organizer loses access.
+  def spam_locked?
+    spam_source == "operator"
+  end
+
+  # Marked by Event::SpamCheck; the organizer can edit the event to clear it.
+  def flagged_as_spam?
+    spam_source == "automatic"
   end
 
   def timed?
@@ -68,6 +79,22 @@ class Event < ApplicationRecord
   end
 
   private
+
+  def spam_check_needed?
+    return false if spam_locked?
+
+    new_record? || will_save_change_to_title? || rich_text_body&.changed?
+  end
+
+  def apply_spam_check
+    if Event::SpamCheck.spam?(title: title.to_s, html: rich_text_body&.body&.to_html.to_s)
+      self.spam_at ||= Time.current
+      self.spam_source = "automatic"
+    elsif flagged_as_spam?
+      self.spam_at = nil
+      self.spam_source = nil
+    end
+  end
 
   def schedule_submitted?
     @schedule_submitted

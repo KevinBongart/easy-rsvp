@@ -95,11 +95,17 @@ asset-compilation, and RSpec checks.
   stays indexable. `UserContentLinkScrubber` keeps Action Text's default safe list
   and adds `rel="nofollow ugc noopener noreferrer"` to every rendered link; Action
   Text ignores its tag/attribute lists when a scrubber is set, so the scrubber
-  carries them itself. `Event#spam_at` marks spam (`Event.spam` / `Event.not_spam` scopes): public, RSVP, and organizer
-  routes answer `410 Gone`. The admin dashboard lists spam only under its Spam
-  filter (`spam=1`) and never counts it in the stats. The 2026-11 SEO spam wave was marked by frozen classifiers in the
-  `AddSpamAtToEvents` and `MarkMoreSpamEvents` migrations; nothing marks new
-  spam automatically yet.
+  carries them itself. `Event#spam_at` marks spam (`Event.spam` / `Event.not_spam` scopes) and
+  `Event#spam_source` records who marked it. `Event::SpamCheck` runs on every
+  save that changes the title or body and marks matches as `automatic`; it has
+  named title and body rules tuned on the 2026-11 production snapshot (see the
+  class comment). Its `non_editor_html` rule assumes the Trix editor. Public and
+  RSVP routes answer `410 Gone` for all spam. Organizers of `automatic` spam keep
+  access, see a notice, and clear the mark by editing the event into something
+  that passes; `operator` marks (the `AddSpamAtToEvents` and `MarkMoreSpamEvents`
+  migrations) are final and lock the organizer out with `410 Gone`. The admin
+  dashboard lists spam only under its Spam filter (`spam=1`), badges automatic
+  marks, and never counts spam in the stats.
 - `RecentEventCreation`: at most 5 successful event creations per client per
   30 minutes. Clients are keyed by an HMAC of the remote IP (IPv6 reduced to its
   /64), never the raw address, never linked to the event, and rows are deleted

@@ -51,6 +51,8 @@ RSpec.describe 'Search indexing of event pages', type: :request do
     end
 
     it 'still removes unsafe markup' do
+      # This markup would be flagged as spam; render it anyway to test sanitizing.
+      allow(Event::SpamCheck).to receive(:spam?).and_return(false)
       event = create(:event, body: <<~HTML)
         <div>
           <script>alert(1)</script>

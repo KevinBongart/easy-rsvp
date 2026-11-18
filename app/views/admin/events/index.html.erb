@@ -78,7 +78,7 @@
     <% @events.each do |event| %>
       <tr>
         <th scope="row" class="text-nowrap"><%= link_to event.id, event %></th>
-        <td><%= link_to event.title, event %></td>
+        <td><%= link_to event.title, event %><% if event.flagged_as_spam? %> <span class="badge text-bg-warning">auto-flagged</span><% end %></td>
         <td class="text-nowrap">
           <%= event.date %>
           <% if (time = event_time(event)) %>
