@@ -228,6 +228,10 @@ user to provide it.
 
 Never commit, push, or deploy automatically. CircleCI deploys successful `main`
 builds, so a push to `main` has a production side effect.
+Deploy jobs share a CircleCI `serial-group`, so they run one at a time; when a
+newer `main` pipeline is waiting or deploying, older queued deploys are skipped
+("not run"). The deploy skips documentation-only changes by diffing against the
+revision Dokku reports (`git:report --git-sha`) and deploys if that is unknown.
 
 Trix and the matching Action Text JavaScript are locked npm dependencies and
 loaded through the jsbundling-rails entry point, following the Rails generator's
