@@ -13,8 +13,8 @@
     "esbuild": "0.28.2",
     "eslint": "10.13.0",
     "globals": "17.13.0",
-    "stylelint": "17.16.0",
-    "stylelint-config-recommended-scss": "17.0.1"
+    "stylelint": "18.0.0",
+    "stylelint-config-recommended-scss": "18.0.0"
   },
   "engines": {
     "node": "24.x"
