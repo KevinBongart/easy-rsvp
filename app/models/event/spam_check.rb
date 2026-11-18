@@ -1,3 +1,5 @@
+require "cgi"
+
 # Decides whether an event's title or description looks like SEO spam. Runs on
 # every save that changes either one, so brand-new events (which never have
 # RSVPs) and later edits are both covered.
@@ -102,13 +104,14 @@ class Event::SpamCheck
   def body_reasons
     return [] if html.empty?
 
+    readable = readable_html
     reasons = []
-    tags = html.scan(/<([a-z][a-z0-9-]*)/i).flatten.map(&:downcase).uniq
+    tags = readable.scan(/<([a-z][a-z0-9-]*)/i).flatten.map(&:downcase).uniq
     reasons << :non_editor_html if (tags - EDITOR_TAGS).any?
 
-    raw_text = visible_text
+    raw_text = Nokogiri::HTML4.fragment(readable.gsub(%r{<(br|/div|/li|/h1|/blockquote|/pre|/figcaption)\b[^>]*>}i, "\n\\0")).text
     text = raw_text.gsub(/[[:space:]]+/, " ").strip
-    links = html.scan(/<a\b[^>]*\bhref=/i).size
+    links = readable.scan(/<a\b[^>]*\bhref=/i).size
     reasons << :very_long_text if text.size >= VERY_LONG_TEXT
     reasons << :long_text_with_link if text.size >= LONG_TEXT && links >= 1
 
@@ -117,13 +120,22 @@ class Event::SpamCheck
     reasons
   end
 
-  # Text a reader sees, without images: attachments, figures and data: URIs
-  # are removed so photo-heavy invitations do not count as long. HTML4 parsing
-  # has no tree-depth limit, unlike HTML5, so deeply nested input cannot raise.
-  def visible_text
-    stripped = html.gsub(%r{<action-text-attachment\b.*?</action-text-attachment>}m, " ")
-      .gsub(%r{<figure\b.*?</figure>}m, " ")
-      .gsub(/data:[^"'\s)]+/, "")
-    Nokogiri::HTML4.fragment(stripped.gsub(%r{<(br|/div|/li|/h1|/blockquote|/pre)\b[^>]*>}i, "\n\\0")).text
+  # The body as guests read it, minus image payloads. Images and data: URIs
+  # are dropped so photo-heavy invitations do not count as long. Everything
+  # Action Text renders stays in: text inside <figure>, captions, and the HTML
+  # of content attachments (stored escaped in their content= attribute), so
+  # spam cannot hide inside them. HTML4 parsing has no tree-depth limit, unlike
+  # HTML5, so deeply nested input cannot raise.
+  def readable_html
+    html.gsub(/data:[^"'\s)]+/, "")
+      .gsub(/<img\b[^>]*>/i, " ")
+      .gsub(/<action-text-attachment\b([^>]*)>/i) { " #{attachment_markup(Regexp.last_match(1))} " }
+  end
+
+  def attachment_markup(attributes)
+    %w[content caption].filter_map do |name|
+      match = attributes.match(/\b#{name}=(?:"([^"]*)"|'([^']*)')/i)
+      CGI.unescapeHTML(match[1] || match[2]) if match
+    end.join(" ")
   end
 end

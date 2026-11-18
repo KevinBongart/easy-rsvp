@@ -99,6 +99,32 @@ RSpec.describe Event::SpamCheck do
       expect(reasons('Deals', line * 3)).to include(:repeated_lines)
     end
 
+    describe 'spam hidden in parts Action Text still renders' do
+      let(:spam) { "#{(1..90).map { |n| "Point #{n}: the best deal on the market today." }.join(' ')} <a href=\"https://shop.example\">shop</a>" }
+
+      it 'counts text inside a figure' do
+        expect(reasons('Dinner party', "<div>Hi</div><figure><div>#{spam}</div></figure>")).to include(:long_text_with_link)
+      end
+
+      it 'counts HTML stored in a content attachment' do
+        html = %(<action-text-attachment content-type="text/html" content="#{CGI.escapeHTML("<div>#{spam}</div>")}"></action-text-attachment>)
+
+        expect(reasons('Dinner party', html)).to include(:long_text_with_link)
+      end
+
+      it 'counts attachment captions' do
+        html = %(<action-text-attachment sgid="x" content-type="image/png" caption="#{CGI.escapeHTML(spam)}"></action-text-attachment><div><a href="https://shop.example">shop</a></div>)
+
+        expect(reasons('Dinner party', html)).to include(:long_text_with_link)
+      end
+
+      it 'checks the tags inside a content attachment' do
+        html = %(<action-text-attachment content-type="text/html" content="#{CGI.escapeHTML('<h2>Why</h2><p>Buy</p>')}"></action-text-attachment>)
+
+        expect(reasons('Dinner party', html)).to include(:non_editor_html)
+      end
+    end
+
     it 'handles deeply nested markup without raising' do
       html = ('<blockquote>' * 2_000) + 'hi' + ('</blockquote>' * 2_000)
 

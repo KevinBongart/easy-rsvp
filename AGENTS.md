@@ -103,7 +103,10 @@ asset-compilation, and RSpec checks.
   RSVP routes answer `410 Gone` for all spam. Organizers of `automatic` spam keep
   access, see a notice, and clear the mark by editing the event into something
   that passes; `operator` marks (the `AddSpamAtToEvents` and `MarkMoreSpamEvents`
-  migrations) are final and lock the organizer out with `410 Gone`. The admin
+  migrations) are final and lock the organizer out with `410 Gone`. The
+  `FlagUncheckedSpamEvents` migration ran the check once over events created
+  before it existed. Body rules ignore only image payloads; text in figures,
+  captions, and content attachments counts because Action Text renders it. The admin
   dashboard lists spam only under its Spam filter (`spam=1`), badges automatic
   marks, and never counts spam in the stats.
 - `RecentEventCreation`: at most 5 successful event creations per client per

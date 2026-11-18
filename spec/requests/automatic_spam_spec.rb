@@ -30,6 +30,9 @@ RSpec.describe 'Automatic spam flagging', type: :request do
     expect(response.headers['X-Robots-Tag']).to eq('noindex, nofollow')
     expect(Nokogiri::HTML(response.body).at_css('#spam-notice').text).to include("Your guests can't see this event yet.")
 
+    page = Nokogiri::HTML(response.body)
+    expect(page.at_css('a[href$=".ics"]')).to be_nil
+
     get edit_event_admin_path(event, event.admin_token)
     expect(Nokogiri::HTML(response.body).at_css('#spam-notice')).to be_present
   end
@@ -71,6 +74,7 @@ RSpec.describe 'Automatic spam flagging', type: :request do
 
   it 'leaves the flag alone when only the publication changes' do
     event = create_event(title: spam_title)
+    expect(Event::SpamCheck).not_to receive(:spam?)
 
     post toggle_publish_event_admin_path(event, event.admin_token)
 
@@ -79,9 +83,11 @@ RSpec.describe 'Automatic spam flagging', type: :request do
 
   it 'never lets edits clear an operator mark' do
     event = create(:event, :spam, title: 'Garden party')
+    marked_at = event.spam_at
 
+    event.update!(title: 'Robux generator')
     event.update!(title: 'Another garden party')
 
-    expect(event.reload).to have_attributes(spam_source: 'operator', spam_at: be_present)
+    expect(event.reload).to have_attributes(spam_source: 'operator', spam_at: marked_at)
   end
 end
