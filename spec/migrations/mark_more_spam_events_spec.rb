@@ -4,6 +4,14 @@ require Rails.root.join('db/migrate/20261118130000_mark_more_spam_events')
 RSpec.describe MarkMoreSpamEvents do
   let(:wave) { Time.zone.local(2026, 11, 18, 11, 34) }
 
+  # This migration predates events.spam_source, its consistency check, and
+  # automatic flagging on save.
+  before do
+    ActiveRecord::Base.connection.remove_check_constraint :events, name: 'events_spam_source_matches_spam_at'
+    # Sample events must reach the migration unmarked.
+    allow(Event::SpamCheck).to receive(:spam?).and_return(false)
+  end
+
   def run_migration
     ActiveRecord::Migration.suppress_messages { described_class.new.up }
   end

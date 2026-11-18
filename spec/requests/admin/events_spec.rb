@@ -105,7 +105,7 @@ RSpec.describe 'Site administrator dashboard', type: :request do
 
   it 'lists spam only under the spam filter and keeps it out of the statistics' do
     legitimate = create(:event, title: 'Neighborhood potluck')
-    spam = create(:event, title: 'Peptides coupon code', spam_at: Time.current)
+    spam = create(:event, :spam, title: 'Peptides coupon code')
 
     get admin_events_path, params: { sort: 'rsvps' }, headers: dashboard_headers
     doc = Nokogiri::HTML(response.body)
@@ -121,6 +121,17 @@ RSpec.describe 'Site administrator dashboard', type: :request do
     expect(links.fetch('Only events with a time')['href']).to include('spam=1')
     expect(links.fetch('Back to events')['href']).not_to include('spam=1')
     expect(controller.view_assigns['event_stats'].total_events).to eq('1')
+  end
+
+  it 'labels events flagged automatically in the spam list' do
+    create(:event, :flagged_as_spam, title: 'Robux generator')
+    create(:event, :spam, title: 'Peptides coupon code')
+
+    get admin_events_path, params: { spam: '1' }, headers: dashboard_headers
+
+    rows = Nokogiri::HTML(response.body).css('tbody tr').index_by { |row| row.css('td')[0].css('a').text }
+    expect(rows.fetch('Robux generator').at_css('.badge').text).to eq('auto-flagged')
+    expect(rows.fetch('Peptides coupon code').at_css('.badge')).to be_nil
   end
 
   it 'renders an empty state without broken statistics' do

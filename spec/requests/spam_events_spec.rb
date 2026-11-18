@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe 'Events marked as spam', type: :request do
-  let(:event) { create(:event, spam_at: Time.current) }
+  let(:event) { create(:event, :spam) }
 
   def expect_removed
     expect(response).to have_http_status(:gone)
@@ -63,7 +63,7 @@ RSpec.describe 'Events marked as spam', type: :request do
 
   it 'leaves spam out of the admin dashboard' do
     legitimate = create(:event, title: 'Neighborhood potluck')
-    create(:event, title: 'Peptides coupon code', spam_at: Time.current)
+    create(:event, :spam, title: 'Peptides coupon code')
 
     get admin_events_path, headers: dashboard_headers
 

@@ -1,0 +1,9 @@
+<% if event.flagged_as_spam? %>
+  <div class="alert alert-warning" role="status" id="spam-notice">
+    <strong>Your guests can't see this event yet.</strong>
+    Its title or description looks like advertising, which Easy RSVP hides to fight spam.
+    Until then, the guest link below shows a "removed" page. If that's a mistake,
+    edit the title or description and save; the event becomes visible as soon as
+    it no longer looks promotional.
+  </div>
+<% end %>

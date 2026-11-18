@@ -252,7 +252,7 @@ RSpec.describe Event, type: :model do
   describe 'spam scopes' do
     it 'separates events marked as spam from the rest' do
       legitimate = create(:event)
-      spam = create(:event, spam_at: Time.current)
+      spam = create(:event, :spam)
 
       expect(Event.spam).to contain_exactly(spam)
       expect(Event.not_spam).to contain_exactly(legitimate)

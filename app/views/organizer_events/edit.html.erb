@@ -1,5 +1,7 @@
 <h1>Edit your event</h1>
 
+<%= render 'organizer_events/spam_notice', event: @event %>
+
 <%= simple_form_for @event, url: event_admin_path(@event, @event.admin_token) do |f| %>
   <%= f.input :title, error: 'Your event needs a name!' %>
 
