@@ -18,7 +18,8 @@ RSpec.describe Event::SpamCheck do
       'Best IPTV Providers 2026: Ranked & Reviewed' => :iptv,
       '7* Best iPTVServices of 2026 - Complete Comparison' => :iptv,
       'trisha______pratihari.786' => :social_handle,
-      '_kanhaaa.05' => :social_handle,
+      '_kanhaaa' => :social_handle,
+      'kanha__ji' => :social_handle,
       '@mghtooedit1007' => :social_handle,
       'BitStarz 30 Free Spins No Deposit 2026' => :gambling,
       'Earn Robux Free Easily: Updated Methods That Actually Work' => :gambling,
@@ -64,7 +65,14 @@ RSpec.describe Event::SpamCheck do
       'Birthday_2026',
       'Room_101',
       'bday.2026',
-      'Q4_offsite'
+      'Q4_offsite',
+      '@home',
+      '@Starbucks',
+      'Sarah.40',
+      'party.12.05',
+      'Brunch.11.30',
+      'Room.101',
+      'v1.2.10'
     ].each do |title|
       it "accepts #{title.inspect}" do
         expect(reasons(title)).to be_empty

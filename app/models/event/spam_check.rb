@@ -33,9 +33,10 @@ class Event::SpamCheck
   PRICE_CUT = /\b(off|menos|mniej|taniej|korting|sparen|savings?|save|économisez|réduction|desconto|descuento|zniżk\w*)\b/i
   NOT_PROMO = /dress[ -]?code|code of conduct|qr ?code|gate code|door code/i
 
-  # Social media handles used as titles by follower-seekers: a leading _ or @,
-  # a run of underscores, or a trailing .05 / .786 (not a year).
-  SOCIAL_HANDLE = /\A(?=[\w.@]*[a-z])(?:[_@][\w.]{3,}|[\w.]*__[\w.]*|[\w.]{3,}\.\d{2,3})\z/i
+  # Social media handles used as titles by follower-seekers: a leading _, a run
+  # of underscores, or an @handle containing a digit, _ or . (so venue titles
+  # like "@home" and "@Starbucks" pass).
+  SOCIAL_HANDLE = /\A(?=[\w.@]*[a-z])(?:_[\w.]{3,}|@(?=[\w.]*[\d_.])[\w.]{3,}|[\w.]*__[\w.]*)\z/i
 
   PHONE = /\d{3}[^\p{L}\d]{0,5}\d{3}[^\p{L}\d]{0,5}\d{4}/
   PHONE_CONTEXT = /customer (service|support|care)|\bsupport\b|helpline|hotline|\btoll|airlines?|airways|\bflights?\b|\bbooking\b|reservations?|refund|live (person|agent)|📞|☎/i
