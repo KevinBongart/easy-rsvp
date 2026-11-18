@@ -113,6 +113,27 @@ asset-compilation, and RSpec checks.
   set with `update_columns`, bypassing the save-time check. Not spam sets
   `spam_source = "cleared"` (with no `spam_at`) so automatic checks skip the
   event afterwards.
+- `Event::SpamReview` / `EventSpamReviewJob`: a second opinion from TypeSafe's
+  Jev model (`TYPESAFE_API_KEY`; off when unset) for events the Ruby rules pass
+  and no admin has decided on. The job is queued after commit on the in-process
+  async adapter (two threads inside each Puma process; no worker process, so a
+  restart can drop it), stores Jev's advertising score in
+  `Event#spam_score`, and flags the event `automatic` at `THRESHOLD` (0.9); the
+  organizer clears it the same way, by editing, which queues a new review.
+  Errors fail open. Under a row lock, the job writes only if the masked text it
+  sent is still the event's text and no admin decided meanwhile. Jev cannot be
+  fine-tuned, so admin decisions teach it in context: each request lists the 10
+  most recent published "Not spam" events and the 10 most recent admin spam marks,
+  ordered by `spam_decided_at`, which only the admin actions set. Editing a
+  cleared event's text resets it, so organizers cannot inject text into other
+  reviews. "Not spam" clicks from before the column existed have no decision
+  time and are never examples. Masking truncates first and uses bounded
+  regexes, because it runs on untrusted text under `Regexp.timeout`. Text is masked before it leaves the app (links reduced to domains,
+  emails, phones, street addresses, UK postcodes); link targets hidden behind
+  anchor text are appended as domains. Evaluated on the 2026-11 snapshot: 0.9
+  flagged 5 of 11,368 legitimate events and caught 29 of 40 adversarial spam
+  pages the Ruby rules missed; balanced examples removed those false positives
+  without losing recall.
 - `AdminPreview`: loading the Basic-Auth dashboard opens an admin session, an
   expiring flag (one day) in the encrypted Rails session cookie; no tokens appear
   in URLs. In that browser, event and organizer pages show an admin banner and

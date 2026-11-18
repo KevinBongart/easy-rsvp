@@ -25,7 +25,7 @@ RSpec.describe 'Admin spam tools', type: :request do
       post mark_spam_admin_event_path(event), headers: dashboard_headers.merge('HTTP_REFERER' => admin_events_url(sort: 'rsvps'))
 
       expect(response).to redirect_to(admin_events_url(sort: 'rsvps'))
-      expect(event.reload).to have_attributes(spam_source: 'operator', spam_at: be_present)
+      expect(event.reload).to have_attributes(spam_source: 'operator', spam_at: be_present, spam_decided_at: be_present)
       get event_admin_path(event, event.admin_token)
       expect(response).to have_http_status(:gone)
     end
@@ -44,7 +44,7 @@ RSpec.describe 'Admin spam tools', type: :request do
 
       post unmark_spam_admin_event_path(event), headers: dashboard_headers
 
-      expect(event.reload).to have_attributes(spam_source: 'cleared', spam_at: nil)
+      expect(event.reload).to have_attributes(spam_source: 'cleared', spam_at: nil, spam_decided_at: be_present)
       get event_path(event)
       expect(response).to have_http_status(:ok)
     end

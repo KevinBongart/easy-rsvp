@@ -14,6 +14,9 @@ class Event < ApplicationRecord
   before_validation :apply_submitted_schedule, if: :schedule_submitted?
   before_create :set_admin_token
   before_save :apply_spam_check, if: :spam_check_needed?
+  before_save :forget_spam_decision, if: :cleared_text_changed?
+  after_commit :review_spam_later, on: %i[create update], if: -> { @spam_review_pending }
+  after_rollback { @spam_review_pending = false }
 
   validates :title, presence: true
   validates :date, presence: true
@@ -40,6 +43,12 @@ class Event < ApplicationRecord
   # An operator decided this is not spam; automatic checks leave it alone.
   def cleared_of_spam?
     spam_source == "cleared"
+  end
+
+  # Events the Ruby rules let through and no operator has decided on get a
+  # second opinion from Event::SpamReview.
+  def spam_review_needed?
+    spam_source.nil? && Event::SpamReview.enabled?
   end
 
   def timed?
@@ -88,10 +97,11 @@ class Event < ApplicationRecord
   def spam_check_needed?
     return false if spam_locked? || cleared_of_spam?
 
-    new_record? || will_save_change_to_title? || rich_text_body&.changed?
+    new_record? || text_changed?
   end
 
   def apply_spam_check
+    self.spam_score = nil
     if Event::SpamCheck.spam?(title: title.to_s, html: rich_text_body&.body&.to_html.to_s)
       self.spam_at ||= Time.current
       self.spam_source = "automatic"
@@ -99,6 +109,26 @@ class Event < ApplicationRecord
       self.spam_at = nil
       self.spam_source = nil
     end
+    @spam_review_pending = spam_review_needed?
+  end
+
+  def text_changed?
+    will_save_change_to_title? || rich_text_body&.changed?
+  end
+
+  # A cleared event's organizer can still edit it; the admin's decision no
+  # longer covers the new text, so it stops being a "not spam" example.
+  def cleared_text_changed?
+    persisted? && cleared_of_spam? && spam_decided_at.present? && text_changed?
+  end
+
+  def forget_spam_decision
+    self.spam_decided_at = nil
+  end
+
+  def review_spam_later
+    @spam_review_pending = false
+    EventSpamReviewJob.perform_later(id)
   end
 
   def schedule_submitted?
