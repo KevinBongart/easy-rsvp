@@ -6,6 +6,8 @@ class Event < ApplicationRecord
   has_many :rsvps, dependent: :destroy
   has_rich_text :body
 
+  scope :not_spam, -> { where(spam_at: nil) }
+
   normalizes :time_zone, with: ->(time_zone) { time_zone.presence }
 
   before_validation :apply_submitted_schedule, if: :schedule_submitted?
@@ -18,6 +20,10 @@ class Event < ApplicationRecord
   validate :time_zone_is_known
   validate :schedule_ends_after_it_starts
   validate :schedule_uses_event_date
+
+  def spam?
+    spam_at.present?
+  end
 
   def timed?
     starts_at.present?

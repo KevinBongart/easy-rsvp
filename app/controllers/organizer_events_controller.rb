@@ -1,4 +1,5 @@
 class OrganizerEventsController < ApplicationController
+  before_action :prevent_search_indexing
   before_action :set_event
 
   def show
@@ -33,6 +34,7 @@ class OrganizerEventsController < ApplicationController
     id = Event.decode_id(hashid)
 
     @event = Event.find_by!(id: id, admin_token: params[:admin_token])
+    render_removed_event if @event.spam?
   end
 
   # Never trust parameters from the scary internet, only allow the white list through.

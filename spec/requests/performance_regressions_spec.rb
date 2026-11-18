@@ -25,7 +25,9 @@ RSpec.describe "Core request performance", type: :request do
 
     event = Event.order(:id).last
     expect(response).to redirect_to(event_admin_path(event, event.admin_token))
-    expect_metrics(metrics, label: "event creation", max_queries: 4, max_allocations: 20_000)
+    # Four of these queries enforce the per-client creation limit: an advisory
+    # lock, expired-counter cleanup, the window count, and the new counter row.
+    expect_metrics(metrics, label: "event creation", max_queries: 8, max_allocations: 20_000)
   end
 
   it "keeps public event rendering constant from zero to 100 RSVPs" do
