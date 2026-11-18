@@ -1,0 +1,10 @@
+<div class="alert alert-info" role="status" id="admin-preview">
+  <strong>Admin preview.</strong>
+  <% if @event.spam? %>
+    Guests see this event as removed (marked as spam<%= " automatically" if @event.flagged_as_spam? %>).
+  <% elsif !@event.published? %>
+    Guests can't see this event: it is unpublished.
+  <% else %>
+    Guests see this page normally.
+  <% end %>
+</div>

@@ -45,6 +45,7 @@ class EventsController < ApplicationController
   def set_event
     hashid = event_hashid_from_param(params[:id])
     @event = Event.find_by_hashid!(hashid)
+    return if admin_preview?
     return render_removed_event if @event.spam?
 
     unless @event.published?

@@ -34,7 +34,8 @@ class OrganizerEventsController < ApplicationController
     id = Event.decode_id(hashid)
 
     @event = Event.find_by!(id: id, admin_token: params[:admin_token])
-    render_removed_event if @event.spam_locked?
+    # Admin previews are read-only: they never unlock edits or deletion.
+    render_removed_event if @event.spam_locked? && !(request.get? && admin_preview?)
   end
 
   # Never trust parameters from the scary internet, only allow the white list through.

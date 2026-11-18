@@ -13,6 +13,14 @@ class ApplicationController < ActionController::Base
     @prevent_search_indexing = true
   end
 
+  # True when the site administrator opened this event's page through a signed
+  # preview link from the admin dashboard.
+  def admin_preview?
+    return @admin_preview if defined?(@admin_preview)
+
+    @admin_preview = @event.present? && AdminPreview.valid?(@event, params[AdminPreview::PARAM])
+  end
+
   # 410 tells search engines the page is gone for good, so spam that was
   # already indexed drops out faster than it would after a 404 or redirect.
   def render_removed_event

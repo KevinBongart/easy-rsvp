@@ -29,6 +29,7 @@
       </nav>
 
       <main>
+        <%= render 'layouts/admin_preview' if @admin_preview %>
         <%= render 'layouts/messages' %>
         <%= yield %>
       </main>

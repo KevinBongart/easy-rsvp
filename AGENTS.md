@@ -107,8 +107,14 @@ asset-compilation, and RSpec checks.
   `FlagUncheckedSpamEvents` migration ran the check once over events created
   before it existed. Body rules ignore only image payloads; text in figures,
   captions, and content attachments counts because Action Text renders it. The admin
-  dashboard lists spam only under its Spam filter (`spam=1`), badges automatic
-  marks, and never counts spam in the stats.
+  dashboard lists spam only under its Spam filter (`spam=1`) with creation
+  times, badges automatic marks, and never counts spam in the stats. Each row
+  has a confirmed Mark spam / Not spam button; admin marks are `operator` marks
+  set with `update_columns`, bypassing the save-time check.
+- `AdminPreview`: dashboard links to spam and unpublished events carry a signed
+  `preview_token` (app secret, bound to one event, expires after a day, filtered
+  from logs). It lets the administrator view the public page and the organizer
+  page; it never unlocks organizer edits, publication, or deletion.
 - `RecentEventCreation`: at most 5 successful event creations per client per
   30 minutes. Clients are keyed by an HMAC of the remote IP (IPv6 reduced to its
   /64), never the raw address, never linked to the event, and rows are deleted
