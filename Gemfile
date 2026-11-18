@@ -36,7 +36,7 @@ group :development, :test do
 end
 
 group :test do
-  gem "axe-core-rspec", "~> 4.13"
+  gem "axe-core-rspec", "~> 4.14"
   gem "factory_bot_rails", "~> 6.4"
   gem "selenium-webdriver", "~> 4.51"
   gem "webmock", "~> 3.34"
