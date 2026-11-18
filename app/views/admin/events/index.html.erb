@@ -63,6 +63,11 @@
   <% end %>
 </div>
 
+<%# One shared form for every row's spam buttons: a form per row would render
+    1,000 CSRF tokens per page. Each button posts to its own formaction and
+    carries its own data-turbo-confirm, which Turbo reads from the submitter. %>
+<%= form_tag "", method: :post, id: "spam-actions", class: "d-none" do %><% end %>
+
 <table class="table table-sm table-striped table-hover">
   <thead>
     <tr>
@@ -80,10 +85,12 @@
   </thead>
   <tbody>
     <% @events.each do |event| %>
-      <% preview = event.spam? || !event.published? ? { AdminPreview::PARAM => AdminPreview.token_for(event) } : {} %>
+      <% hashid = event.hashid %>
+      <% preview = AdminPreview.token_for(event) if event.spam? || !event.published? %>
+      <% public_path = admin_event_row_path(:public, event, hashid:, preview:) %>
       <tr>
-        <th scope="row" class="text-nowrap"><%= link_to event.id, event_path(event, preview) %></th>
-        <td><%= link_to event.title, event_path(event, preview) %><% if event.flagged_as_spam? %> <span class="badge text-bg-warning">auto-flagged</span><% end %></td>
+        <th scope="row" class="text-nowrap"><%= link_to event.id, public_path %></th>
+        <td><%= link_to event.title, public_path %><% if event.flagged_as_spam? %> <span class="badge text-bg-warning">auto-flagged</span><% end %></td>
         <td class="text-nowrap">
           <%= event.date %>
           <% if (time = event_time(event)) %>
@@ -100,17 +107,17 @@
         <% if params[:spam] == "1" %>
           <td class="text-nowrap small"><%= event.created_at.utc.strftime("%Y-%m-%d %H:%M UTC") %></td>
         <% end %>
-        <td class="text-nowrap"><code class="small"><%= link_to event.admin_token.split('-').first, event_admin_path(event, event.admin_token, **preview), class: "text-body" %></code></td>
+        <td class="text-nowrap"><code class="small"><%= link_to event.admin_token.split('-').first, admin_event_row_path(:organizer, event, hashid:, preview:), class: "text-body" %></code></td>
         <td class="text-nowrap">
           <% unless event.spam_locked? %>
-            <%= button_to "Mark spam", mark_spam_admin_event_path(event),
-              class: "btn btn-link btn-sm p-0 align-baseline text-danger",
-              form: { class: "d-inline", data: { turbo_confirm: "Mark “#{event.title}” as spam? Guests and its organizer will see it as removed." } } %>
+            <button type="submit" form="spam-actions" formaction="<%= admin_event_row_path(:mark_spam, event, hashid:) %>"
+              class="btn btn-link btn-sm p-0 align-baseline text-danger"
+              data-turbo-confirm="<%= "Mark “#{event.title}” as spam? Guests and its organizer will see it as removed." %>">Mark spam</button>
           <% end %>
           <% if event.spam? %>
-            <%= button_to "Not spam", unmark_spam_admin_event_path(event),
-              class: "btn btn-link btn-sm p-0 align-baseline",
-              form: { class: "d-inline", data: { turbo_confirm: "Restore “#{event.title}”? Guests will be able to see it again, and automatic spam checks will skip it." } } %>
+            <button type="submit" form="spam-actions" formaction="<%= admin_event_row_path(:unmark_spam, event, hashid:) %>"
+              class="btn btn-link btn-sm p-0 align-baseline"
+              data-turbo-confirm="<%= "Restore “#{event.title}”? Guests will be able to see it again, and automatic spam checks will skip it." %>">Not spam</button>
           <% end %>
         </td>
       </tr>

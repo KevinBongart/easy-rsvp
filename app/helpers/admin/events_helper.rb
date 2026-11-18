@@ -31,4 +31,23 @@ module Admin::EventsHelper
     right = index == points.size - 1 ? 160 : (points[index][:x] + points[index + 1][:x]) / 2.0
     "left: #{left / 1.6}%; width: #{(right - left) / 1.6}%"
   end
+
+  ROW_PATH_ID = "__event_id__"
+  ROW_PATH_TOKEN = "__admin_token__"
+
+  # Per-row URLs for the event list, built from templates generated once per
+  # request. Route helpers plus Event#to_param (which slugifies the title) cost
+  # about 0.1 ms per call, which adds up across 1,000 rows. The routes accept
+  # the bare hashid, so these admin links skip the title slug.
+  def admin_event_row_path(kind, event, hashid:, preview: nil)
+    templates = @admin_event_row_path_templates ||= {
+      public: event_path(ROW_PATH_ID),
+      organizer: event_admin_path(ROW_PATH_ID, ROW_PATH_TOKEN),
+      mark_spam: mark_spam_admin_event_path(ROW_PATH_ID),
+      unmark_spam: unmark_spam_admin_event_path(ROW_PATH_ID)
+    }
+    path = templates.fetch(kind).sub(ROW_PATH_ID, hashid)
+    path = path.sub(ROW_PATH_TOKEN, event.admin_token) if kind == :organizer
+    preview ? "#{path}?#{AdminPreview::PARAM}=#{ERB::Util.url_encode(preview)}" : path
+  end
 end
