@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_18_150000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_18_160000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -68,7 +68,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_18_150000) do
     t.datetime "spam_at"
     t.string "spam_source"
     t.check_constraint "ends_at IS NULL OR starts_at IS NULL OR ends_at > starts_at", name: "events_schedule_ordered"
-    t.check_constraint "spam_at IS NULL AND spam_source IS NULL OR spam_at IS NOT NULL AND (spam_source::text = ANY (ARRAY['operator'::character varying::text, 'automatic'::character varying::text]))", name: "events_spam_source_matches_spam_at"
+    t.check_constraint "spam_at IS NULL AND (spam_source IS NULL OR spam_source::text = 'cleared'::text) OR spam_at IS NOT NULL AND (spam_source::text = ANY (ARRAY['operator'::character varying, 'automatic'::character varying]::text[]))", name: "events_spam_source_matches_spam_at"
     t.check_constraint "starts_at IS NULL AND ends_at IS NULL AND time_zone IS NULL OR starts_at IS NOT NULL AND ends_at IS NOT NULL AND time_zone IS NOT NULL AND btrim(time_zone::text) <> ''::text", name: "events_schedule_complete"
     t.check_constraint "starts_at IS NULL OR ((starts_at AT TIME ZONE 'UTC'::text) AT TIME ZONE time_zone)::date = date AND ((ends_at AT TIME ZONE 'UTC'::text) AT TIME ZONE time_zone)::date = date", name: "events_schedule_matches_date"
   end

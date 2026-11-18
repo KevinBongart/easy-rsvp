@@ -3,7 +3,7 @@ class OrganizerEventsController < ApplicationController
   before_action :set_event
 
   def show
-    @rsvps = @event.rsvps.persisted.order(created_at: :asc)
+    @rsvps = @event.rsvps.persisted.order(:created_at, :id)
   end
 
   def edit
@@ -34,7 +34,9 @@ class OrganizerEventsController < ApplicationController
     id = Event.decode_id(hashid)
 
     @event = Event.find_by!(id: id, admin_token: params[:admin_token])
-    render_removed_event if @event.spam_locked?
+    # Admin previews are read-only: they never unlock edits or deletion.
+    preview = request.get? && admin_preview?
+    render_removed_event if @event.spam_locked? && !preview
   end
 
   # Never trust parameters from the scary internet, only allow the white list through.

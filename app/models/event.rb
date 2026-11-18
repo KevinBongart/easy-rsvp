@@ -37,6 +37,11 @@ class Event < ApplicationRecord
     spam_source == "automatic"
   end
 
+  # An operator decided this is not spam; automatic checks leave it alone.
+  def cleared_of_spam?
+    spam_source == "cleared"
+  end
+
   def timed?
     starts_at.present?
   end
@@ -81,7 +86,7 @@ class Event < ApplicationRecord
   private
 
   def spam_check_needed?
-    return false if spam_locked?
+    return false if spam_locked? || cleared_of_spam?
 
     new_record? || will_save_change_to_title? || rich_text_body&.changed?
   end

@@ -66,4 +66,25 @@ RSpec.describe 'Administrator charts', type: :system, js: true do
     end
     expect(page).to have_no_css('polyline[points*="NaN"], polyline[points*="Infinity"]')
   end
+
+  it 'marks an event as spam after confirmation and can restore it' do
+    event = create(:event, title: 'Suspicious bake sale')
+    # Authenticate once, then use a URL without credentials as a browser does
+    # after its login prompt; Turbo does not handle forms on credentialed URLs.
+    visit_dashboard
+    visit admin_events_path
+
+    dismiss_confirm(/Mark “Suspicious bake sale” as spam\?/) { click_button 'Mark spam' }
+    expect(event.reload).not_to be_spam
+
+    accept_confirm(/Mark “Suspicious bake sale” as spam\?/) { click_button 'Mark spam' }
+    expect(page).to have_content('“Suspicious bake sale” was marked as spam.')
+    expect(page).to have_no_link('Suspicious bake sale')
+    expect(event.reload.spam_source).to eq('operator')
+
+    click_link 'Spam'
+    accept_confirm(/Restore “Suspicious bake sale”\?/) { click_button 'Not spam' }
+    expect(page).to have_content('“Suspicious bake sale” is no longer marked as spam.')
+    expect(event.reload).not_to be_spam
+  end
 end
