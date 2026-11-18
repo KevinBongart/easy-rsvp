@@ -58,12 +58,6 @@ jobs:
       - image: cimg/base:stable
     steps:
       - checkout
-      - run:
-          name: Skip documentation-only deploy
-          command: |
-            if bin/docs-only-changes HEAD^; then
-              circleci-agent step halt
-            fi
       - add_ssh_keys
       - run:
           name: Configure Dokku remote
@@ -78,6 +72,25 @@ jobs:
             ssh-keyscan "$dokku_hostname" >> ~/.ssh/known_hosts
             git remote add dokku "dokku@${dokku_hostname}:easy-rsvp"
       - run:
+          name: Skip documentation-only deploy
+          command: |
+            set -euo pipefail
+            # Compare with the revision Dokku runs, not HEAD^: the deploy
+            # serial group skips older queued deploys, so the previous commit
+            # may never have been deployed. Deploy whenever this is unknown.
+            dokku_hostname="${DOKKU_HOST##*@}"
+            deployed_sha="$(ssh -o BatchMode=yes "dokku@${dokku_hostname}" git:report easy-rsvp --git-sha 2>/dev/null | tr -d '[:space:]' || true)"
+            if [[ "$deployed_sha" =~ ^[0-9a-f]{40}$ ]] \
+              && git cat-file -e "${deployed_sha}^{commit}" 2>/dev/null \
+              && git merge-base --is-ancestor "$deployed_sha" HEAD; then
+              if bin/docs-only-changes "$deployed_sha"; then
+                echo "Only documentation changed since the deployed revision ${deployed_sha}."
+                circleci-agent step halt
+              fi
+            else
+              echo "Could not determine the deployed revision; deploying."
+            fi
+      - run:
           name: Deploy to Dokku
           command: git push dokku main
 
@@ -86,6 +99,11 @@ workflows:
     jobs:
       - build
       - deploy:
+          # One deploy at a time across pipelines. When a newer main pipeline
+          # is waiting or deploying, CircleCI skips older queued deploys
+          # instead of running them, so merges in quick succession no longer
+          # collide on Dokku's deploy lock or ship outdated revisions.
+          serial-group: << pipeline.project.slug >>/deploy
           requires:
             - build
           filters:
