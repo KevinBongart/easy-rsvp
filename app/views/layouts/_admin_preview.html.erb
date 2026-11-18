@@ -7,5 +7,20 @@
   <% else %>
     Guests see this page normally.
   <% end %>
-  Links and buttons on this page don't carry the preview.
+
+  <span class="d-block mt-1">
+    <% unless @event.spam_locked? %>
+      <%= button_to "Mark spam", mark_spam_admin_event_path(@event),
+        params: { return_to: request.fullpath },
+        class: "btn btn-link btn-sm p-0 align-baseline text-danger",
+        form: { class: "d-inline", data: { turbo_confirm: "Mark “#{@event.title}” as spam? Guests and its organizer will see it as removed." } } %>
+    <% end %>
+    <% if @event.spam? %>
+      <%= button_to "Not spam", unmark_spam_admin_event_path(@event),
+        params: { return_to: request.fullpath },
+        class: "btn btn-link btn-sm p-0 align-baseline ms-2",
+        form: { class: "d-inline", data: { turbo_confirm: "Restore “#{@event.title}”? Guests will be able to see it again, and automatic spam checks will skip it." } } %>
+    <% end %>
+    <%= link_to "Back to the dashboard", admin_events_path, class: "btn btn-link btn-sm p-0 align-baseline ms-2" %>
+  </span>
 </div>

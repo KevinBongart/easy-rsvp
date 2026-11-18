@@ -87,4 +87,19 @@ RSpec.describe 'Administrator charts', type: :system, js: true do
     expect(page).to have_content('“Suspicious bake sale” is no longer marked as spam.')
     expect(event.reload).not_to be_spam
   end
+
+  it 'marks an event as spam from its page opened through the dashboard' do
+    event = create(:event, title: 'Questionable picnic')
+    visit_dashboard
+    visit admin_events_path
+
+    click_link 'Questionable picnic'
+    expect(page).to have_css('#admin-preview', text: 'Guests see this page normally.')
+    accept_confirm(/Mark “Questionable picnic” as spam\?/) { click_button 'Mark spam' }
+
+    expect(page).to have_content('“Questionable picnic” was marked as spam.')
+    expect(page).to have_css('#admin-preview', text: 'marked as spam')
+    expect(page).to have_css('h1', text: 'Questionable picnic')
+    expect(event.reload.spam_source).to eq('operator')
+  end
 end

@@ -61,6 +61,7 @@ module Admin
     SQL
 
     def index
+      AdminPreview.start(session)
       @event_stats = Admin::EventStats.new(Event.not_spam)
       @events = listed_events.page(params[:page]).per(EVENTS_PER_PAGE)
     end
@@ -71,16 +72,31 @@ module Admin
     def mark_spam
       event = Event.find_by_hashid!(event_hashid_from_param(params[:id]))
       event.update_columns(spam_at: event.spam_at || Time.current, spam_source: "operator")
-      redirect_back_or_to admin_events_path, notice: "“#{event.title}” was marked as spam."
+      redirect_after_spam_change admin_events_path, notice: "“#{event.title}” was marked as spam."
     end
 
     def unmark_spam
       event = Event.find_by_hashid!(event_hashid_from_param(params[:id]))
       event.update_columns(spam_at: nil, spam_source: "cleared")
-      redirect_back_or_to admin_events_path(spam: "1"), notice: "“#{event.title}” is no longer marked as spam."
+      redirect_after_spam_change admin_events_path(spam: "1"), notice: "“#{event.title}” is no longer marked as spam."
+    end
+
+    def close_session
+      AdminPreview.stop(session)
+      redirect_to root_path, notice: "Admin session closed."
     end
 
     private
+
+    # Buttons on preview pages pass return_to so the admin lands back on the
+    # page they were viewing. url_from only accepts same-site URLs.
+    def redirect_after_spam_change(fallback, notice:)
+      if (target = url_from(params[:return_to]))
+        redirect_to target, notice: notice
+      else
+        redirect_back_or_to fallback, notice: notice
+      end
+    end
 
     def listed_events
       events = (params[:spam] == "1" ? Event.spam : Event.not_spam).joins(Arel.sql(ATTACHMENT_STATS_JOIN_SQL)).select(

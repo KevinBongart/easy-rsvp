@@ -39,7 +39,7 @@ module Admin::EventsHelper
   # request. Route helpers plus Event#to_param (which slugifies the title) cost
   # about 0.1 ms per call, which adds up across 1,000 rows. The routes accept
   # the bare hashid, so these admin links skip the title slug.
-  def admin_event_row_path(kind, event, hashid:, preview: nil)
+  def admin_event_row_path(kind, event, hashid:)
     templates = @admin_event_row_path_templates ||= {
       public: event_path(ROW_PATH_ID),
       organizer: event_admin_path(ROW_PATH_ID, ROW_PATH_TOKEN),
@@ -47,7 +47,6 @@ module Admin::EventsHelper
       unmark_spam: unmark_spam_admin_event_path(ROW_PATH_ID)
     }
     path = templates.fetch(kind).sub(ROW_PATH_ID, hashid)
-    path = path.sub(ROW_PATH_TOKEN, event.admin_token) if kind == :organizer
-    preview ? "#{path}?#{AdminPreview::PARAM}=#{ERB::Util.url_encode(preview)}" : path
+    kind == :organizer ? path.sub(ROW_PATH_TOKEN, event.admin_token) : path
   end
 end

@@ -15,14 +15,6 @@ RSpec.describe OrganizerTokenRedactor do
     expect(described_class.redact('/party')).to eq('/party')
   end
 
-  it 'redacts admin preview tokens in URLs and referers' do
-    preview = 'eyJfcmFpbHMiOnsiZGF0YSI6MTJ9fQ==--abc123'
-
-    expect(described_class.redact("https://example.com/abc-party?preview_token=#{preview}&x=1"))
-      .to eq('https://example.com/abc-party?preview_token=[FILTERED]&x=1')
-    expect(described_class.redact("/abc?preview_token%3D#{preview}")).not_to include(preview)
-  end
-
   it 'scrubs Honeybadger notice URLs and diagnostic data without sending it' do
     notice_class = Struct.new(*described_class::HONEYBADGER_NOTICE_FIELDS, keyword_init: true)
     notice = notice_class.new(
