@@ -95,10 +95,11 @@ asset-compilation, and RSpec checks.
   stays indexable. `UserContentLinkScrubber` keeps Action Text's default safe list
   and adds `rel="nofollow ugc noopener noreferrer"` to every rendered link; Action
   Text ignores its tag/attribute lists when a scrubber is set, so the scrubber
-  carries them itself. `Event#spam_at` marks spam: public, RSVP, and organizer
+  carries them itself. `Event#spam_at` marks spam (`Event.spam` / `Event.not_spam` scopes): public, RSVP, and organizer
   routes answer `410 Gone`, and spam is excluded from the admin dashboard and
-  stats. The 2026-11 SEO spam wave was marked by a frozen classifier in the
-  `AddSpamAtToEvents` migration.
+  stats. The 2026-11 SEO spam wave was marked by frozen classifiers in the
+  `AddSpamAtToEvents` and `MarkMoreSpamEvents` migrations; nothing marks new
+  spam automatically yet.
 - `RecentEventCreation`: at most 5 successful event creations per client per
   30 minutes. Clients are keyed by an HMAC of the remote IP (IPv6 reduced to its
   /64), never the raw address, never linked to the event, and rows are deleted

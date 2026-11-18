@@ -6,6 +6,7 @@ class Event < ApplicationRecord
   has_many :rsvps, dependent: :destroy
   has_rich_text :body
 
+  scope :spam, -> { where.not(spam_at: nil) }
   scope :not_spam, -> { where(spam_at: nil) }
 
   normalizes :time_zone, with: ->(time_zone) { time_zone.presence }
