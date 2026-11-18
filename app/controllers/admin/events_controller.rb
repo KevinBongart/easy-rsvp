@@ -61,14 +61,14 @@ module Admin
     SQL
 
     def index
-      @event_stats = Admin::EventStats.new(Event.all)
+      @event_stats = Admin::EventStats.new(Event.not_spam)
       @events = listed_events.page(params[:page]).per(EVENTS_PER_PAGE)
     end
 
     private
 
     def listed_events
-      events = Event.joins(Arel.sql(ATTACHMENT_STATS_JOIN_SQL)).select(
+      events = Event.not_spam.joins(Arel.sql(ATTACHMENT_STATS_JOIN_SQL)).select(
         "events.*",
         "#{RSVP_COUNT_SQL} AS rsvps_count",
         "COALESCE(attachment_stats.attachments_count, 0) AS attachments_count",

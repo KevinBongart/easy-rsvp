@@ -50,7 +50,7 @@ Verified against the repository on 2026-09-18; the version files remain authorit
 
 | Concern | Current implementation |
 | --- | --- |
-| Runtime | Ruby 3.3.12; Rails 8.1.3.1 in `Gemfile.lock` |
+| Runtime | Ruby 4.0.9; Rails 8.1.4.1 in `Gemfile.lock` |
 | Framework defaults | `config.load_defaults 8.1`, with a SHA-1 key-generator compatibility hold |
 | Database | PostgreSQL; `events_development`, `events_test`, `events_production` |
 | UI | ERB, Simple Form, Bootstrap 5.3.8 |
@@ -90,6 +90,20 @@ asset-compilation, and RSpec checks.
   before reaching storage. Upload ownership remains independent of event
   creation and needs a separate lifecycle design.
 - `EventsController`: event creation and public display.
+- Spam and search indexing: event pages (public, calendar, organizer) send
+  `X-Robots-Tag: noindex, nofollow` and a matching robots meta tag; the home page
+  stays indexable. `UserContentLinkScrubber` keeps Action Text's default safe list
+  and adds `rel="nofollow ugc noopener noreferrer"` to every rendered link; Action
+  Text ignores its tag/attribute lists when a scrubber is set, so the scrubber
+  carries them itself. `Event#spam_at` marks spam: public, RSVP, and organizer
+  routes answer `410 Gone`, and spam is excluded from the admin dashboard and
+  stats. The 2026-11 SEO spam wave was marked by a frozen classifier in the
+  `AddSpamAtToEvents` migration.
+- `RecentEventCreation`: at most 5 successful event creations per client per
+  30 minutes. Clients are keyed by an HMAC of the remote IP (IPv6 reduced to its
+  /64), never the raw address, never linked to the event, and rows are deleted
+  once outside the window. A per-client Postgres advisory lock serializes
+  parallel submissions. Failed validations do not count.
 - `OrganizerEventsController`: organizer display, editing, deletion, publication.
 - `RsvpsController`: public response creation and session-owned deletion.
 - `OrganizerRsvpsController`: organizer response editing/deletion.
@@ -125,7 +139,9 @@ CircleCI installs Firefox/geckodriver, creates and loads the test database, then
 runs `bin/ci`. JUnit results and failure screenshots are retained. Bundler-audit,
 Brakeman, Rails Omakase, ERB Lint, ESLint, and Stylelint run before the application
 checks. The frontend linters use their upstream recommended rules without a
-project-specific house style or generated suppression file.
+project-specific house style or generated suppression file. `npm audit` covers
+shipped dependencies only (`--omit=dev`): development-only lint tooling never
+reaches production and must not block deploys on advisories without a fix.
 
 Before merging a substantive pull request, have a context-isolated agent
 independently review the final diff against `origin/main` and these repository

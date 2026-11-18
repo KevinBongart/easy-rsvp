@@ -5,6 +5,9 @@
       <%= content_for?(:title) ? yield(:title) : (@event&.title || "Easy RSVP") %>
     </title>
 
+    <% if @prevent_search_indexing %>
+      <meta name="robots" content="noindex, nofollow">
+    <% end %>
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
 

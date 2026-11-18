@@ -8,5 +8,6 @@ class OrganizerController < ApplicationController
     id = Event.decode_id(hashid)
 
     @event = Event.find_by!(id: id, admin_token: params[:admin_admin_token])
+    render_removed_event if @event.spam?
   end
 end

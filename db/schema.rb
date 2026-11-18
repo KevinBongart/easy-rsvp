@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_23_191715) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_18_120100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -65,6 +65,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_23_191715) do
     t.string "time_zone"
     t.string "title", null: false
     t.datetime "updated_at", precision: nil, null: false
+    t.datetime "spam_at"
     t.check_constraint "ends_at IS NULL OR starts_at IS NULL OR ends_at > starts_at", name: "events_schedule_ordered"
     t.check_constraint "starts_at IS NULL AND ends_at IS NULL AND time_zone IS NULL OR starts_at IS NOT NULL AND ends_at IS NOT NULL AND time_zone IS NOT NULL AND btrim(time_zone::text) <> ''::text", name: "events_schedule_complete"
     t.check_constraint "starts_at IS NULL OR ((starts_at AT TIME ZONE 'UTC'::text) AT TIME ZONE time_zone)::date = date AND ((ends_at AT TIME ZONE 'UTC'::text) AT TIME ZONE time_zone)::date = date", name: "events_schedule_matches_date"
@@ -82,6 +83,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_23_191715) do
     t.bigint "event_id", null: false
     t.datetime "event_updated_at", null: false
     t.index ["event_id"], name: "index_legacy_event_body_conflicts_on_event_id", unique: true
+  end
+
+  create_table "recent_event_creations", force: :cascade do |t|
+    t.string "client_digest", null: false
+    t.datetime "created_at", null: false
+    t.index ["client_digest", "created_at"], name: "index_recent_event_creations_on_client_digest_and_created_at"
+    t.index ["created_at"], name: "index_recent_event_creations_on_created_at"
   end
 
   create_table "rsvps", force: :cascade do |t|

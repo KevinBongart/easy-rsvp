@@ -1,4 +1,7 @@
 class EventsController < ApplicationController
+  CREATION_LIMITED_MESSAGE = "To prevent abuse on Easy RSVP, we're limiting how many events you can create in a short window. Please wait 30 minutes and try again.".freeze
+
+  before_action :prevent_search_indexing, only: [ :show, :calendar ]
   before_action :set_event, only: [ :show, :calendar ]
   before_action :set_placeholders, only: [ :new ]
 
@@ -16,8 +19,13 @@ class EventsController < ApplicationController
 
   def create
     @event = Event.new(event_params)
+    result = RecentEventCreation.limit(request.remote_ip) { @event.save }
 
-    if @event.save
+    if result == :limited
+      set_placeholders
+      flash.now[:alert] = CREATION_LIMITED_MESSAGE
+      render :new, status: :too_many_requests
+    elsif result
       redirect_to event_admin_path(@event, @event.admin_token)
     else
       set_placeholders
@@ -37,6 +45,7 @@ class EventsController < ApplicationController
   def set_event
     hashid = event_hashid_from_param(params[:id])
     @event = Event.find_by_hashid!(hashid)
+    return render_removed_event if @event.spam?
 
     unless @event.published?
       redirect_to root_path, alert: "This event is no longer viewable."
