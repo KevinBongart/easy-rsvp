@@ -52,8 +52,11 @@ Rails.application.configure do
   # Replace the default in-process memory cache store with a durable alternative.
   # config.cache_store = :mem_cache_store
 
-  # Replace the default in-process and non-durable queuing backend for Active Job.
-  # config.active_job.queue_adapter = :resque
+  # Jobs run on a small thread pool inside each Puma process; the app has no
+  # worker process. Only EventSpamReviewJob uses it, and it fails open, so jobs
+  # lost on restart are acceptable. Two threads keep it from competing with
+  # Puma for database connections.
+  config.active_job.queue_adapter = ActiveJob::QueueAdapters::AsyncAdapter.new(min_threads: 0, max_threads: 2)
 
   # Ignore bad email addresses and do not raise email delivery errors.
   # Set this to true and configure the email server for immediate delivery to raise delivery errors.

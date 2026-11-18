@@ -115,8 +115,9 @@ asset-compilation, and RSpec checks.
   event afterwards.
 - `Event::SpamReview` / `EventSpamReviewJob`: a second opinion from TypeSafe's
   Jev model (`TYPESAFE_API_KEY`; off when unset) for events the Ruby rules pass
-  and no admin has decided on. The job is queued after commit (in-process async
-  adapter, so a restart can drop it), stores Jev's advertising score in
+  and no admin has decided on. The job is queued after commit on the in-process
+  async adapter (two threads inside each Puma process; no worker process, so a
+  restart can drop it), stores Jev's advertising score in
   `Event#spam_score`, and flags the event `automatic` at `THRESHOLD` (0.9); the
   organizer clears it the same way, by editing, which queues a new review.
   Errors fail open. Under a row lock, the job writes only if the masked text it
