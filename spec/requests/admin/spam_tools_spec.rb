@@ -65,7 +65,7 @@ RSpec.describe 'Admin spam tools', type: :request do
 
       get admin_events_path, params: { spam: '1' }, headers: dashboard_headers
 
-      actions = row_for('Possible bake sale spam').css('td')[-1].css('form').map { |form| form['action'].split('/').last }
+      actions = row_for('Possible bake sale spam').css('td')[-1].css('button').map { |button| button['formaction'].split('/').last }
       expect(actions).to eq(%w[mark_spam unmark_spam])
     end
 
@@ -76,10 +76,13 @@ RSpec.describe 'Admin spam tools', type: :request do
 
       cells = row_for('Garden party').css('td')
       expect(cells[-2].at_css('a')['href']).to include('/admin/')
-      form = cells[-1].at_css('form')
-      expect(form['action']).to end_with('/mark_spam')
-      expect(form['data-turbo-confirm']).to include('Mark “Garden party” as spam?')
-      expect(form.at_css('button')['class']).to include('btn-link')
+      button = cells[-1].at_css('button')
+      expect(button['formaction']).to end_with('/mark_spam')
+      expect(button['data-turbo-confirm']).to include('Mark “Garden party” as spam?')
+      expect(button['class']).to include('btn-link')
+      shared_form = page.at_css("form##{button['form']}")
+      expect(shared_form['method']).to eq('post')
+      expect(cells[-1].css('form')).to be_empty
     end
 
     it 'offers to restore events in the spam list' do
@@ -87,9 +90,9 @@ RSpec.describe 'Admin spam tools', type: :request do
 
       get admin_events_path, params: { spam: '1' }, headers: dashboard_headers
 
-      form = row_for('Peptides coupon code').css('td')[-1].at_css('form')
-      expect(form['action']).to end_with('/unmark_spam')
-      expect(form['data-turbo-confirm']).to include('Restore')
+      button = row_for('Peptides coupon code').css('td')[-1].at_css('button')
+      expect(button['formaction']).to end_with('/unmark_spam')
+      expect(button['data-turbo-confirm']).to include('Restore')
     end
   end
 
@@ -119,8 +122,13 @@ RSpec.describe 'Admin spam tools', type: :request do
       get admin_events_path, params: { spam: '1' }, headers: dashboard_headers
 
       links = row_for('Peptides coupon code').css('a').map { |link| link['href'] }
-      expect(links).to include(a_string_including("#{event_path(event)}?preview_token="))
-      expect(links).to include(a_string_including("#{event_admin_path(event, event.admin_token)}?preview_token="))
+      expect(links).to include(a_string_starting_with("/#{event.hashid}?preview_token="))
+      expect(links).to include(a_string_starting_with("/#{event.hashid}/admin/#{event.admin_token}?preview_token="))
+
+      preview_link = links.find { |href| href.start_with?("/#{event.hashid}?") }
+      get preview_link
+      expect(response).to have_http_status(:ok)
+      expect(page.at_css('#admin-preview')).to be_present
     end
 
     it 'does not add tokens to ordinary published events' do
