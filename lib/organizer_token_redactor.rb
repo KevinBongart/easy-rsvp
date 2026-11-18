@@ -5,12 +5,9 @@ require "delegate"
 module OrganizerTokenRedactor
   UUID = /\b[0-9a-f]{8}(?:-|%2d)[0-9a-f]{4}(?:-|%2d)[0-9a-f]{4}(?:-|%2d)[0-9a-f]{4}(?:-|%2d)[0-9a-f]{12}\b/i
   ORGANIZER_PATH = %r{(/[^/\s?\#]+/admin/)[^/\s?\#"<>]+}
-  # Admin preview links (AdminPreview::PARAM) can reach logs and error
-  # reports through Referer headers.
-  PREVIEW_TOKEN = /(preview_token(?:=|%3D))[^&\s"'<>#]+/i
 
   def self.redact(value)
-    value.gsub(ORGANIZER_PATH, '\\1[FILTERED]').gsub(UUID, "[FILTERED]").gsub(PREVIEW_TOKEN, '\\1[FILTERED]')
+    value.gsub(ORGANIZER_PATH, '\\1[FILTERED]').gsub(UUID, "[FILTERED]")
   end
 
   def self.scrub(value)

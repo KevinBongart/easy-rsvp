@@ -86,8 +86,7 @@
   <tbody>
     <% @events.each do |event| %>
       <% hashid = event.hashid %>
-      <% preview = AdminPreview.token_for(event) %>
-      <% public_path = admin_event_row_path(:public, event, hashid:, preview:) %>
+      <% public_path = admin_event_row_path(:public, event, hashid:) %>
       <tr>
         <th scope="row" class="text-nowrap"><%= link_to event.id, public_path %></th>
         <td><%= link_to event.title, public_path %><% if event.flagged_as_spam? %> <span class="badge text-bg-warning">auto-flagged</span><% end %></td>
@@ -107,7 +106,7 @@
         <% if params[:spam] == "1" %>
           <td class="text-nowrap small"><%= event.created_at.utc.strftime("%Y-%m-%d %H:%M UTC") %></td>
         <% end %>
-        <td class="text-nowrap"><code class="small"><%= link_to event.admin_token.split('-').first, admin_event_row_path(:organizer, event, hashid:, preview:), class: "text-body" %></code></td>
+        <td class="text-nowrap"><code class="small"><%= link_to event.admin_token.split('-').first, admin_event_row_path(:organizer, event, hashid:), class: "text-body" %></code></td>
         <td class="text-nowrap">
           <% unless event.spam_locked? %>
             <button type="submit" form="spam-actions" formaction="<%= admin_event_row_path(:mark_spam, event, hashid:) %>"
@@ -126,3 +125,9 @@
 </table>
 
 <%= paginate @events %>
+
+<p class="small text-end mt-4 mb-0">
+  <%= button_to "Close admin session", close_session_admin_events_path, method: :delete,
+    class: "btn btn-link btn-sm p-0 align-baseline text-muted",
+    form: { class: "d-inline" } %>
+</p>

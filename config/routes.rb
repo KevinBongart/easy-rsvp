@@ -30,6 +30,7 @@ Rails.application.routes.draw do
         post :mark_spam
         post :unmark_spam
       end
+      delete :close_session, on: :collection
     end
   end
 

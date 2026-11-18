@@ -112,39 +112,35 @@ RSpec.describe 'Admin spam tools', type: :request do
     end
   end
 
-  describe 'admin previews' do
+  describe 'admin session' do
     let(:event) { create(:event, :spam, title: 'Peptides coupon code') }
-    let(:token) { AdminPreview.token_for(event) }
 
-    it 'links spam events from the dashboard with a preview token' do
+    def open_admin_session
+      get admin_events_path, headers: dashboard_headers
+    end
+
+    it 'shows guests and visitors without an admin session the normal pages' do
+      get event_path(event)
+      expect(response).to have_http_status(:gone)
+
+      published = create(:event)
+      get event_path(published)
+      expect(page.at_css('#admin-preview')).to be_nil
+    end
+
+    it 'links events from the dashboard without tokens in the URL' do
       event
+      open_admin_session
 
       get admin_events_path, params: { spam: '1' }, headers: dashboard_headers
-
       links = row_for('Peptides coupon code').css('a').map { |link| link['href'] }
-      expect(links).to include(a_string_starting_with("/#{event.hashid}?preview_token="))
-      expect(links).to include(a_string_starting_with("/#{event.hashid}/admin/#{event.admin_token}?preview_token="))
-
-      preview_link = links.find { |href| href.start_with?("/#{event.hashid}?") }
-      get preview_link
-      expect(response).to have_http_status(:ok)
-      expect(page.at_css('#admin-preview')).to be_present
+      expect(links).to include("/#{event.hashid}", "/#{event.hashid}/admin/#{event.admin_token}")
+      expect(links.join).not_to include('token=')
     end
 
-    it 'opens ordinary events in preview too, so they can be marked from their page' do
-      event = create(:event, title: 'Garden party')
-
-      get admin_events_path, headers: dashboard_headers
-
-      hrefs = row_for('Garden party').css('a').map { |link| link['href'] }
-      expect(hrefs).to all(include('preview_token='))
-      get hrefs.first
-      expect(page.at_css('#admin-preview').text).to include('Guests see this page normally.')
-      expect(page.at_css('#admin-preview form')['action']).to eq(mark_spam_admin_event_path(event))
-    end
-
-    it 'shows the public page of a spam event with a valid token' do
-      get event_path(event, preview_token: token)
+    it 'shows the public page of a spam event to the admin' do
+      open_admin_session
+      get event_path(event)
 
       expect(response).to have_http_status(:ok)
       expect(page.at_css('#admin-preview').text).to include('marked as spam')
@@ -152,52 +148,75 @@ RSpec.describe 'Admin spam tools', type: :request do
       expect(response.headers['X-Robots-Tag']).to eq('noindex, nofollow')
     end
 
-    it 'shows the locked organizer page with a valid token, read-only' do
-      get event_admin_path(event, event.admin_token, preview_token: token)
+    it 'shows unpublished events instead of redirecting' do
+      unpublished = create(:event, :unpublished)
+      open_admin_session
+
+      get event_path(unpublished)
+
+      expect(response).to have_http_status(:ok)
+      expect(page.at_css('#admin-preview').text).to include('unpublished')
+    end
+
+    it 'shows the locked organizer page, read-only' do
+      open_admin_session
+      get event_admin_path(event, event.admin_token)
       expect(response).to have_http_status(:ok)
       expect(page.at_css('#admin-preview')).to be_present
 
-      patch event_admin_path(event, event.admin_token, preview_token: token), params: { event: { title: 'Changed' } }
+      patch event_admin_path(event, event.admin_token), params: { event: { title: 'Changed' } }
       expect(response).to have_http_status(:gone)
 
-      post toggle_publish_event_admin_path(event, event.admin_token, preview_token: token)
+      post toggle_publish_event_admin_path(event, event.admin_token)
       expect(response).to have_http_status(:gone)
       expect(event.reload).to have_attributes(title: 'Peptides coupon code', published: true)
     end
 
-    it 'shows the banner on organizer previews of every hidden event' do
-      unpublished = create(:event, :unpublished)
-      flagged = create(:event, :flagged_as_spam)
+    it 'shows the banner on organizer pages of every hidden event' do
+      open_admin_session
 
-      [ unpublished, flagged ].each do |hidden|
-        get event_admin_path(hidden, hidden.admin_token, preview_token: AdminPreview.token_for(hidden))
+      [ create(:event, :unpublished), create(:event, :flagged_as_spam) ].each do |hidden|
+        get event_admin_path(hidden, hidden.admin_token)
         expect(response).to have_http_status(:ok)
         expect(page.at_css('#admin-preview')).to be_present
       end
     end
 
-    it 'keeps the token out of Referer headers sent from preview pages' do
-      get event_path(event, preview_token: token)
-      expect(response.headers['Referrer-Policy']).to eq('strict-origin')
+    it 'expires after a day' do
+      open_admin_session
 
-      get event_path(create(:event))
-      expect(response.headers['Referrer-Policy']).not_to eq('strict-origin')
+      travel AdminPreview::EXPIRES_IN + 1.minute do
+        get event_path(event)
+        expect(response).to have_http_status(:gone)
+      end
     end
 
-    describe 'spam buttons on preview pages' do
-      let(:published) { create(:event, title: 'Garden party') }
-      let(:preview_path) { event_path(published, preview_token: AdminPreview.token_for(published)) }
+    it 'closes from the dashboard footer' do
+      open_admin_session
+      form = page.css('form').find { |f| f['action'] == close_session_admin_events_path }
+      expect(form.at_css('button').text).to eq('Close admin session')
 
-      it 'marks the previewed event and returns to the same page' do
-        get preview_path
+      delete close_session_admin_events_path, headers: dashboard_headers
+
+      expect(response).to redirect_to(root_path)
+      get event_path(event)
+      expect(response).to have_http_status(:gone)
+    end
+
+    describe 'spam buttons on admin pages' do
+      let(:published) { create(:event, title: 'Garden party') }
+
+      it 'marks the event and returns to the same page' do
+        open_admin_session
+        get event_path(published)
         form = page.at_css('#admin-preview form')
         expect(form['data-turbo-confirm']).to include('Mark “Garden party” as spam?')
         return_to = form.at_css('input[name="return_to"]')['value']
-        expect(return_to).to eq(preview_path)
+        expect(return_to).to eq(event_path(published))
 
         post mark_spam_admin_event_path(published), params: { return_to: return_to }, headers: dashboard_headers
 
-        expect(response).to redirect_to(preview_path)
+        expect(response).to redirect_to(event_path(published))
         expect(published.reload.spam_source).to eq('operator')
         follow_redirect!
         expect(response).to have_http_status(:ok)
@@ -206,8 +225,9 @@ RSpec.describe 'Admin spam tools', type: :request do
         expect(page.css('#admin-preview form').map { |f| f['action'] }).to eq([ unmark_spam_admin_event_path(published) ])
       end
 
-      it 'offers the buttons on organizer previews too' do
-        get event_admin_path(published, published.admin_token, preview_token: AdminPreview.token_for(published))
+      it 'offers the buttons on organizer pages too' do
+        open_admin_session
+        get event_admin_path(published, published.admin_token)
 
         expect(page.at_css('#admin-preview form')['action']).to eq(mark_spam_admin_event_path(published))
       end
@@ -221,45 +241,11 @@ RSpec.describe 'Admin spam tools', type: :request do
       end
 
       it 'still requires the dashboard credentials' do
-        post mark_spam_admin_event_path(published), params: { return_to: preview_path }
+        post mark_spam_admin_event_path(published), params: { return_to: event_path(published) }
 
         expect(response).to have_http_status(:unauthorized)
         expect(published.reload).not_to be_spam
       end
-    end
-
-    it 'shows unpublished events instead of redirecting' do
-      unpublished = create(:event, :unpublished)
-
-      get event_path(unpublished, preview_token: AdminPreview.token_for(unpublished))
-
-      expect(response).to have_http_status(:ok)
-      expect(page.at_css('#admin-preview').text).to include('unpublished')
-    end
-
-    it 'rejects missing, tampered, foreign, and expired tokens' do
-      other = create(:event, :spam)
-
-      [ nil, "#{token}x", AdminPreview.token_for(other) ].each do |bad_token|
-        get event_path(event, preview_token: bad_token)
-        expect(response).to have_http_status(:gone)
-      end
-
-      get event_path(event, preview_token: [ token ])
-      expect(response).to have_http_status(:gone)
-
-      expired = token
-      travel AdminPreview::EXPIRES_IN + 1.minute do
-        get event_path(event, preview_token: expired)
-        expect(response).to have_http_status(:gone)
-      end
-    end
-
-    it 'keeps preview tokens out of request logs' do
-      env = Rack::MockRequest.env_for("#{event_path(event)}?preview_token=#{token}")
-      env['action_dispatch.parameter_filter'] = Rails.application.config.filter_parameters
-
-      expect(ActionDispatch::Request.new(env).filtered_path).to eq("#{event_path(event)}?preview_token=[FILTERED]")
     end
   end
 end

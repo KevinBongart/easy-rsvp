@@ -61,6 +61,7 @@ module Admin
     SQL
 
     def index
+      AdminPreview.start(session)
       @event_stats = Admin::EventStats.new(Event.not_spam)
       @events = listed_events.page(params[:page]).per(EVENTS_PER_PAGE)
     end
@@ -80,10 +81,15 @@ module Admin
       redirect_after_spam_change admin_events_path(spam: "1"), notice: "“#{event.title}” is no longer marked as spam."
     end
 
+    def close_session
+      AdminPreview.stop(session)
+      redirect_to root_path, notice: "Admin session closed."
+    end
+
     private
 
-    # Preview pages send only their origin as Referer (the full URL would
-    # carry the preview token), so their buttons pass return_to. url_from only accepts same-site URLs.
+    # Buttons on preview pages pass return_to so the admin lands back on the
+    # page they were viewing. url_from only accepts same-site URLs.
     def redirect_after_spam_change(fallback, notice:)
       if (target = url_from(params[:return_to]))
         redirect_to target, notice: notice
