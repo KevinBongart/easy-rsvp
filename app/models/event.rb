@@ -14,6 +14,7 @@ class Event < ApplicationRecord
   before_validation :apply_submitted_schedule, if: :schedule_submitted?
   before_create :set_admin_token
   before_save :apply_spam_check, if: :spam_check_needed?
+  after_commit :review_spam_later, on: %i[create update], if: -> { @spam_review_pending }
 
   validates :title, presence: true
   validates :date, presence: true
@@ -40,6 +41,12 @@ class Event < ApplicationRecord
   # An operator decided this is not spam; automatic checks leave it alone.
   def cleared_of_spam?
     spam_source == "cleared"
+  end
+
+  # Events the Ruby rules let through and no operator has decided on get a
+  # second opinion from Event::SpamReview.
+  def spam_review_needed?
+    spam_source.nil? && Event::SpamReview.enabled?
   end
 
   def timed?
@@ -92,6 +99,7 @@ class Event < ApplicationRecord
   end
 
   def apply_spam_check
+    self.spam_score = nil
     if Event::SpamCheck.spam?(title: title.to_s, html: rich_text_body&.body&.to_html.to_s)
       self.spam_at ||= Time.current
       self.spam_source = "automatic"
@@ -99,6 +107,12 @@ class Event < ApplicationRecord
       self.spam_at = nil
       self.spam_source = nil
     end
+    @spam_review_pending = spam_review_needed?
+  end
+
+  def review_spam_later
+    @spam_review_pending = false
+    EventSpamReviewJob.perform_later(id)
   end
 
   def schedule_submitted?

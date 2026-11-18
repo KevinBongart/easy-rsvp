@@ -89,7 +89,7 @@
       <% public_path = admin_event_row_path(:public, event, hashid:) %>
       <tr>
         <th scope="row" class="text-nowrap"><%= link_to event.id, public_path %></th>
-        <td><%= link_to event.title, public_path %><% if event.flagged_as_spam? %> <span class="badge text-bg-warning">auto-flagged</span><% end %></td>
+        <td><%= link_to event.title, public_path %><% if event.flagged_as_spam? %> <span class="badge text-bg-warning">auto-flagged</span><% end %><% if event.spam_score %> <small class="text-muted text-nowrap" title="Jev advertising score">Jev <%= number_with_precision(event.spam_score, precision: 2) %></small><% end %></td>
         <td class="text-nowrap">
           <%= event.date %>
           <% if (time = event_time(event)) %>
