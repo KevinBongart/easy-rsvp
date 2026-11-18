@@ -86,7 +86,7 @@
   <tbody>
     <% @events.each do |event| %>
       <% hashid = event.hashid %>
-      <% preview = AdminPreview.token_for(event) if event.spam? || !event.published? %>
+      <% preview = AdminPreview.token_for(event) %>
       <% public_path = admin_event_row_path(:public, event, hashid:, preview:) %>
       <tr>
         <th scope="row" class="text-nowrap"><%= link_to event.id, public_path %></th>

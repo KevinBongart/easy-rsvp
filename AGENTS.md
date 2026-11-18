@@ -113,10 +113,12 @@ asset-compilation, and RSpec checks.
   set with `update_columns`, bypassing the save-time check. Not spam sets
   `spam_source = "cleared"` (with no `spam_at`) so automatic checks skip the
   event afterwards.
-- `AdminPreview`: dashboard links to spam and unpublished events carry a signed
+- `AdminPreview`: every dashboard event link carries a signed
   `preview_token` (app secret, bound to one event, expires after a day, filtered
-  from logs and error reports; preview pages send `Referrer-Policy: no-referrer`). It lets the administrator view the public page and the organizer
-  page; it never unlocks organizer edits, publication, or deletion.
+  from logs and error reports; preview pages send `Referrer-Policy: strict-origin`). It lets the administrator view the public page and the organizer
+  page; it never unlocks organizer edits, publication, or deletion. The preview
+  banner offers the same Mark spam / Not spam buttons (posting to the Basic-Auth
+  admin routes with a same-site `return_to`, since preview pages send only their origin as Referer).
 - `RecentEventCreation`: at most 5 successful event creations per client per
   30 minutes. Clients are keyed by an HMAC of the remote IP (IPv6 reduced to its
   /64), never the raw address, never linked to the event, and rows are deleted

@@ -131,12 +131,16 @@ RSpec.describe 'Admin spam tools', type: :request do
       expect(page.at_css('#admin-preview')).to be_present
     end
 
-    it 'does not add tokens to ordinary published events' do
-      create(:event, title: 'Garden party')
+    it 'opens ordinary events in preview too, so they can be marked from their page' do
+      event = create(:event, title: 'Garden party')
 
       get admin_events_path, headers: dashboard_headers
 
-      expect(row_for('Garden party').css('a').map { |link| link['href'] }).to all(satisfy { |href| !href.include?('preview_token') })
+      hrefs = row_for('Garden party').css('a').map { |link| link['href'] }
+      expect(hrefs).to all(include('preview_token='))
+      get hrefs.first
+      expect(page.at_css('#admin-preview').text).to include('Guests see this page normally.')
+      expect(page.at_css('#admin-preview form')['action']).to eq(mark_spam_admin_event_path(event))
     end
 
     it 'shows the public page of a spam event with a valid token' do
@@ -174,10 +178,54 @@ RSpec.describe 'Admin spam tools', type: :request do
 
     it 'keeps the token out of Referer headers sent from preview pages' do
       get event_path(event, preview_token: token)
-      expect(response.headers['Referrer-Policy']).to eq('no-referrer')
+      expect(response.headers['Referrer-Policy']).to eq('strict-origin')
 
       get event_path(create(:event))
-      expect(response.headers['Referrer-Policy']).not_to eq('no-referrer')
+      expect(response.headers['Referrer-Policy']).not_to eq('strict-origin')
+    end
+
+    describe 'spam buttons on preview pages' do
+      let(:published) { create(:event, title: 'Garden party') }
+      let(:preview_path) { event_path(published, preview_token: AdminPreview.token_for(published)) }
+
+      it 'marks the previewed event and returns to the same page' do
+        get preview_path
+        form = page.at_css('#admin-preview form')
+        expect(form['data-turbo-confirm']).to include('Mark “Garden party” as spam?')
+        return_to = form.at_css('input[name="return_to"]')['value']
+        expect(return_to).to eq(preview_path)
+
+        post mark_spam_admin_event_path(published), params: { return_to: return_to }, headers: dashboard_headers
+
+        expect(response).to redirect_to(preview_path)
+        expect(published.reload.spam_source).to eq('operator')
+        follow_redirect!
+        expect(response).to have_http_status(:ok)
+        expect(page.at_css('#admin-preview').text).to include('marked as spam')
+        expect(page.at_css('#flash_notice').text).to include('was marked as spam')
+        expect(page.css('#admin-preview form').map { |f| f['action'] }).to eq([ unmark_spam_admin_event_path(published) ])
+      end
+
+      it 'offers the buttons on organizer previews too' do
+        get event_admin_path(published, published.admin_token, preview_token: AdminPreview.token_for(published))
+
+        expect(page.at_css('#admin-preview form')['action']).to eq(mark_spam_admin_event_path(published))
+      end
+
+      it 'never redirects outside the site' do
+        [ 'https://evil.example/', '//evil.example/', '/\\evil.example' ].each do |target|
+          post mark_spam_admin_event_path(published), params: { return_to: target }, headers: dashboard_headers
+
+          expect(response.location).to start_with('http://www.example.com/'), "#{target.inspect} -> #{response.location}"
+        end
+      end
+
+      it 'still requires the dashboard credentials' do
+        post mark_spam_admin_event_path(published), params: { return_to: preview_path }
+
+        expect(response).to have_http_status(:unauthorized)
+        expect(published.reload).not_to be_spam
+      end
     end
 
     it 'shows unpublished events instead of redirecting' do
