@@ -102,14 +102,15 @@
         <% end %>
         <td class="text-nowrap"><code class="small"><%= link_to event.admin_token.split('-').first, event_admin_path(event, event.admin_token, **preview), class: "text-body" %></code></td>
         <td class="text-nowrap">
-          <% if event.spam? %>
-            <%= button_to "Not spam", unmark_spam_admin_event_path(event),
-              class: "btn btn-link btn-sm p-0 align-baseline",
-              form: { class: "d-inline", data: { turbo_confirm: "Restore “#{event.title}”? Guests will be able to see it again." } } %>
-          <% else %>
+          <% unless event.spam_locked? %>
             <%= button_to "Mark spam", mark_spam_admin_event_path(event),
               class: "btn btn-link btn-sm p-0 align-baseline text-danger",
               form: { class: "d-inline", data: { turbo_confirm: "Mark “#{event.title}” as spam? Guests and its organizer will see it as removed." } } %>
+          <% end %>
+          <% if event.spam? %>
+            <%= button_to "Not spam", unmark_spam_admin_event_path(event),
+              class: "btn btn-link btn-sm p-0 align-baseline",
+              form: { class: "d-inline", data: { turbo_confirm: "Restore “#{event.title}”? Guests will be able to see it again, and automatic spam checks will skip it." } } %>
           <% end %>
         </td>
       </tr>

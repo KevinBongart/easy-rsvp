@@ -76,7 +76,7 @@ module Admin
 
     def unmark_spam
       event = Event.find_by_hashid!(event_hashid_from_param(params[:id]))
-      event.update_columns(spam_at: nil, spam_source: nil)
+      event.update_columns(spam_at: nil, spam_source: "cleared")
       redirect_back_or_to admin_events_path(spam: "1"), notice: "“#{event.title}” is no longer marked as spam."
     end
 

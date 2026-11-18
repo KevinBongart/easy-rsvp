@@ -44,9 +44,29 @@ RSpec.describe 'Admin spam tools', type: :request do
 
       post unmark_spam_admin_event_path(event), headers: dashboard_headers
 
-      expect(event.reload).to have_attributes(spam_source: nil, spam_at: nil)
+      expect(event.reload).to have_attributes(spam_source: 'cleared', spam_at: nil)
       get event_path(event)
       expect(response).to have_http_status(:ok)
+    end
+
+    it 'remembers that a restored event is not spam when its organizer edits it' do
+      event = create(:event, :flagged_as_spam, title: 'Casino night - buy tickets online')
+
+      post unmark_spam_admin_event_path(event), headers: dashboard_headers
+      patch event_admin_path(event, event.admin_token), params: { event: { title: 'Casino night - buy tickets online today' } }
+
+      expect(event.reload).to have_attributes(spam_source: 'cleared', spam_at: nil)
+      get event_path(event)
+      expect(response).to have_http_status(:ok)
+    end
+
+    it 'lets the admin lock or restore an automatically flagged event' do
+      create(:event, :flagged_as_spam, title: 'Possible bake sale spam')
+
+      get admin_events_path, params: { spam: '1' }, headers: dashboard_headers
+
+      actions = row_for('Possible bake sale spam').css('td')[-1].css('form').map { |form| form['action'].split('/').last }
+      expect(actions).to eq(%w[mark_spam unmark_spam])
     end
 
     it 'offers a confirmed link-style button next to the admin link' do
@@ -131,6 +151,25 @@ RSpec.describe 'Admin spam tools', type: :request do
       post toggle_publish_event_admin_path(event, event.admin_token, preview_token: token)
       expect(response).to have_http_status(:gone)
       expect(event.reload).to have_attributes(title: 'Peptides coupon code', published: true)
+    end
+
+    it 'shows the banner on organizer previews of every hidden event' do
+      unpublished = create(:event, :unpublished)
+      flagged = create(:event, :flagged_as_spam)
+
+      [ unpublished, flagged ].each do |hidden|
+        get event_admin_path(hidden, hidden.admin_token, preview_token: AdminPreview.token_for(hidden))
+        expect(response).to have_http_status(:ok)
+        expect(page.at_css('#admin-preview')).to be_present
+      end
+    end
+
+    it 'keeps the token out of Referer headers sent from preview pages' do
+      get event_path(event, preview_token: token)
+      expect(response.headers['Referrer-Policy']).to eq('no-referrer')
+
+      get event_path(create(:event))
+      expect(response.headers['Referrer-Policy']).not_to eq('no-referrer')
     end
 
     it 'shows unpublished events instead of redirecting' do

@@ -19,6 +19,9 @@ class ApplicationController < ActionController::Base
     return @admin_preview if defined?(@admin_preview)
 
     @admin_preview = @event.present? && AdminPreview.valid?(@event, params[AdminPreview::PARAM])
+    # Keep the token out of Referer headers sent by this page's requests.
+    response.set_header("Referrer-Policy", "no-referrer") if @admin_preview
+    @admin_preview
   end
 
   # 410 tells search engines the page is gone for good, so spam that was
