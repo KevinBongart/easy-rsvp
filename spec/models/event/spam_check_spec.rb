@@ -16,6 +16,11 @@ RSpec.describe Event::SpamCheck do
       'Engwe kod rabatowy TONY00 – 100 zł taniej' => :promo_code,
       '1-888-485-3085 British Airways London Office' => :call_center_phone,
       'Best IPTV Providers 2026: Ranked & Reviewed' => :iptv,
+      '7* Best iPTVServices of 2026 - Complete Comparison' => :iptv,
+      'trisha______pratihari.786' => :social_handle,
+      '_kanhaaa' => :social_handle,
+      'kanha__ji' => :social_handle,
+      '@mghtooedit1007' => :social_handle,
       'BitStarz 30 Free Spins No Deposit 2026' => :gambling,
       'Earn Robux Free Easily: Updated Methods That Actually Work' => :gambling,
       'Free Instagram Followers: The 2026 Expert Evaluation' => :followers,
@@ -55,7 +60,19 @@ RSpec.describe Event::SpamCheck do
       '【ONLINE】Japanese Language Exchange',
       'Green Britain TV Launch and Promo Screening',
       "Cozy House Casino - Lucy's 29th Birthday",
-      'Basement Poker Tournament'
+      'Basement Poker Tournament',
+      'Lily_5th',
+      'Birthday_2026',
+      'Room_101',
+      'bday.2026',
+      'Q4_offsite',
+      '@home',
+      '@Starbucks',
+      'Sarah.40',
+      'party.12.05',
+      'Brunch.11.30',
+      'Room.101',
+      'v1.2.10'
     ].each do |title|
       it "accepts #{title.inspect}" do
         expect(reasons(title)).to be_empty

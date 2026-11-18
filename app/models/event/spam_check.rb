@@ -33,6 +33,11 @@ class Event::SpamCheck
   PRICE_CUT = /\b(off|menos|mniej|taniej|korting|sparen|savings?|save|économisez|réduction|desconto|descuento|zniżk\w*)\b/i
   NOT_PROMO = /dress[ -]?code|code of conduct|qr ?code|gate code|door code/i
 
+  # Social media handles used as titles by follower-seekers: a leading _, a run
+  # of underscores, or an @handle containing a digit, _ or . (so venue titles
+  # like "@home" and "@Starbucks" pass).
+  SOCIAL_HANDLE = /\A(?=[\w.@]*[a-z])(?:_[\w.]{3,}|@(?=[\w.]*[\d_.])[\w.]{3,}|[\w.]*__[\w.]*)\z/i
+
   PHONE = /\d{3}[^\p{L}\d]{0,5}\d{3}[^\p{L}\d]{0,5}\d{4}/
   PHONE_CONTEXT = /customer (service|support|care)|\bsupport\b|helpline|hotline|\btoll|airlines?|airways|\bflights?\b|\bbooking\b|reservations?|refund|live (person|agent)|📞|☎/i
   TOLL_FREE = /(?<!\d)1?\W{0,4}8(00|33|44|55|66|77|88)\W{1,5}\d{3}\W{1,5}\d{4}(?!\d)/
@@ -47,7 +52,8 @@ class Event::SpamCheck
     adult_drugs: /\b(xvideos|porn|nsfw|hentai|onlyfans|adderall|lorazepam|tramadol|xanax|viagra|cialis|oxycodone)\b/i,
     clickbait_video: /\b(leak\w*|sex|xxx|xem|18\+)\b.{0,25}\b(clip|video)\b|\bclip\W{1,3}video\b|\b(clip|video)\b.{0,25}\b(leak\w*|xxx)\b|\bfull (hd )?clip\b|clip n[oó]ng/i,
     airline_support: /missed (your )?\w+ flight|miss a \w+ flight|name correction|contatti telefonici|flight (change|cancell?ation) (policy|number)/i,
-    iptv: /\biptv\b/i,
+    # Prefix match: spammers glue words on ("iPTVServices").
+    iptv: /\biptv/i,
     free_game_currency: /\bfree (robux|v-?bucks|gift ?cards?|eshop|psn|diamonds|gems)\b/i
   }.freeze
 
@@ -87,6 +93,7 @@ class Event::SpamCheck
     reasons = []
     reasons << :fancy_letters if title.match?(FANCY_LETTERS)
     reasons << :decorative_brackets if title.match?(DECORATIVE_BRACKETS)
+    reasons << :social_handle if title.strip.match?(SOCIAL_HANDLE)
     reasons << :code_wrapper if title.match?(CODE_WRAPPER) || title.match?(CJK_WRAPPED_CODE)
     reasons << :promo_code if title.match?(PROMO_PHRASE)
     if !title.match?(NOT_PROMO) && title.match?(COMMERCE_WORD) && (title.match?(AMOUNT) || title.match?(CODE_TOKEN))
