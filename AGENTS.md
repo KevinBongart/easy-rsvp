@@ -96,8 +96,8 @@ asset-compilation, and RSpec checks.
   and adds `rel="nofollow ugc noopener noreferrer"` to every rendered link; Action
   Text ignores its tag/attribute lists when a scrubber is set, so the scrubber
   carries them itself. `Event#spam_at` marks spam (`Event.spam` / `Event.not_spam` scopes): public, RSVP, and organizer
-  routes answer `410 Gone`, and spam is excluded from the admin dashboard and
-  stats. The 2026-11 SEO spam wave was marked by frozen classifiers in the
+  routes answer `410 Gone`. The admin dashboard lists spam only under its Spam
+  filter (`spam=1`) and never counts it in the stats. The 2026-11 SEO spam wave was marked by frozen classifiers in the
   `AddSpamAtToEvents` and `MarkMoreSpamEvents` migrations; nothing marks new
   spam automatically yet.
 - `RecentEventCreation`: at most 5 successful event creations per client per

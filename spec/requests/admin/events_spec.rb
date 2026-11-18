@@ -103,6 +103,26 @@ RSpec.describe 'Site administrator dashboard', type: :request do
     end
   end
 
+  it 'lists spam only under the spam filter and keeps it out of the statistics' do
+    legitimate = create(:event, title: 'Neighborhood potluck')
+    spam = create(:event, title: 'Peptides coupon code', spam_at: Time.current)
+
+    get admin_events_path, params: { sort: 'rsvps' }, headers: dashboard_headers
+    doc = Nokogiri::HTML(response.body)
+    expect(doc.css('tbody tr').map { |row| row.css('td')[0].text }).to eq([ legitimate.title ])
+    expect(doc.css('a').index_by(&:text).fetch('Spam')['href']).to include('spam=1', 'sort=rsvps')
+
+    get admin_events_path, params: { spam: '1', sort: 'rsvps' }, headers: dashboard_headers
+    doc = Nokogiri::HTML(response.body)
+    expect(doc.css('tbody tr').map { |row| row.css('td')[0].text }).to eq([ spam.title ])
+    expect(doc.css('.admin-sort strong').map(&:text)).to include('Showing only spam')
+    links = doc.css('a').index_by(&:text)
+    expect(links.fetch('Sort by ID')['href']).to include('spam=1')
+    expect(links.fetch('Only events with a time')['href']).to include('spam=1')
+    expect(links.fetch('Back to events')['href']).not_to include('spam=1')
+    expect(controller.view_assigns['event_stats'].total_events).to eq('1')
+  end
+
   it 'renders an empty state without broken statistics' do
     get admin_events_path, headers: dashboard_headers
     expect(response).to have_http_status(:ok)
