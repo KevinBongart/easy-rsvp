@@ -248,4 +248,14 @@ RSpec.describe Event, type: :model do
     expect { event.destroy! }.to change(Rsvp, :count).by(-1)
     expect(described_class.exists?(event.id)).to be(false)
   end
+
+  describe 'spam scopes' do
+    it 'separates events marked as spam from the rest' do
+      legitimate = create(:event)
+      spam = create(:event, spam_at: Time.current)
+
+      expect(Event.spam).to contain_exactly(spam)
+      expect(Event.not_spam).to contain_exactly(legitimate)
+    end
+  end
 end

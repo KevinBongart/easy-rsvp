@@ -68,7 +68,7 @@ module Admin
     private
 
     def listed_events
-      events = Event.not_spam.joins(Arel.sql(ATTACHMENT_STATS_JOIN_SQL)).select(
+      events = (params[:spam] == "1" ? Event.spam : Event.not_spam).joins(Arel.sql(ATTACHMENT_STATS_JOIN_SQL)).select(
         "events.*",
         "#{RSVP_COUNT_SQL} AS rsvps_count",
         "COALESCE(attachment_stats.attachments_count, 0) AS attachments_count",
