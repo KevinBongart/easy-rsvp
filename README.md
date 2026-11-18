@@ -299,7 +299,7 @@ fingerprint on refresh. Normal development never requires `assets:clean`,
 precompiled manifest left in `public/assets`, so local CI output cannot pin the
 server to stale files. `bin/ci` audits the locked npm graph,
 builds both asset entrypoints through Rails' `assets:precompile` hooks, and
-exercises the real Firefox paste/upload specs. Node 24.13.0 is selected locally
+exercises the real Firefox paste/upload specs. Node 24.22.2 is selected locally
 by `.node-version`; buildpack deploys follow the `24.x` range in `package.json`.
 
 Dokku uses the pinned Node and Ruby buildpacks in `.buildpacks`, in that order.
