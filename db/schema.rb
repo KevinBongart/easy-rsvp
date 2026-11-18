@@ -68,6 +68,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_18_170000) do
     t.datetime "spam_at"
     t.string "spam_source"
     t.float "spam_score"
+    t.datetime "spam_decided_at"
     t.check_constraint "ends_at IS NULL OR starts_at IS NULL OR ends_at > starts_at", name: "events_schedule_ordered"
     t.check_constraint "spam_at IS NULL AND (spam_source IS NULL OR spam_source::text = 'cleared'::text) OR spam_at IS NOT NULL AND (spam_source::text = ANY (ARRAY['operator'::character varying, 'automatic'::character varying]::text[]))", name: "events_spam_source_matches_spam_at"
     t.check_constraint "starts_at IS NULL AND ends_at IS NULL AND time_zone IS NULL OR starts_at IS NOT NULL AND ends_at IS NOT NULL AND time_zone IS NOT NULL AND btrim(time_zone::text) <> ''::text", name: "events_schedule_complete"

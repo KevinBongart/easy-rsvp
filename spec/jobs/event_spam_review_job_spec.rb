@@ -18,7 +18,18 @@ RSpec.describe EventSpamReviewJob do
     event = nil
     expect { event = create(:event, title: 'Garden party') }.to have_enqueued_job(described_class).with(kind_of(Integer))
     expect { event.update!(title: 'Garden party at noon') }.to have_enqueued_job(described_class).with(event.id)
+    expect { event.update!(body: '<div>Bring a chair</div>') }.to have_enqueued_job(described_class).with(event.id)
     expect { event.update!(published: false) }.not_to have_enqueued_job(described_class)
+  end
+
+  it 'does not queue a review for an unrelated save after a rolled-back one' do
+    event = create(:event)
+    Event.transaction do
+      event.update!(title: 'Renamed')
+      raise ActiveRecord::Rollback
+    end
+
+    expect { event.reload.update!(published: false) }.not_to have_enqueued_job(described_class)
   end
 
   it 'is not queued for events the Ruby rules flag, or that an admin decided on' do
@@ -64,13 +75,25 @@ RSpec.describe EventSpamReviewJob do
   it 'discards its answer when the admin decided while Jev was answering' do
     event = create(:event)
     stub_request(:post, 'https://api.typesafe.ai/v1/systemone').to_return do
-      event.update_columns(spam_source: 'cleared', updated_at: Time.current)
+      event.update_columns(spam_source: 'cleared', spam_decided_at: Time.current)
       { status: 200, body: { answers: { advertising: { noul: 0.99 } } }.to_json }
     end
 
     described_class.perform_now(event.id)
 
     expect(event.reload).to have_attributes(spam_source: 'cleared', spam_at: nil, spam_score: nil)
+  end
+
+  it 'keeps its answer when the organizer changes something other than the text meanwhile' do
+    event = create(:event)
+    stub_request(:post, 'https://api.typesafe.ai/v1/systemone').to_return do
+      travel(1.second) { Event.find(event.id).toggle!(:published) }
+      { status: 200, body: { answers: { advertising: { noul: 0.99 } } }.to_json }
+    end
+
+    described_class.perform_now(event.id)
+
+    expect(event.reload).to have_attributes(spam_source: 'automatic', spam_score: 0.99)
   end
 
   it 'discards its answer when the organizer edited the description meanwhile' do

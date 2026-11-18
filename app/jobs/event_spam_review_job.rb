@@ -6,14 +6,17 @@ class EventSpamReviewJob < ApplicationJob
     event = Event.find_by(id: event_id)
     return unless event&.spam_review_needed?
 
-    score = Event::SpamReview.score(event)
+    page = Event::SpamReview.page(event)
+    score = Event::SpamReview.score(event, page:)
     return if score.nil?
 
     changes = { spam_score: score }
     changes.merge!(spam_at: Time.current, spam_source: "automatic") if score >= Event::SpamReview::THRESHOLD
-    # Skip the write if the organizer edited the event (its rich text touches
-    # updated_at) or an admin decided on it while Jev was answering; the edit
-    # queued its own review.
-    Event.where(id: event.id, updated_at: event.updated_at, spam_source: nil).update_all(changes)
+    # Write only if Jev judged the text the event still has and no admin has
+    # decided meanwhile. A text edit queued its own review; other edits (date,
+    # publication) do not change the answer.
+    event.with_lock do
+      event.update_columns(changes) if event.spam_review_needed? && Event::SpamReview.page(event) == page
+    end
   end
 end
