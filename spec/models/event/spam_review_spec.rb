@@ -85,6 +85,21 @@ RSpec.describe Event::SpamReview do
     expect(sent_body.dig('state', 'description')).to eq('Details here (link to casino.example)')
   end
 
+  it 'masks addresses and phone numbers but keeps dates and times' do
+    expect(described_class.mask('Kerkstraat 5, Hauptstraße 12, Calle Mayor 5, call 555 0199 or +49 30 1234567'))
+      .to eq('[address], [address], [address], call [phone] or [phone]')
+    expect(described_class.mask('2026-11-18 19:00, doors 18.30 - 21.00')).to eq('2026-11-18 19:00, doors 18.30 - 21.00')
+  end
+
+  it 'keeps reviewing when an example or the page is pathological' do
+    stub_jev(score: 0.2)
+    create(:event, :spam, title: 'Long spam', body: "<div>#{'rue ' * 32_000}</div>", spam_decided_at: 1.hour.ago)
+    event = create(:event, body: %(<div><a href="https://#{'a-' * 125_000}a.com/">here</a></div>))
+
+    expect(described_class.score(event)).to eq(0.2)
+    expect(sent_body.dig('state', 'description').size).to be < 200
+  end
+
   it 'fails open on API errors and timeouts' do
     event = create(:event)
     allow(Rails.error).to receive(:report)

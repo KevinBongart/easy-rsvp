@@ -72,6 +72,17 @@ RSpec.describe EventSpamReviewJob do
     expect(event.reload).to have_attributes(spam_source: nil, spam_at: nil, spam_score: nil)
   end
 
+  it 'leaves the event up and reports when its page cannot be prepared' do
+    event = create(:event)
+    allow(Rails.error).to receive(:report)
+    allow(Event::SpamReview).to receive(:page).and_raise(Regexp::TimeoutError)
+
+    described_class.perform_now(event.id)
+
+    expect(Rails.error).to have_received(:report).with(kind_of(Regexp::TimeoutError), hash_including(handled: true))
+    expect(event.reload).to have_attributes(spam_source: nil, spam_score: nil)
+  end
+
   it 'discards its answer when the admin decided while Jev was answering' do
     event = create(:event)
     stub_request(:post, 'https://api.typesafe.ai/v1/systemone').to_return do

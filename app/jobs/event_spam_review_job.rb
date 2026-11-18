@@ -6,7 +6,12 @@ class EventSpamReviewJob < ApplicationJob
     event = Event.find_by(id: event_id)
     return unless event&.spam_review_needed?
 
-    page = Event::SpamReview.page(event)
+    page = begin
+      Event::SpamReview.page(event)
+    rescue StandardError => e
+      Rails.error.report(e, handled: true, context: { event_id: event.id })
+      return
+    end
     score = Event::SpamReview.score(event, page:)
     return if score.nil?
 

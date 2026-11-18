@@ -125,7 +125,9 @@ asset-compilation, and RSpec checks.
   most recent published "Not spam" events and the 10 most recent admin spam marks,
   ordered by `spam_decided_at`, which only the admin actions set. Editing a
   cleared event's text resets it, so organizers cannot inject text into other
-  reviews. Text is masked before it leaves the app (links reduced to domains,
+  reviews. "Not spam" clicks from before the column existed have no decision
+  time and are never examples. Masking truncates first and uses bounded
+  regexes, because it runs on untrusted text under `Regexp.timeout`. Text is masked before it leaves the app (links reduced to domains,
   emails, phones, street addresses, UK postcodes); link targets hidden behind
   anchor text are appended as domains. Evaluated on the 2026-11 snapshot: 0.9
   flagged 5 of 11,368 legitimate events and caught 29 of 40 adversarial spam

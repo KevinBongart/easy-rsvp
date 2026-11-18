@@ -26,14 +26,17 @@ module Event::SpamReview
 
   STREET_WORDS = "street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|way|court|ct|place|pl|" \
                  "straße|strasse|str|weg|gasse|platz|rue|via|calle|carrer|avenida|ulica|ul"
-  STREET = /\b\d{1,5}[a-z]?\s+(?:[\p{L}.'-]+\s){0,3}(?:#{STREET_WORDS})\b\.?/i
-  STREET_NAME_FIRST = /\b(?:[\p{L}'-]*(?:straße|strasse|str\.|weg|gasse|platz)|(?:rue|via|calle|carrer|avenida|ulica|ul\.)(?:\s+[\p{L}.'-]+){1,3})\s*\d{1,5}[a-z]?\b/i
-  URL_WITH_SCHEME = %r{https?://(?:[^/\s"'<>@]*@)?([^/\s"'<>:?#]+)[^\s"'<>]*}i
-  URL_WITHOUT_SCHEME = %r{\b(?:www\.)?((?:[a-z0-9-]+\.)+[a-z]{2,})(?:/[^\s"'<>]*|\?[^\s"'<>]*)}i
-  WWW_HOST = /\bwww\.((?:[a-z0-9-]+\.)+[a-z]{2,})\b/i
+  # Every repetition is bounded: masking runs on untrusted text, and an
+  # unbounded run lets a long page hit Regexp.timeout.
+  STREET = /\b\d{1,5}[a-z]?\s+(?:[\p{L}.'-]{1,40}\s){0,3}(?:#{STREET_WORDS})\b\.?/i
+  STREET_NAME_FIRST = /\b(?:[\p{L}'-]{0,40}(?:straße|strasse|str\.|straat|weg|gasse|platz)|(?:rue|via|calle|carrer|avenida|ulica|ul\.)(?:\s[\p{L}.'-]{1,40}){1,3})\s?\d{1,5}[a-z]?\b/i
+  URL_WITH_SCHEME = %r{https?://(?:[^/\s"'<>@]{0,100}@)?([^/\s"'<>:?#]{1,100})[^\s"'<>]*}i
+  URL_WITHOUT_SCHEME = %r{\b(?:www\.)?((?:[a-z0-9-]{1,63}\.){1,5}[a-z]{2,20})(?:/[^\s"'<>]*|\?[^\s"'<>]*)}i
+  WWW_HOST = /\bwww\.((?:[a-z0-9-]{1,63}\.){1,5}[a-z]{2,20})\b/i
   EMAIL = /[\w.+-]+@[\w-]+\.[\w.-]+/
-  ISO_DATE = /\A\d{4}-\d{2}-\d{2}\z/
-  PHONE = /\+?\d[\d\s().-]{5,}\d/
+  PHONE = /\+?\d[\d\s().-]{5,30}\d/
+  # Dates and time ranges look like phone numbers; keep them, they matter.
+  NOT_A_PHONE = /\A(?:\d{4}-\d{2}-\d{2}\b|\d{1,2}[.:]\d{2}\s?[-–]\s?\d{1,2}[.:]\d{2}\z)/
   UK_POSTCODE = /\b[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}\b/
 
   class Error < StandardError; end
@@ -82,8 +85,9 @@ module Event::SpamReview
     end
   end
 
+  # Truncates before masking so masking time stays bounded.
   def page(event)
-    { title: mask(event.title.to_s)[0, MAX_TITLE], description: mask(visible_text(event.rich_text_body&.body&.to_html.to_s))[0, MAX_DESCRIPTION] }
+    { title: mask(event.title.to_s[0, MAX_TITLE]), description: mask(visible_text(event.rich_text_body&.body&.to_html.to_s)[0, MAX_DESCRIPTION]) }
   end
 
   # The text guests see, plus where each link points: the target domain is a
@@ -102,7 +106,7 @@ module Event::SpamReview
         .gsub(EMAIL, "[email]")
         .gsub(URL_WITHOUT_SCHEME) { "[link to #{Regexp.last_match(1).downcase.delete_prefix('www.')}]" }
         .gsub(WWW_HOST) { "[link to #{Regexp.last_match(1).downcase}]" }
-        .gsub(PHONE) { |match| match.match?(ISO_DATE) ? match : "[phone]" }
+        .gsub(PHONE) { |match| match.match?(NOT_A_PHONE) ? match : "[phone]" }
         .gsub(STREET, "[address]")
         .gsub(STREET_NAME_FIRST, "[address]")
         .gsub(UK_POSTCODE, "[postcode]")
