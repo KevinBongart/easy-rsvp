@@ -54,14 +54,51 @@ RSpec.describe 'Upload lifecycle regressions', type: :system, js: true do
     Tempfile.create([ 'oversized', '.png' ]) do |file|
       file.binmode
       file.write(File.binread(Rails.root.join('spec/fixtures/files/party.png')))
-      file.truncate(10.megabytes + 1)
+      file.truncate(5.megabytes + 1)
       file.flush
 
       find('trix-editor').drop(file.path)
-      expect(page).to have_css('[role=alert]', text: '10 MB maximum')
+      expect(page).to have_css('[role=alert]', text: '5 MB maximum')
     end
 
     expect(ActiveStorage::Blob.count).to eq(0)
+  end
+
+  it 'rejects an image that would take the description over 10 MB before uploading it' do
+    visit root_path
+
+    Tempfile.create([ 'large', '.png' ]) do |file|
+      file.binmode
+      file.write(File.binread(Rails.root.join('spec/fixtures/files/party.png')))
+      file.truncate(4.megabytes)
+      file.flush
+
+      2.times do |index|
+        find('trix-editor').drop(file.path)
+        expect(page).to have_css('trix-editor img[src*="/rails/active_storage/"]', count: index + 1)
+      end
+      find('trix-editor').drop(file.path)
+      expect(page).to have_css('[role=alert]', text: 'Images in the description can add up to 10 MB')
+    end
+
+    expect(ActiveStorage::Blob.count).to eq(2)
+  end
+
+  it 'counts images dropped together against the 10 MB total' do
+    visit root_path
+
+    Tempfile.create([ 'large', '.png' ]) do |file|
+      file.binmode
+      file.write(File.binread(Rails.root.join('spec/fixtures/files/party.png')))
+      file.truncate(4.megabytes)
+      file.flush
+
+      find('trix-editor').drop(file.path, file.path, file.path)
+      expect(page).to have_css('[role=alert]', text: 'Images in the description can add up to 10 MB')
+      expect(page).to have_css('trix-editor img[src*="/rails/active_storage/"]', count: 2)
+    end
+
+    expect(ActiveStorage::Blob.count).to eq(2)
   end
 
   %w[network_error server_error].each do |failure|

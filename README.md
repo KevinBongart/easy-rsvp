@@ -140,8 +140,12 @@ operations are part of the suite.
 All 19 original pending expectations now pass. Guest RSVP additions/deletions are
 blocked on unpublished events while organizer editing remains available. Dashboard
 counts and projections use creation dates. The editor and direct-upload endpoint
-accept declared PNG/JPEG/GIF/WebP files between 1 byte and 10 MB; failed Trix
-uploads show an error and permit another attempt. Because files upload directly
+accept declared PNG/JPEG/GIF/WebP files between 1 byte and 5 MB; failed Trix
+uploads show an error and permit another attempt. The editor also refuses an
+image that would take the description's images past 10 MB in total, and saving
+enforces that total, a 200-character title, and 20,000 characters of visible
+description text. Each limit applies only when its field changes and never
+blocks an edit that does not make an older event worse. Because files upload directly
 to storage, the endpoint can enforce declared metadata and signed upload length
 but cannot inspect the bytes before issuing the storage URL. If organizer-link
 email delivery is ever restored, it should be designed and verified as a new
@@ -169,7 +173,13 @@ health endpoint, which Dokku must successfully probe before switching production
 traffic to a new web container. After that switch, the `app.json` postdeploy task
 reports Dokku's exact `GIT_REV` to Honeybadger. The task fails
 visibly when its configuration or request fails, so a missing deploy marker
-cannot be mistaken for success. Bundler-audit, Brakeman, and Rails Omakase are
+cannot be mistaken for success. The `app.json` `cron` entry has Dokku run
+`bin/rails spam:purge_images` daily at 04:17 server time (UTC) in a one-off
+container: it deletes the images embedded in events an operator marked as spam
+more than 30 days earlier and prints a one-line summary (event, blob, and byte
+counts). Blobs still attached to another record are only detached. If a stored
+file can't be deleted, the task logs its key and exits non-zero. Run it by
+hand with `dokku run easy-rsvp bin/rails spam:purge_images`. Bundler-audit, Brakeman, and Rails Omakase are
 gates in `bin/ci`. Pull requests that change
 only Markdown files or files under `docs/` skip the expensive application checks.
 A documentation-only commit on `main` also skips the production deploy.

@@ -76,6 +76,12 @@ class Event::SpamCheck
     new(title, html).reasons
   end
 
+  # The description's text as guests read it, whitespace collapsed; image
+  # payloads do not count. Also used for Event's description length limit.
+  def self.visible_text(html)
+    new("", html).visible_text
+  end
+
   def initialize(title, html)
     @title = title.to_s[0, MAX_TITLE_LENGTH].gsub(/[[:space:]]+/, " ")
     @html = html.to_s
@@ -83,6 +89,10 @@ class Event::SpamCheck
 
   def reasons
     title_reasons + body_reasons
+  end
+
+  def visible_text
+    raw_text.gsub(/[[:space:]]+/, " ").strip
   end
 
   private
@@ -116,8 +126,7 @@ class Event::SpamCheck
     tags = readable.scan(/<([a-z][a-z0-9-]*)/i).flatten.map(&:downcase).uniq
     reasons << :non_editor_html if (tags - EDITOR_TAGS).any?
 
-    raw_text = Nokogiri::HTML4.fragment(readable.gsub(%r{<(br|/div|/li|/h1|/blockquote|/pre|/figcaption)\b[^>]*>}i, "\n\\0")).text
-    text = raw_text.gsub(/[[:space:]]+/, " ").strip
+    text = visible_text
     links = readable.scan(/<a\b[^>]*\bhref=/i).size
     reasons << :very_long_text if text.size >= VERY_LONG_TEXT
     reasons << :long_text_with_link if text.size >= LONG_TEXT && links >= 1
@@ -127,6 +136,10 @@ class Event::SpamCheck
     reasons
   end
 
+  def raw_text
+    @raw_text ||= Nokogiri::HTML4.fragment(readable_html.gsub(%r{<(br|/div|/li|/h1|/blockquote|/pre|/figcaption)\b[^>]*>}i, "\n\\0")).text
+  end
+
   # The body as guests read it, minus image payloads. Images and data: URIs
   # are dropped so photo-heavy invitations do not count as long. Everything
   # Action Text renders stays in: text inside <figure>, captions, and the HTML
@@ -134,7 +147,7 @@ class Event::SpamCheck
   # spam cannot hide inside them. HTML4 parsing has no tree-depth limit, unlike
   # HTML5, so deeply nested input cannot raise.
   def readable_html
-    html.gsub(/data:[^"'\s)]+/, "")
+    @readable_html ||= html.gsub(/data:[^"'\s)]+/, "")
       .gsub(/<img\b[^>]*>/i, " ")
       .gsub(/<action-text-attachment\b([^>]*)>/i) { " #{attachment_markup(Regexp.last_match(1))} " }
   end

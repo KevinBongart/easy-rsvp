@@ -17,6 +17,12 @@ module EventsHelper
     TZInfo::Timezone.all_identifiers
   end
 
+  def title_error(event)
+    return "Your event needs a name!" if event.errors.added?(:title, :blank)
+
+    event.errors.full_messages_for(:title).to_sentence.presence
+  end
+
   def schedule_time_error(event, attribute)
     return "Your event needs both a start and end time" if event.errors.added?(attribute, :blank)
 

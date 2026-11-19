@@ -12,6 +12,13 @@
       }
     ]
   },
+  "cron": [
+    {
+      "command": "bin/rails spam:purge_images",
+      "schedule": "17 4 * * *",
+      "concurrency_policy": "forbid"
+    }
+  ],
   "scripts": {
     "dokku": {
       "postdeploy": "bin/notify_honeybadger_deploy"

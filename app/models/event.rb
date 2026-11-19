@@ -3,6 +3,18 @@ class Event < ApplicationRecord
 
   TIME_PATTERN = /\A(?<hour>\d{1,2})(?::(?<minute>\d{1,2}))?\s*(?<meridiem>[ap](?:\.?m\.?)?)?\z/i
 
+  # Limits checked only when the field changes, and never against an edit that
+  # does not make an older, larger event worse, so those stay editable.
+  # Legitimate data (2026-11 snapshot): titles p99 73 characters; 13 of 4,889
+  # descriptions over 3,000 characters; embedded images up to 7.9 MB each.
+  MAXIMUM_TITLE_LENGTH = 200
+  MAXIMUM_DESCRIPTION_LENGTH = 20_000
+  MAXIMUM_IMAGES_SIZE = 10.megabytes
+  # Captures the signed blob id of an Active Storage URL, on current
+  # (redirect/proxy) and legacy routes.
+  LEGACY_UPLOAD_URL = %r{/rails/active_storage/(?:blobs|representations)/(?:redirect/|proxy/)?([^/?#]+)}
+  IMAGES_TOO_LARGE ="Images in the description can add up to 10 MB; remove some and try again.".freeze
+
   has_many :rsvps, dependent: :destroy
   has_rich_text :body
 
@@ -19,6 +31,8 @@ class Event < ApplicationRecord
   after_rollback { @spam_review_pending = false }
 
   validates :title, presence: true
+  validate :title_within_limit, if: :will_save_change_to_title?
+  validate :description_within_limits, if: -> { rich_text_body&.changed? }
   validates :date, presence: true
   validates :published, inclusion: { in: [ true, false ] }
   validate :schedule_columns_are_complete, unless: :schedule_submitted?
@@ -110,6 +124,50 @@ class Event < ApplicationRecord
       self.spam_source = nil
     end
     @spam_review_pending = spam_review_needed?
+  end
+
+  def title_within_limit
+    length = title.to_s.length
+    return if length <= MAXIMUM_TITLE_LENGTH || length <= title_was.to_s.length
+
+    errors.add(:title, :too_long, count: MAXIMUM_TITLE_LENGTH)
+  end
+
+  def description_within_limits
+    body, previous_body = rich_text_body.body, rich_text_body.body_was
+
+    length = description_length(body)
+    if length > MAXIMUM_DESCRIPTION_LENGTH && length > description_length(previous_body)
+      errors.add(:body, "The description can be at most #{MAXIMUM_DESCRIPTION_LENGTH.to_fs(:delimited)} characters " \
+                        "of text; it has #{length.to_fs(:delimited)}. Shorten it and try again.")
+    end
+
+    images_size = embedded_images_size(body)
+    if images_size > MAXIMUM_IMAGES_SIZE && images_size > embedded_images_size(previous_body)
+      errors.add(:body, IMAGES_TOO_LARGE)
+    end
+  end
+
+  def description_length(content)
+    content.present? ? Event::SpamCheck.visible_text(content.to_html).length : 0
+  end
+
+  # Bytes of the images the description embeds, each blob counted once:
+  # Action Text uploads, and images referenced only by an Active Storage URL
+  # (the former Trix uploader), both by their stored blob size. The submitted
+  # filesize attribute is never trusted. Other remote images and data: URIs use
+  # no storage here.
+  def embedded_images_size(content)
+    return 0 if content.blank?
+
+    content.attachments.each_with_object({}) do |attachment, sizes|
+      blob = attachment.attachable
+      if !blob.is_a?(ActiveStorage::Blob) && attachment.node["sgid"].blank?
+        signed_id = attachment.node["url"].to_s[LEGACY_UPLOAD_URL, 1]
+        blob = signed_id && ActiveStorage::Blob.find_signed(CGI.unescape(signed_id))
+      end
+      sizes[blob.id] = blob.byte_size if blob.is_a?(ActiveStorage::Blob)
+    end.values.sum
   end
 
   def text_changed?
