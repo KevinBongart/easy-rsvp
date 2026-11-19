@@ -1,0 +1,46 @@
+<% points = daily_chart_points(counts.series, maximum: counts.maximum) %>
+<% period = "#{counts.first_day.strftime('%B %-d, %Y')} to #{counts.last_day.strftime('%B %-d, %Y')}" %>
+<section class="admin-daily-chart" id="<%= id %>" aria-labelledby="<%= id %>-title">
+  <div class="admin-daily-chart-header">
+    <strong id="<%= id %>-title">Events created per day, last <%= counts.days %> days (UTC)</strong>
+    <ul class="admin-daily-chart-legend">
+      <li>
+        <svg width="24" height="8" aria-hidden="true" focusable="false"><line class="daily-chart-spam" x1="0" y1="4" x2="24" y2="4" /></svg>
+        Spam: <%= number_with_delimiter(counts.spam_total) %>
+      </li>
+      <li>
+        <svg width="24" height="8" aria-hidden="true" focusable="false"><line class="daily-chart-legitimate" x1="0" y1="4" x2="24" y2="4" /></svg>
+        Legitimate: <%= number_with_delimiter(counts.legitimate_total) %>
+      </li>
+    </ul>
+  </div>
+  <div class="admin-daily-chart-body">
+    <div class="admin-daily-chart-y-axis" aria-hidden="true">
+      <span><%= number_with_delimiter(counts.maximum) %></span>
+      <span>0</span>
+    </div>
+    <div class="admin-daily-chart-plot" role="group"
+         aria-label="<%= "From #{period}: #{number_with_delimiter(counts.spam_total)} spam and #{number_with_delimiter(counts.legitimate_total)} legitimate events created; busiest day #{number_with_delimiter(counts.maximum)}" %>">
+      <svg width="100%" height="<%= Admin::EventsHelper::DAILY_CHART_HEIGHT %>" viewBox="0 0 160 <%= Admin::EventsHelper::DAILY_CHART_HEIGHT %>"
+           preserveAspectRatio="none" aria-hidden="true" focusable="false">
+        <line class="daily-chart-baseline" x1="0" y1="<%= Admin::EventsHelper::DAILY_CHART_HEIGHT - 2 %>" x2="160" y2="<%= Admin::EventsHelper::DAILY_CHART_HEIGHT - 2 %>" />
+        <%# The dashed line goes on top so both series stay visible where they overlap. %>
+        <polyline class="daily-chart-spam" points="<%= daily_chart_coordinates(points, :spam) %>" />
+        <polyline class="daily-chart-legitimate" points="<%= daily_chart_coordinates(points, :legitimate) %>" />
+      </svg>
+      <% points.each_with_index do |point, index| %>
+        <% tooltip = daily_chart_tooltip(point) %>
+        <span class="sparkline-point">
+          <button type="button" class="sparkline-hit-area" style="<%= sparkline_hit_area(points, index) %>"
+                  aria-label="<%= tooltip %>" aria-describedby="<%= id %>-point-<%= index %>"></button>
+          <span role="tooltip" class="sparkline-tooltip" id="<%= id %>-point-<%= index %>"
+                style="<%= daily_chart_tooltip_position(points, index) %>"><%= tooltip %></span>
+        </span>
+      <% end %>
+    </div>
+    <div class="admin-daily-chart-x-axis" aria-hidden="true">
+      <span><%= counts.first_day.strftime('%B %-d') %></span>
+      <span><%= counts.last_day.strftime('%B %-d') %></span>
+    </div>
+  </div>
+</section>

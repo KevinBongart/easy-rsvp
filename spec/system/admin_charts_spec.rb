@@ -38,6 +38,14 @@ RSpec.describe 'Administrator charts', type: :system, js: true do
         expect(page).to have_css('[role="tooltip"]', text: 'September 30: 6 extrapolated', visible: true)
       end
       expect(find('#monthly-chart .sparkline-projection').evaluate_script('getComputedStyle(this).strokeDasharray')).not_to eq('none')
+      within('#daily-spam-chart') do
+        expect(page).to have_content('Spam: 0')
+        expect(page).to have_content('Legitimate: 2')
+        all('button')[-9].hover
+        expect(page).to have_css('[role="tooltip"]', text: 'September 2, 2026: 0 spam, 2 legitimate', visible: true)
+        expect(find('polyline.daily-chart-legitimate').evaluate_script('getComputedStyle(this).strokeDasharray')).not_to eq('none')
+        expect(find('polyline.daily-chart-spam').evaluate_script('getComputedStyle(this).strokeDasharray')).to eq('none')
+      end
 
       click_link 'Sort by RSVP count'
       within('#monthly-chart') do
