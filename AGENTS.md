@@ -191,7 +191,11 @@ asset-compilation, and RSpec checks.
   and account for month/year length. Missing periods are zero-filled. Monthly
   history includes 12 completed months plus the current projection. The all-time
   total includes the oldest creation date; current-year and current-month counts
-  and projections are visible beside their charts. The event list reports and can
+  and projections are visible beside their charts. Below them, `Admin::DailyCreationCounts`
+  feeds a full-width 120 px SVG line chart of events created per UTC day over the
+  last 90 days, the one dashboard chart that includes spam: solid orange spam
+  against dashed blue legitimate events, from one grouped `COUNT(*) FILTER` query,
+  zero-filled. The event list reports and can
   filter on persisted Action Text embeds using a correlated SQL query rather than
   loading attachments per event, and can filter to events with a specific time.
 Use `db/schema.rb` and `config/routes.rb` for exact constraints and paths.

@@ -18,6 +18,7 @@
     <span class="admin-stat-label"><%= @event_stats.current_month_label %>: <strong><%= @event_stats.current_month_count %> so far</strong>, <%= @event_stats.extrapolated_current_month_count %> extrapolated</span>
     <%= render 'sparkline', id: 'current-month-chart', label: 'Running total of events created this month', series: @event_stats.current_month_chart %>
   </div>
+  <%= render 'daily_chart', id: 'daily-spam-chart', counts: @daily_creation_counts %>
 </div>
 
 <div class="admin-sort mb-2">

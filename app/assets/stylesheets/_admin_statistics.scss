@@ -1,4 +1,8 @@
 $sparkline-blue: #0063dc;
+// Orange against the dashboard blue stays distinct under common colour-vision
+// deficiencies; both keep at least 4.5:1 contrast on white.
+$daily-chart-spam: #c2410c;
+$daily-chart-legitimate: $sparkline-blue;
 
 .admin-stat-row {
   display: flex;
@@ -10,6 +14,42 @@ $sparkline-blue: #0063dc;
 
 .admin-stat-label {
   flex: 0 1 360px;
+}
+
+// Hover and keyboard-focus tooltips shared by the sparklines and the daily chart.
+@mixin chart-points {
+  .sparkline-hit-area {
+    position: absolute;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    cursor: crosshair;
+
+    &:hover, &:focus {
+      outline: 1px solid rgba($sparkline-blue, .45);
+      background: rgba($sparkline-blue, .08);
+    }
+  }
+
+  .sparkline-tooltip {
+    position: absolute;
+    z-index: 10;
+    width: max-content;
+    max-width: 250px;
+    padding: 5px 8px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    background: white;
+    color: #222;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, .1);
+    font-size: 12px;
+    line-height: 1.4;
+    visibility: hidden;
+  }
+
+  .sparkline-point:hover .sparkline-tooltip,
+  .sparkline-point:focus-within .sparkline-tooltip { visibility: visible; }
 }
 
 .admin-sparkline {
@@ -30,40 +70,122 @@ $sparkline-blue: #0063dc;
   .sparkline-endpoint { fill: white; }
   .sparkline-projection { stroke-dasharray: 3 3; }
 
+  @include chart-points;
+
   .sparkline-hit-area {
-    position: absolute;
     top: -4px;
     height: 28px;
-    padding: 0;
-    border: 0;
-    border-radius: 0;
-    background: transparent;
-    cursor: crosshair;
-
-    &:hover, &:focus {
-      outline: 1px solid rgba($sparkline-blue, .45);
-      background: rgba($sparkline-blue, .08);
-    }
   }
 
   .sparkline-tooltip {
-    position: absolute;
-    z-index: 10;
     bottom: 28px;
     left: 0;
-    width: max-content;
-    max-width: 250px;
-    padding: 5px 8px;
-    border: 1px solid #ddd;
-    border-radius: 3px;
-    background: white;
-    color: #222;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, .1);
-    font-size: 12px;
-    line-height: 1.4;
-    visibility: hidden;
+  }
+}
+
+// Spam is solid and legitimate events dashed, so the series differ by line
+// style as well as colour, in the chart and in its legend.
+.daily-chart-spam {
+  stroke: $daily-chart-spam;
+  stroke-width: 2;
+}
+
+.daily-chart-legitimate {
+  stroke: $daily-chart-legitimate;
+  stroke-width: 2;
+  stroke-dasharray: 5 3;
+}
+
+.admin-daily-chart {
+  margin-top: 16px;
+  font-size: 14px;
+
+  svg {
+    display: block;
+    overflow: visible;
+    fill: none;
+    stroke-linejoin: round;
+  }
+}
+
+.admin-daily-chart-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 16px;
+  margin-bottom: 4px;
+}
+
+.admin-daily-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  svg {
+    display: inline-block;
+    vertical-align: middle;
+  }
+}
+
+.admin-daily-chart-body {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 6px;
+}
+
+.admin-daily-chart-y-axis,
+.admin-daily-chart-x-axis {
+  color: #595959;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.admin-daily-chart-y-axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  text-align: right;
+}
+
+.admin-daily-chart-x-axis {
+  display: flex;
+  grid-column: 2;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+
+.admin-daily-chart-plot {
+  position: relative;
+  min-width: 0;
+
+  polyline, line {
+    // The SVG stretches horizontally; keep line widths and dashes in screen pixels.
+    vector-effect: non-scaling-stroke;
+  }
+
+  .daily-chart-baseline {
+    stroke: #ccc;
+    stroke-width: 1;
+  }
+
+  @include chart-points;
+
+  .sparkline-hit-area {
+    top: 0;
+    height: 100%;
+  }
+
+  // Hidden tooltips leave the layout entirely: 90 of them positioned across
+  // the plot would otherwise widen the page on narrow screens.
+  .sparkline-tooltip {
+    display: none;
+    bottom: calc(100% + 4px);
+    max-width: min(250px, 66vw);
   }
 
   .sparkline-point:hover .sparkline-tooltip,
-  .sparkline-point:focus-within .sparkline-tooltip { visibility: visible; }
+  .sparkline-point:focus-within .sparkline-tooltip { display: block; }
 }
