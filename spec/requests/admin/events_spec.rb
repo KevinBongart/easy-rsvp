@@ -219,13 +219,14 @@ RSpec.describe 'Site administrator dashboard', type: :request do
       chart = doc.at_css('.admin-statistics > .admin-stat-row:last-of-type ~ #daily-spam-chart')
       expect(chart).to be_present
       expect(chart.at_css('[role="group"]')['aria-label']).to eq(
-        'From August 22, 2026 to November 19, 2026: 4 spam and 1 legitimate events created; busiest day 3'
+        'From August 22, 2026 to November 19, 2026: 4 spam and 1 legitimate events created; highest daily count 3'
       )
       expect(chart.css('.admin-daily-chart-legend li').map { |item| item.text.squish }).to eq([ 'Spam: 4', 'Legitimate: 1' ])
       expect(chart.css('.admin-daily-chart-y-axis span').map(&:text)).to eq(%w[3 0])
       expect(chart.css('.admin-daily-chart-x-axis span').map(&:text)).to eq([ 'August 22', 'November 19' ])
       labels = chart.css('button').map { |button| button['aria-label'] }
       expect(labels.size).to eq(90)
+      expect(chart.css('button').map { |button| button['tabindex'] }.uniq).to eq([ '-1' ])
       expect(labels.first).to eq('August 22, 2026: 1 spam, 0 legitimate')
       expect(labels[1]).to eq('August 23, 2026: 0 spam, 0 legitimate')
       expect(labels.last(2)).to eq([ 'November 18, 2026: 3 spam, 0 legitimate', 'November 19, 2026: 0 spam, 1 legitimate' ])

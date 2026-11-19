@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_18_170000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_19_150000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -69,6 +69,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_18_170000) do
     t.string "spam_source"
     t.float "spam_score"
     t.datetime "spam_decided_at"
+    t.index ["created_at"], name: "index_events_on_created_at"
     t.check_constraint "ends_at IS NULL OR starts_at IS NULL OR ends_at > starts_at", name: "events_schedule_ordered"
     t.check_constraint "spam_at IS NULL AND (spam_source IS NULL OR spam_source::text = 'cleared'::text) OR spam_at IS NOT NULL AND (spam_source::text = ANY (ARRAY['operator'::character varying, 'automatic'::character varying]::text[]))", name: "events_spam_source_matches_spam_at"
     t.check_constraint "starts_at IS NULL AND ends_at IS NULL AND time_zone IS NULL OR starts_at IS NOT NULL AND ends_at IS NOT NULL AND time_zone IS NOT NULL AND btrim(time_zone::text) <> ''::text", name: "events_schedule_complete"
