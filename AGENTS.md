@@ -176,10 +176,18 @@ asset-compilation, and RSpec checks.
   spam buttons, posting to the Basic-Auth admin routes with a same-site
   `return_to`. "Close admin session" in the dashboard footer ends it.
 - `RecentEventCreation`: at most 5 successful event creations per client per
-  30 minutes. Clients are keyed by an HMAC of the remote IP (IPv6 reduced to its
-  /64), never the raw address, never linked to the event, and rows are deleted
-  once outside the window. A per-client Postgres advisory lock serializes
-  parallel submissions. Failed validations do not count.
+  30 minutes, and none while an event the client created in the last 2 hours
+  (`FLAGGED_BLOCK`) is currently spam, whatever the source. Because the
+  event's current state counts, a Jev flag set seconds after creation blocks
+  the next attempt, and an organizer who edits a wrongly flagged event until
+  the flag clears is unblocked at once. Clients are keyed by an HMAC of the
+  remote IP (IPv6 reduced to its /64), never the raw address and never stored
+  on the event; each row links to the event it created (foreign key nullified
+  when the event is deleted) and is deleted after 2 hours, taking the link
+  with it. One query on the per-client index checks both rules inside a
+  per-client Postgres advisory lock that serializes parallel submissions.
+  Failed validations and refused attempts do not count. Both rules show the
+  same `CREATION_LIMITED_MESSAGE` (429), which does not say which applied.
 - `OrganizerEventsController`: organizer display, editing, deletion, publication.
 - `RsvpsController`: public response creation and session-owned deletion.
 - `OrganizerRsvpsController`: organizer response editing/deletion.

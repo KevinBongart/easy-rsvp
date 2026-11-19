@@ -26,7 +26,7 @@ RSpec.describe 'Event creation limit', type: :request do
     page = Nokogiri::HTML(response.body)
     expect(page.at_css('#flash_alert').text).to eq(
       "To prevent abuse on Easy RSVP, we're limiting how many events you can create in a short window. " \
-      'Please wait 30 minutes and try again.'
+      'Please try again later.'
     )
     expect(page.at_css('input#event_title')['value']).to eq('One party too many')
   end
@@ -64,34 +64,134 @@ RSpec.describe 'Event creation limit', type: :request do
     end
   end
 
-  it 'stores neither the address nor a link to the event' do
+  it 'links the counter to the event but never stores the address' do
     create_event
 
     record = RecentEventCreation.sole
-    expect(RecentEventCreation.column_names).to contain_exactly('id', 'client_digest', 'created_at')
+    expect(RecentEventCreation.column_names).to contain_exactly('id', 'client_digest', 'created_at', 'event_id')
+    expect(record.event).to eq(Event.sole)
     expect(record.client_digest).to match(/\A\h{64}\z/)
     expect(record.client_digest).not_to include(ip)
     expect(Event.column_names.grep(/ip|digest/)).to be_empty
   end
 
-  it 'ignores expired counters even before they are cleaned up' do
+  it 'ignores counters outside the window that are still kept for the spam block' do
     travel_to(Time.zone.local(2026, 11, 18, 12, 0)) do
-      5.times { RecentEventCreation.create!(client_digest: RecentEventCreation.digest_for(ip)) }
+      5.times { |n| create_event(title: "Party #{n}") }
     end
 
     travel_to(Time.zone.local(2026, 11, 18, 12, 31)) do
-      allow(RecentEventCreation).to receive(:where).and_call_original
-      allow(RecentEventCreation).to receive(:where).with(created_at: anything).and_return(RecentEventCreation.none)
-
       expect { create_event }.to change(Event, :count).by(1)
+      expect(RecentEventCreation.count).to eq(6)
     end
   end
 
-  it 'deletes counters that fall outside the window' do
+  it 'deletes counters, and their links to events, once older than the spam block' do
     travel_to(Time.zone.local(2026, 11, 18, 12, 0)) { create_event(from: '198.51.100.1') }
+    travel_to(Time.zone.local(2026, 11, 18, 13, 59)) { create_event(from: '198.51.100.2') }
+    expect(RecentEventCreation.count).to eq(2)
 
-    travel_to(Time.zone.local(2026, 11, 18, 13, 0)) { create_event(from: '198.51.100.2') }
+    travel_to(Time.zone.local(2026, 11, 18, 14, 1)) { create_event(from: '198.51.100.3') }
 
-    expect(RecentEventCreation.count).to eq(1)
+    expect(RecentEventCreation.count).to eq(2)
+    expect(RecentEventCreation.pluck(:event_id)).not_to include(Event.order(:id).first.id)
+  end
+
+  describe 'clients behind spam' do
+    let(:spam_title) { 'Buy Xanax Online No Rx' }
+
+    def flag_later(event)
+      # What EventSpamReviewJob writes when Jev scores the event as spam.
+      event.update_columns(spam_at: Time.current, spam_source: 'automatic')
+    end
+
+    it 'refuses the next event after one flagged at creation, with the same message' do
+      create_event(title: spam_title)
+      expect(Event.sole).to be_spam
+
+      expect { create_event(title: 'Garden party') }.not_to change(Event, :count)
+
+      expect(response).to have_http_status(:too_many_requests)
+      expect(Nokogiri::HTML(response.body).at_css('#flash_alert').text)
+        .to eq(EventsController::CREATION_LIMITED_MESSAGE)
+    end
+
+    it 'does not count refused attempts as creations' do
+      create_event(title: spam_title)
+      3.times { create_event(title: 'Garden party') }
+
+      expect(RecentEventCreation.count).to eq(1)
+    end
+
+    it 'refuses the next event after a flag set by the background review' do
+      create_event
+      flag_later(Event.sole)
+
+      expect { create_event(title: 'Another party') }.not_to change(Event, :count)
+      expect(response).to have_http_status(:too_many_requests)
+    end
+
+    it 'counts operator marks too' do
+      create_event
+      Event.sole.update_columns(spam_at: Time.current, spam_source: 'operator')
+
+      expect { create_event(title: 'Another party') }.not_to change(Event, :count)
+    end
+
+    it 'does not block a different client' do
+      create_event(title: spam_title)
+
+      expect { create_event(from: '198.51.100.20') }.to change(Event, :count).by(1)
+    end
+
+    it 'blocks the whole IPv6 /64 and nothing outside it' do
+      create_event(title: spam_title, from: '2001:db8:1:2::1')
+
+      expect { create_event(from: '2001:db8:1:2:ffff::9') }.not_to change(Event, :count)
+      expect { create_event(from: '2001:db8:1:3::1') }.to change(Event, :count).by(1)
+    end
+
+    it 'lifts the block two hours after the flagged event was created' do
+      travel_to(Time.zone.local(2026, 11, 18, 12, 0)) { create_event(title: spam_title) }
+
+      travel_to(Time.zone.local(2026, 11, 18, 13, 59)) do
+        expect { create_event }.not_to change(Event, :count)
+      end
+
+      travel_to(Time.zone.local(2026, 11, 18, 14, 1)) do
+        expect { create_event }.to change(Event, :count).by(1)
+      end
+    end
+
+    it 'lifts the block as soon as the organizer edits the flag away' do
+      create_event(title: spam_title)
+      event = Event.sole
+      expect { create_event }.not_to change(Event, :count)
+
+      patch event_admin_path(event, event.admin_token), params: { event: { title: 'Lab holiday dinner' } }
+      expect(event.reload).not_to be_spam
+
+      expect { create_event }.to change(Event, :count).by(1)
+    end
+
+    it 'lifts the block when an operator clears the event' do
+      create_event(title: spam_title)
+      Event.sole.update_columns(spam_at: nil, spam_source: 'cleared')
+
+      expect { create_event }.to change(Event, :count).by(1)
+    end
+
+    it 'keeps working when the organizer deletes an event' do
+      travel 1.minute
+      4.times { |n| create_event(title: "Party #{n}") }
+      event = Event.order(:id).first
+
+      expect { delete event_admin_path(event, event.admin_token) }.to change(Event, :count).by(-1)
+
+      expect(RecentEventCreation.count).to eq(4)
+      expect(RecentEventCreation.where(event_id: nil).count).to eq(1)
+      expect { create_event(title: 'Fifth') }.to change(Event, :count).by(1)
+      expect { create_event(title: 'Sixth') }.not_to change(Event, :count)
+    end
   end
 end

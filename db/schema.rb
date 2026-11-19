@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_19_150000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_19_160000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -93,8 +93,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_19_150000) do
   create_table "recent_event_creations", force: :cascade do |t|
     t.string "client_digest", null: false
     t.datetime "created_at", null: false
+    t.bigint "event_id"
     t.index ["client_digest", "created_at"], name: "index_recent_event_creations_on_client_digest_and_created_at"
     t.index ["created_at"], name: "index_recent_event_creations_on_created_at"
+    t.index ["event_id"], name: "index_recent_event_creations_on_event_id"
   end
 
   create_table "rsvps", force: :cascade do |t|
@@ -110,5 +112,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_19_150000) do
 
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "legacy_event_body_conflicts", "events", on_delete: :cascade
+  add_foreign_key "recent_event_creations", "events", on_delete: :nullify
   add_foreign_key "rsvps", "events"
 end
