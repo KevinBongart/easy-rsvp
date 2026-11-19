@@ -159,8 +159,9 @@ RSpec.describe 'Site administrator dashboard', type: :request do
     filter_summary = request_metrics_summary(attachment_filtered_metrics, label: 'attachment-filtered dashboard')
 
     expect(larger_database_metrics.queries).to eq(first_page_metrics.queries), scale_summary
-    expect(larger_database_metrics.queries).to be <= 6, scale_summary
-    expect(attachment_filtered_metrics.queries).to be <= 6, filter_summary
+    # Includes one grouped query for the daily spam/legitimate chart.
+    expect(larger_database_metrics.queries).to be <= 7, scale_summary
+    expect(attachment_filtered_metrics.queries).to be <= 7, filter_summary
     expect(larger_database_metrics.duration).to be < DASHBOARD_REQUEST_BUDGET_MS, scale_summary
     expect(larger_database_metrics.db_runtime).to be < DASHBOARD_DATABASE_BUDGET_MS, scale_summary
     expect(larger_database_metrics.sql_runtime).to be < DASHBOARD_DATABASE_BUDGET_MS, scale_summary
@@ -200,6 +201,41 @@ RSpec.describe 'Site administrator dashboard', type: :request do
       expect(forecast_points.first).to eq(actual_points.last)
       expect(forecast_points.last).not_to eq(actual_points.last)
       expect(doc.css('.admin-statistics').text).not_to match(/NaN|Infinity/)
+    end
+  end
+
+  it 'charts spam and legitimate events per day below the statistics, while the stats still exclude spam' do
+    travel_to Time.utc(2026, 11, 19, 12) do
+      create(:event, created_at: Time.utc(2026, 8, 21, 23, 59, 59)) # outside the 90-day window
+      create(:event, :spam, created_at: Time.utc(2026, 8, 22))
+      create_list(:event, 2, :spam, created_at: Time.utc(2026, 11, 18, 8))
+      create(:event, :flagged_as_spam).update_columns(created_at: Time.utc(2026, 11, 18, 9))
+      create(:event, created_at: Time.utc(2026, 11, 19, 7))
+
+      get admin_events_path, headers: dashboard_headers
+
+      doc = Nokogiri::HTML(response.body)
+      expect(doc.text.squish).to include('Total events created since August 21, 2026: 2')
+      chart = doc.at_css('.admin-statistics > .admin-stat-row:last-of-type ~ #daily-spam-chart')
+      expect(chart).to be_present
+      expect(chart.at_css('[role="group"]')['aria-label']).to eq(
+        'From August 22, 2026 to November 19, 2026: 4 spam and 1 legitimate events created; highest daily count 3'
+      )
+      expect(chart.css('.admin-daily-chart-legend li').map { |item| item.text.squish }).to eq([ 'Spam: 4', 'Legitimate: 1' ])
+      expect(chart.css('.admin-daily-chart-y-axis span').map(&:text)).to eq(%w[3 0])
+      expect(chart.css('.admin-daily-chart-x-axis span').map(&:text)).to eq([ 'August 22', 'November 19' ])
+      labels = chart.css('button').map { |button| button['aria-label'] }
+      expect(labels.size).to eq(90)
+      expect(chart.css('button').map { |button| button['tabindex'] }.uniq).to eq([ '-1' ])
+      expect(labels.first).to eq('August 22, 2026: 1 spam, 0 legitimate')
+      expect(labels[1]).to eq('August 23, 2026: 0 spam, 0 legitimate')
+      expect(labels.last(2)).to eq([ 'November 18, 2026: 3 spam, 0 legitimate', 'November 19, 2026: 0 spam, 1 legitimate' ])
+      spam_line = chart.at_css('polyline.daily-chart-spam')['points'].split
+      legitimate_line = chart.at_css('polyline.daily-chart-legitimate')['points'].split
+      expect([ spam_line.size, legitimate_line.size ]).to eq([ 90, 90 ])
+      expect(spam_line[-2]).to eq('158.2,2.0')
+      expect(legitimate_line.last).to eq('160.0,79.33')
+      expect(chart.text).not_to match(/NaN|Infinity/)
     end
   end
 

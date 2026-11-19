@@ -63,6 +63,7 @@ module Admin
     def index
       AdminPreview.start(session)
       @event_stats = Admin::EventStats.new(Event.not_spam)
+      @daily_creation_counts = Admin::DailyCreationCounts.new(Event.all)
       @events = listed_events.page(params[:page]).per(EVENTS_PER_PAGE)
     end
 
