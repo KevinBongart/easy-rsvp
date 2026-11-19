@@ -94,8 +94,10 @@ asset-compilation, and RSpec checks.
   (`Event::SpamCheck.visible_text`: markup and image payloads do not count,
   captions and pasted content attachments do), and at most 10 MB of embedded
   images per description. Images count once each: Action Text embeds by blob
-  size, and images from the former Trix uploader (URL-only figures with no sgid)
-  by the file size Trix recorded. Each limit is checked only when its field
+  size, and images referenced only by an Active Storage URL (the former Trix
+  uploader) by the size of the blob that URL's signed id resolves to; the
+  submitted `filesize` is never trusted. The editor also counts images accepted
+  earlier in the same multi-file drop or pick. Each limit is checked only when its field
   changes and only rejects a change that makes the value larger than before,
   so older events over a limit stay editable. Errors show under the title and
   the editor (`events/_body_error`). Direct uploads happen before the event
@@ -135,10 +137,13 @@ asset-compilation, and RSpec checks.
   unattached direct uploads, legacy `ImageUpload` blobs, and admin preview
   sessions are still served. Files on S3 are reached through 5-minute signed
   URLs, so a mark takes effect within minutes. `bin/rails spam:purge_images`
-  (daily Dokku cron in `app.json`) deletes, with synchronous `purge`, the embeds
-  of operator marks older than 30 days (`spam_decided_at`, falling back to
-  `spam_at`); it detaches blobs still attached to another record without
-  purging them, is idempotent, and prints counts and bytes only. "Not spam"
+  (daily Dokku cron in `app.json`) deletes the embeds of operator marks older
+  than 30 days (`spam_decided_at`, falling back to `spam_at`). Each attachment
+  row and its blob row go in one transaction, so an interrupted run leaves the
+  image hidden and the next run finds it; the stored file is deleted after the
+  commit, and a failed storage delete is logged with its key, counted, and makes
+  the task exit non-zero. It detaches blobs still attached to another record
+  without purging them, is idempotent, and prints counts and bytes only. "Not spam"
   before then keeps the images. Legacy `ImageUpload` images predate the spam
   wave (that uploader was removed in September 2026) and are never hidden or
   purged.

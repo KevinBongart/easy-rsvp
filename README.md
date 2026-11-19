@@ -177,7 +177,8 @@ cannot be mistaken for success. The `app.json` `cron` entry has Dokku run
 `bin/rails spam:purge_images` daily at 04:17 server time (UTC) in a one-off
 container: it deletes the images embedded in events an operator marked as spam
 more than 30 days earlier and prints a one-line summary (event, blob, and byte
-counts). Blobs still attached to another record are only detached. Run it by
+counts). Blobs still attached to another record are only detached. If a stored
+file can't be deleted, the task logs its key and exits non-zero. Run it by
 hand with `dokku run easy-rsvp bin/rails spam:purge_images`. Bundler-audit, Brakeman, and Rails Omakase are
 gates in `bin/ci`. Pull requests that change
 only Markdown files or files under `docs/` skip the expensive application checks.

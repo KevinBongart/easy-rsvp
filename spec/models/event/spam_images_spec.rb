@@ -98,8 +98,57 @@ RSpec.describe Event::SpamImages, type: :model do
   end
 
   it 'summarizes the run on one line without personal data' do
-    result = described_class::Result.new(events: 2, purged_blobs: 3, purged_bytes: 400, kept_shared_blobs: 1)
+    result = described_class::Result.new(events: 2, purged_blobs: 3, purged_bytes: 400, kept_shared_blobs: 1, failed_deletes: 0)
 
-    expect(result.to_s).to eq('spam:purge_images events=2 purged_blobs=3 purged_bytes=400 kept_shared_blobs=1')
+    expect(result.to_s).to eq('spam:purge_images events=2 purged_blobs=3 purged_bytes=400 kept_shared_blobs=1 failed_deletes=0')
+    expect(result).to be_success
+  end
+
+  it 'counts retention from the operator decision, not an earlier automatic flag' do
+    blob = upload
+    event_with(blob).update_columns(spam_at: 60.days.ago, spam_source: 'operator', spam_decided_at: 5.days.ago)
+
+    expect(described_class.purge_expired).to have_attributes(events: 0, purged_blobs: 0)
+    expect(ActiveStorage::Blob.exists?(blob.id)).to be(true)
+  end
+
+  it 'keeps images of an event cleared and marked again recently' do
+    blob = upload
+    event = event_with(blob)
+    mark(event)
+    mark(event, source: 'cleared', decided: 10.days.ago)
+    mark(event, decided: 2.days.ago)
+
+    expect(described_class.purge_expired).to have_attributes(purged_blobs: 0)
+  end
+
+  it 'keeps a blob hidden and purges it on the next run when a run fails midway' do
+    blob = upload
+    mark(event_with(blob))
+    allow_any_instance_of(ActiveStorage::Blob).to receive(:destroy!).and_raise(ActiveRecord::StatementInvalid, 'connection lost')
+
+    expect { described_class.purge_expired }.to raise_error(ActiveRecord::StatementInvalid)
+    expect(ActiveStorage::Blob.where(Event::SpamImages::HIDDEN_BLOB).exists?(blob.id)).to be(true)
+
+    allow_any_instance_of(ActiveStorage::Blob).to receive(:destroy!).and_call_original
+    expect(described_class.purge_expired).to have_attributes(purged_blobs: 1)
+    expect(gone?(blob)).to be(true)
+  end
+
+  it 'logs a failed storage delete with its key and carries on' do
+    failing, fine = upload('a'), upload('b')
+    mark(event_with(failing))
+    mark(event_with(fine))
+    allow(failing.service).to receive(:delete).and_call_original
+    allow(failing.service).to receive(:delete).with(failing.key).and_raise(IOError, 'storage unavailable')
+    logger = instance_double(Logger, error: nil)
+
+    result = described_class.purge_expired(logger:)
+
+    expect(result).to have_attributes(purged_blobs: 1, failed_deletes: 1)
+    expect(result).not_to be_success
+    expect(logger).to have_received(:error).with(include(failing.key, 'storage unavailable'))
+    expect(gone?(fine)).to be(true)
+    expect(ActiveStorage::Blob.exists?(failing.id)).to be(false)
   end
 end

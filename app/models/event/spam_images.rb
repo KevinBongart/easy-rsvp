@@ -39,50 +39,69 @@ module Event::SpamImages
     )
   SQL
 
-  Result = Data.define(:events, :purged_blobs, :purged_bytes, :kept_shared_blobs) do
+  Result = Data.define(:events, :purged_blobs, :purged_bytes, :kept_shared_blobs, :failed_deletes) do
     def to_s
       "spam:purge_images events=#{events} purged_blobs=#{purged_blobs} " \
-        "purged_bytes=#{purged_bytes} kept_shared_blobs=#{kept_shared_blobs}"
+        "purged_bytes=#{purged_bytes} kept_shared_blobs=#{kept_shared_blobs} failed_deletes=#{failed_deletes}"
     end
+
+    def success? = failed_deletes.zero?
   end
 
   module_function
 
-  # Events whose operator mark is older than RETENTION. spam_decided_at was
-  # backfilled from spam_at for older marks; spam_at covers any gap.
+  # Events whose operator mark is older than RETENTION. Retention counts from
+  # the operator's decision: an automatic flag keeps its earlier spam_at when
+  # an operator confirms it. spam_decided_at was backfilled from spam_at for
+  # older marks; spam_at covers any gap.
   def expired_events(now: Time.current)
     Event.where(spam_source: "operator")
       .where("COALESCE(events.spam_decided_at, events.spam_at) < ?", now - RETENTION)
   end
 
-  # Deletes the embeds of expired events: the attachment rows always, and each
-  # blob with its file once nothing else is attached to it. Runs in a one-off
-  # container, so it purges synchronously. Safe to run repeatedly: processed
-  # attachments are gone, so a second run finds nothing.
-  def purge_expired(now: Time.current, batch_size: 100)
+  # Deletes the embeds of expired events. Each attachment row and, once nothing
+  # else is attached to it, its blob row go in one transaction, so an
+  # interrupted run never leaves a blob that is no longer hidden yet still
+  # servable. The stored file is deleted after the commit; a failed storage
+  # delete is logged with its key and counted, and the run continues. Runs in a
+  # one-off container, so nothing is deferred to jobs. Safe to run repeatedly:
+  # processed attachments are gone, so a second run finds nothing.
+  def purge_expired(now: Time.current, batch_size: 100, logger: Rails.logger)
     rich_texts = ActionText::RichText.where(record_type: "Event", name: "body", record_id: expired_events(now:).select(:id))
     attachments = ActiveStorage::Attachment
       .where(record_type: "ActionText::RichText", name: "embeds", record_id: rich_texts.select(:id))
       .includes(:blob)
 
     events = Set.new
-    purged_blobs = purged_bytes = kept_shared_blobs = 0
+    purged_blobs = purged_bytes = kept_shared_blobs = failed_deletes = 0
 
     attachments.find_each(batch_size:) do |attachment|
       events << attachment.record_id
       blob = attachment.blob
-      attachment.delete
-      next unless blob
 
-      if blob.attachments.exists?
-        kept_shared_blobs += 1
+      orphaned = ActiveRecord::Base.transaction do
+        attachment.delete
+        next false unless blob
+        next false if blob.attachments.exists?
+
+        blob.destroy!
+        true
+      end
+
+      if !orphaned
+        kept_shared_blobs += 1 if blob
       else
-        blob.purge
-        purged_blobs += 1
-        purged_bytes += blob.byte_size
+        begin
+          blob.delete
+          purged_blobs += 1
+          purged_bytes += blob.byte_size
+        rescue StandardError => e
+          failed_deletes += 1
+          logger.error("spam:purge_images could not delete stored file #{blob.key}: #{e.class}: #{e.message}")
+        end
       end
     end
 
-    Result.new(events: events.size, purged_blobs:, purged_bytes:, kept_shared_blobs:)
+    Result.new(events: events.size, purged_blobs:, purged_bytes:, kept_shared_blobs:, failed_deletes:)
   end
 end

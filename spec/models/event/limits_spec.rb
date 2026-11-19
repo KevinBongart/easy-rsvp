@@ -33,7 +33,9 @@ RSpec.describe Event, 'length and image limits', type: :model do
       event.update_column(:title, 'a' * 300)
 
       expect(event.reload.update(date: event.date + 1.day, body: text(10))).to be(true)
-      expect(event.update(title: 'b' * 300)).to be(false)
+      expect(event.update(title: 'b' * 250)).to be(true)
+      expect(event.update(title: 'b' * 251)).to be(false)
+      expect(event.errors[:title]).to include('is too long (maximum is 200 characters)')
     end
   end
 
@@ -87,12 +89,21 @@ RSpec.describe Event, 'length and image limits', type: :model do
       expect(build(:event, body: embed(shared, shared))).to be_valid
     end
 
-    it 'counts images from the former Trix uploader by their recorded size' do
-      body = legacy_image('/rails/active_storage/blobs/old-1/a.png', 6.megabytes) +
-             legacy_image('/rails/active_storage/blobs/old-2/b.png', 6.megabytes)
+    it 'counts images referenced by Active Storage URL by their stored size, never the submitted one' do
+      first, second = blob(6.megabytes), blob(6.megabytes)
+      body = legacy_image("/rails/active_storage/blobs/redirect/#{first.signed_id}/a.png", 0) +
+             legacy_image("/rails/active_storage/blobs/#{second.signed_id}/b.png", 1)
 
       expect(build(:event, body: body)).not_to be_valid
+      expect(build(:event, body: legacy_image('/rails/active_storage/blobs/redirect/forged/a.png', 50.megabytes))).to be_valid
       expect(build(:event, body: legacy_image('https://example.com/a.png', 50.megabytes))).to be_valid
+    end
+
+    it 'counts a blob once whether it is embedded or referenced by URL' do
+      shared = blob(6.megabytes)
+      body = embed(shared) + legacy_image("/rails/active_storage/blobs/redirect/#{shared.signed_id}/a.png", 0)
+
+      expect(build(:event, body: body)).to be_valid
     end
 
     it 'keeps an event already over the limit editable unless images are added' do

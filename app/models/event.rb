@@ -10,7 +10,9 @@ class Event < ApplicationRecord
   MAXIMUM_TITLE_LENGTH = 200
   MAXIMUM_DESCRIPTION_LENGTH = 20_000
   MAXIMUM_IMAGES_SIZE = 10.megabytes
-  LEGACY_UPLOAD_URL = %r{/rails/active_storage/(?:blobs|representations)/}
+  # Captures the signed blob id of an Active Storage URL, on current
+  # (redirect/proxy) and legacy routes.
+  LEGACY_UPLOAD_URL = %r{/rails/active_storage/(?:blobs|representations)/(?:redirect/|proxy/)?([^/?#]+)}
   IMAGES_TOO_LARGE ="Images in the description can add up to 10 MB; remove some and try again.".freeze
 
   has_many :rsvps, dependent: :destroy
@@ -29,7 +31,7 @@ class Event < ApplicationRecord
   after_rollback { @spam_review_pending = false }
 
   validates :title, presence: true
-  validates :title, length: { maximum: MAXIMUM_TITLE_LENGTH }, if: :will_save_change_to_title?
+  validate :title_within_limit, if: :will_save_change_to_title?
   validate :description_within_limits, if: -> { rich_text_body&.changed? }
   validates :date, presence: true
   validates :published, inclusion: { in: [ true, false ] }
@@ -124,6 +126,13 @@ class Event < ApplicationRecord
     @spam_review_pending = spam_review_needed?
   end
 
+  def title_within_limit
+    length = title.to_s.length
+    return if length <= MAXIMUM_TITLE_LENGTH || length <= title_was.to_s.length
+
+    errors.add(:title, :too_long, count: MAXIMUM_TITLE_LENGTH)
+  end
+
   def description_within_limits
     body, previous_body = rich_text_body.body, rich_text_body.body_was
 
@@ -143,21 +152,21 @@ class Event < ApplicationRecord
     content.present? ? Event::SpamCheck.visible_text(content.to_html).length : 0
   end
 
-  # Bytes of the images the description embeds, each counted once: Action Text
-  # uploads by blob size, and images from the former Trix uploader (ImageUpload,
-  # referenced only by URL) by the file size Trix recorded. Other remote images
-  # and data: URIs use no storage here.
+  # Bytes of the images the description embeds, each blob counted once:
+  # Action Text uploads, and images referenced only by an Active Storage URL
+  # (the former Trix uploader), both by their stored blob size. The submitted
+  # filesize attribute is never trusted. Other remote images and data: URIs use
+  # no storage here.
   def embedded_images_size(content)
     return 0 if content.blank?
 
     content.attachments.each_with_object({}) do |attachment, sizes|
-      attachable = attachment.attachable
-      url = attachment.node["url"].to_s
-      if attachable.is_a?(ActiveStorage::Blob)
-        sizes[attachable.id] = attachable.byte_size
-      elsif attachment.node["sgid"].blank? && url.match?(LEGACY_UPLOAD_URL)
-        sizes[url] = attachment.node["filesize"].to_i
+      blob = attachment.attachable
+      if !blob.is_a?(ActiveStorage::Blob) && attachment.node["sgid"].blank?
+        signed_id = attachment.node["url"].to_s[LEGACY_UPLOAD_URL, 1]
+        blob = signed_id && ActiveStorage::Blob.find_signed(CGI.unescape(signed_id))
       end
+      sizes[blob.id] = blob.byte_size if blob.is_a?(ActiveStorage::Blob)
     end.values.sum
   end
 

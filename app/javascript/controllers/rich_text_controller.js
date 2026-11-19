@@ -20,10 +20,34 @@ export default class extends Controller {
     if (!acceptedImageTypes.includes(file.type) || file.size === 0 || file.size > maximumImageSize) {
       event.preventDefault()
       this.showUploadError(uploadErrorMessage)
-    } else if (this.attachedImagesSize + file.size > maximumImagesSize) {
+    } else if (this.attachedImagesSize + this.pendingImagesSize + file.size > maximumImagesSize) {
       event.preventDefault()
       this.showUploadError(imagesTooLargeMessage)
+    } else {
+      this.trackPendingImage(file.size)
     }
+  }
+
+  // Trix asks about every file of a multi-file drop or pick before inserting
+  // any of them, so files accepted earlier in the same batch are not in the
+  // document yet. Count them until the batch has been inserted.
+  trackPendingImage(size) {
+    this.pendingImagesSize = this.pendingImagesSize + size
+    if (this.pendingReset) return
+
+    this.pendingReset = true
+    queueMicrotask(() => {
+      this.pendingImagesSize = 0
+      this.pendingReset = false
+    })
+  }
+
+  get pendingImagesSize() {
+    return this._pendingImagesSize || 0
+  }
+
+  set pendingImagesSize(size) {
+    this._pendingImagesSize = size
   }
 
   uploadFailed(event) {

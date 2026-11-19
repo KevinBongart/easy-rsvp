@@ -16,9 +16,17 @@ RSpec.describe 'spam:purge_images' do
     event.update!(body: %(<action-text-attachment sgid="#{blob.attachable_sgid}"></action-text-attachment>))
     event.update_columns(spam_at: 31.days.ago, spam_source: 'operator', spam_decided_at: 31.days.ago)
 
-    expect { task.invoke }.to output("spam:purge_images events=1 purged_blobs=1 purged_bytes=42 kept_shared_blobs=0\n").to_stdout
+    expect { task.invoke }.to output("spam:purge_images events=1 purged_blobs=1 purged_bytes=42 kept_shared_blobs=0 failed_deletes=0\n").to_stdout
 
     expect(ActiveStorage::Blob.exists?(blob.id)).to be(false)
+  end
+
+  it 'exits non-zero when a stored file could not be deleted' do
+    result = Event::SpamImages::Result.new(events: 1, purged_blobs: 0, purged_bytes: 0, kept_shared_blobs: 0, failed_deletes: 1)
+    allow(Event::SpamImages).to receive(:purge_expired).and_return(result)
+
+    expect { task.invoke }.to raise_error(SystemExit) { |error| expect(error.status).to eq(1) }
+      .and output(/failed_deletes=1/).to_stdout
   end
 
   it 'is scheduled daily by Dokku' do

@@ -84,6 +84,23 @@ RSpec.describe 'Upload lifecycle regressions', type: :system, js: true do
     expect(ActiveStorage::Blob.count).to eq(2)
   end
 
+  it 'counts images dropped together against the 10 MB total' do
+    visit root_path
+
+    Tempfile.create([ 'large', '.png' ]) do |file|
+      file.binmode
+      file.write(File.binread(Rails.root.join('spec/fixtures/files/party.png')))
+      file.truncate(4.megabytes)
+      file.flush
+
+      find('trix-editor').drop(file.path, file.path, file.path)
+      expect(page).to have_css('[role=alert]', text: 'Images in the description can add up to 10 MB')
+      expect(page).to have_css('trix-editor img[src*="/rails/active_storage/"]', count: 2)
+    end
+
+    expect(ActiveStorage::Blob.count).to eq(2)
+  end
+
   %w[network_error server_error].each do |failure|
     it "recovers from an upload #{failure} without leaving a stuck attachment" do
       visit root_path
