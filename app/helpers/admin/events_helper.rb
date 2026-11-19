@@ -57,9 +57,17 @@ module Admin::EventsHelper
   end
 
   # Tooltips open toward the middle so those near either edge stay on screen.
+  # Tooltips in the outer thirds align with the nearer edge; the middle third
+  # is centered, so a tooltip never reaches past either edge of the plot.
   def daily_chart_tooltip_position(points, index)
     percent = points[index][:x] / 1.6
-    percent <= 50 ? "left: #{percent.round(2)}%" : "right: #{(100 - percent).round(2)}%"
+    if percent < 100 / 3.0
+      "left: #{percent.round(2)}%"
+    elsif percent > 200 / 3.0
+      "right: #{(100 - percent).round(2)}%"
+    else
+      "left: #{percent.round(2)}%; transform: translateX(-50%)"
+    end
   end
 
   ROW_PATH_ID = "__event_id__"

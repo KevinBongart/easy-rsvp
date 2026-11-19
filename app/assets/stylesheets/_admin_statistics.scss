@@ -178,5 +178,14 @@ $daily-chart-legitimate: $sparkline-blue;
     height: 100%;
   }
 
-  .sparkline-tooltip { bottom: calc(100% + 4px); }
+  // Hidden tooltips leave the layout entirely: 90 of them positioned across
+  // the plot would otherwise widen the page on narrow screens.
+  .sparkline-tooltip {
+    display: none;
+    bottom: calc(100% + 4px);
+    max-width: min(250px, 66vw);
+  }
+
+  .sparkline-point:hover .sparkline-tooltip,
+  .sparkline-point:focus-within .sparkline-tooltip { display: block; }
 }

@@ -27,6 +27,7 @@ RSpec.describe Admin::EventsHelper, type: :helper do
     points = helper.daily_chart_points(days, maximum: 1_234)
     expect(helper.daily_chart_tooltip(points.last)).to eq('November 19, 2026: 1,234 spam, 0 legitimate')
     expect(helper.daily_chart_tooltip_position(points, 0)).to eq('left: 0.0%')
+    expect(helper.daily_chart_tooltip_position(points, 1)).to eq('left: 50.0%; transform: translateX(-50%)')
     expect(helper.daily_chart_tooltip_position(points, 2)).to eq('right: 0.0%')
   end
 

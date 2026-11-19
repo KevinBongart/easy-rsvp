@@ -61,6 +61,9 @@ RSpec.describe 'Administrator charts', type: :system, js: true do
       find('#current-month-chart button', match: :first).click
       expect(page).to have_css('#current-month-chart [role="tooltip"]', text: 'September 1: 0', visible: true)
       expect(find('.admin-statistics').evaluate_script('this.scrollWidth <= this.clientWidth')).to be(true)
+      find('#daily-spam-chart .sparkline-point:nth-child(46) button').hover
+      expect(page).to have_css('#daily-spam-chart [role="tooltip"]', visible: true, count: 1)
+      expect(find('.admin-statistics').evaluate_script('this.scrollWidth <= this.clientWidth')).to be(true)
       find('.admin-statistics').native.save_screenshot(Rails.root.join('tmp/screenshots/admin-charts-mobile.png'))
     end
   end
