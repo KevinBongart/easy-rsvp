@@ -94,6 +94,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_19_160000) do
     t.string "client_digest", null: false
     t.datetime "created_at", null: false
     t.bigint "event_id"
+    t.datetime "flagged_at"
     t.index ["client_digest", "created_at"], name: "index_recent_event_creations_on_client_digest_and_created_at"
     t.index ["created_at"], name: "index_recent_event_creations_on_created_at"
     t.index ["event_id"], name: "index_recent_event_creations_on_event_id"

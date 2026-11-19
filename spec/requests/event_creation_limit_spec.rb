@@ -68,7 +68,7 @@ RSpec.describe 'Event creation limit', type: :request do
     create_event
 
     record = RecentEventCreation.sole
-    expect(RecentEventCreation.column_names).to contain_exactly('id', 'client_digest', 'created_at', 'event_id')
+    expect(RecentEventCreation.column_names).to contain_exactly('id', 'client_digest', 'created_at', 'event_id', 'flagged_at')
     expect(record.event).to eq(Event.sole)
     expect(record.client_digest).to match(/\A\h{64}\z/)
     expect(record.client_digest).not_to include(ip)
@@ -100,9 +100,16 @@ RSpec.describe 'Event creation limit', type: :request do
   describe 'clients behind spam' do
     let(:spam_title) { 'Buy Xanax Online No Rx' }
 
+    # The background review scoring the event as spam, through the real job.
     def flag_later(event)
-      # What EventSpamReviewJob writes when Jev scores the event as spam.
-      event.update_columns(spam_at: Time.current, spam_source: 'automatic')
+      previous = ENV['TYPESAFE_API_KEY']
+      ENV['TYPESAFE_API_KEY'] = 'test-key'
+      stub_request(:post, 'https://api.typesafe.ai/v1/systemone')
+        .to_return(status: 200, body: { answers: { advertising: { noul: 0.99 } } }.to_json)
+      EventSpamReviewJob.perform_now(event.id)
+      expect(event.reload).to be_flagged_as_spam
+    ensure
+      ENV['TYPESAFE_API_KEY'] = previous
     end
 
     it 'refuses the next event after one flagged at creation, with the same message' do
@@ -133,7 +140,7 @@ RSpec.describe 'Event creation limit', type: :request do
 
     it 'counts operator marks too' do
       create_event
-      Event.sole.update_columns(spam_at: Time.current, spam_source: 'operator')
+      post mark_spam_admin_event_path(Event.sole), headers: dashboard_headers
 
       expect { create_event(title: 'Another party') }.not_to change(Event, :count)
     end
@@ -163,22 +170,62 @@ RSpec.describe 'Event creation limit', type: :request do
       end
     end
 
-    it 'lifts the block as soon as the organizer edits the flag away' do
+    it 'keeps the block when the organizer edits the flag away' do
       create_event(title: spam_title)
       event = Event.sole
-      expect { create_event }.not_to change(Event, :count)
 
       patch event_admin_path(event, event.admin_token), params: { event: { title: 'Lab holiday dinner' } }
       expect(event.reload).not_to be_spam
 
-      expect { create_event }.to change(Event, :count).by(1)
+      expect { create_event }.not_to change(Event, :count)
+      expect(response).to have_http_status(:too_many_requests)
+    end
+
+    it 'keeps the block after a background flag is edited away' do
+      create_event
+      event = Event.sole
+      flag_later(event)
+
+      patch event_admin_path(event, event.admin_token), params: { event: { title: 'Party at noon' } }
+      expect(event.reload).not_to be_spam
+
+      expect { create_event(title: 'Another party') }.not_to change(Event, :count)
+    end
+
+    it 'keeps the block when the organizer deletes the flagged event' do
+      create_event(title: spam_title)
+      event = Event.sole
+
+      expect { delete event_admin_path(event, event.admin_token) }.to change(Event, :count).by(-1)
+
+      expect { create_event }.not_to change(Event, :count)
+      expect(response).to have_http_status(:too_many_requests)
+    end
+
+    it 'records a flag the Ruby rules set when an existing event is edited into spam' do
+      create_event
+      event = Event.sole
+      patch event_admin_path(event, event.admin_token), params: { event: { title: spam_title } }
+      expect(event.reload).to be_spam
+
+      expect { create_event(title: 'Another party') }.not_to change(Event, :count)
     end
 
     it 'lifts the block when an operator clears the event' do
       create_event(title: spam_title)
-      Event.sole.update_columns(spam_at: nil, spam_source: 'cleared')
+      post unmark_spam_admin_event_path(Event.sole), headers: dashboard_headers
 
       expect { create_event }.to change(Event, :count).by(1)
+    end
+
+    it 'ignores flagged rows older than two hours even before cleanup removes them' do
+      create_event(title: spam_title)
+      RecentEventCreation.update_all(created_at: 2.hours.ago - 1.minute)
+      allow(RecentEventCreation).to receive(:where).and_call_original
+      allow(RecentEventCreation).to receive(:where).with(created_at: anything).and_return(RecentEventCreation.none)
+
+      expect { create_event }.to change(Event, :count).by(1)
+      expect(RecentEventCreation.where(flagged_at: ..Time.current).count).to eq(1)
     end
 
     it 'keeps working when the organizer deletes an event' do

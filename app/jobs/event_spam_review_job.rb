@@ -21,7 +21,10 @@ class EventSpamReviewJob < ApplicationJob
     # decided meanwhile. A text edit queued its own review; other edits (date,
     # publication) do not change the answer.
     event.with_lock do
-      event.update_columns(changes) if event.spam_review_needed? && Event::SpamReview.page(event) == page
+      next unless event.spam_review_needed? && Event::SpamReview.page(event) == page
+
+      event.update_columns(changes)
+      RecentEventCreation.flag!(event) if event.spam?
     end
   end
 end

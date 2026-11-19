@@ -1,19 +1,22 @@
 # Limits how many events one client can create in a short window, and refuses
-# clients whose recent event is currently spam.
+# clients whose recent event was flagged as spam.
 #
 # Clients are identified by a keyed one-way digest of their address, never the
 # address itself, and the digest is never stored on the event. IPv6 addresses
 # are reduced to their /64 prefix, which a single household or host controls.
 # Each row links to the event it created; the link lives only in this table
-# and is deleted with the row once older than FLAGGED_BLOCK.
+# and the row is deleted on the first creation attempt after it is older than
+# FLAGGED_BLOCK.
 class RecentEventCreation < ApplicationRecord
   LIMIT = 5
   WINDOW = 30.minutes
-  # A client is refused while any event it created this recently is spam. The
-  # event's current state counts, so a flag set seconds later by the
-  # background review blocks the next attempt, and an organizer who edits a
-  # wrongly flagged event until the flag clears is unblocked at once.
-  # Rows are kept this long, which also covers WINDOW.
+  # A client is refused while any event it created this recently was flagged
+  # as spam. The flag is recorded on the row (flagged_at) when the Ruby rules,
+  # the background review, or an operator flag the event, and it sticks:
+  # deleting the event or editing the flag away does not lift the block, since
+  # the code is public and either would otherwise cost a spammer one request.
+  # Only an operator's "Not spam" or this expiry lifts it. Rows are kept this
+  # long, which also covers WINDOW.
   FLAGGED_BLOCK = 2.hours
   DIGEST_PURPOSE = "recent_event_creations/client_digest"
 
@@ -38,10 +41,21 @@ class RecentEventCreation < ApplicationRecord
         :limited
       else
         created = yield
-        create!(client_digest: digest, event: created) if created
+        create!(client_digest: digest, event: created, flagged_at: (Time.current if created.spam?)) if created
         created
       end
     end
+  end
+
+  # Called wherever an event becomes spam, including writes that skip
+  # callbacks (the background review and admin marks use update_columns).
+  def self.flag!(event)
+    where(event_id: event.id, flagged_at: nil).update_all(flagged_at: Time.current)
+  end
+
+  # An operator decided the event is not spam.
+  def self.unflag!(event)
+    where(event_id: event.id).update_all(flagged_at: nil)
   end
 
   def self.digest_for(remote_ip)
@@ -50,14 +64,14 @@ class RecentEventCreation < ApplicationRecord
 
   # One query on the (client_digest, created_at) index over the client's rows
   # from the last FLAGGED_BLOCK: how many fall in the rate window, and whether
-  # any of their events is currently spam.
+  # any was flagged (recorded on the row, or the linked event is spam now).
   def self.limited?(digest)
     now = Time.current
     recent, flagged = left_joins(:event)
       .where(client_digest: digest, created_at: (now - FLAGGED_BLOCK)..)
       .pick(
         Arel.sql(sanitize_sql([ "COUNT(*) FILTER (WHERE recent_event_creations.created_at >= ?)", now - WINDOW ])),
-        Arel.sql("COALESCE(BOOL_OR(events.spam_at IS NOT NULL), FALSE)")
+        Arel.sql("COALESCE(BOOL_OR(recent_event_creations.flagged_at IS NOT NULL OR events.spam_at IS NOT NULL), FALSE)")
       )
 
     recent >= LIMIT || flagged

@@ -176,18 +176,25 @@ asset-compilation, and RSpec checks.
   spam buttons, posting to the Basic-Auth admin routes with a same-site
   `return_to`. "Close admin session" in the dashboard footer ends it.
 - `RecentEventCreation`: at most 5 successful event creations per client per
-  30 minutes, and none while an event the client created in the last 2 hours
-  (`FLAGGED_BLOCK`) is currently spam, whatever the source. Because the
-  event's current state counts, a Jev flag set seconds after creation blocks
-  the next attempt, and an organizer who edits a wrongly flagged event until
-  the flag clears is unblocked at once. Clients are keyed by an HMAC of the
-  remote IP (IPv6 reduced to its /64), never the raw address and never stored
-  on the event; each row links to the event it created (foreign key nullified
-  when the event is deleted) and is deleted after 2 hours, taking the link
-  with it. One query on the per-client index checks both rules inside a
-  per-client Postgres advisory lock that serializes parallel submissions.
-  Failed validations and refused attempts do not count. Both rules show the
-  same `CREATION_LIMITED_MESSAGE` (429), which does not say which applied.
+  30 minutes, and none for 2 hours (`FLAGGED_BLOCK`) after creating an event
+  that gets flagged as spam, whatever the source. The flag is recorded on the
+  counter row (`flagged_at`): at creation when the Ruby rules flag the event,
+  by `Event` after save when an edit makes it spam, and by
+  `RecentEventCreation.flag!` from the writes that skip callbacks
+  (`EventSpamReviewJob`, admin Mark spam). It sticks: deleting the event or
+  editing the flag away does not lift the block, because the code is public and
+  either would otherwise cost a spammer one request. Only admin "Not spam"
+  (`unflag!`) or the 2-hour expiry lifts it. A wrongly flagged organizer can
+  still edit their event to clear its flag, but can't create another event
+  from that IP (or IPv6 /64) for up to 2 hours. Clients are keyed by an HMAC of
+  the remote IP (IPv6 reduced to its /64), never the raw address and never
+  stored on the event; each row links to the event it created (foreign key
+  nullified when the event is deleted) and is deleted, with the link, on the
+  first creation attempt after it is 2 hours old. One query on the per-client
+  index checks both rules inside a per-client Postgres advisory lock that
+  serializes parallel submissions. Failed validations and refused attempts do
+  not count. Both rules show the same `CREATION_LIMITED_MESSAGE` (429), which
+  deliberately does not say which applied.
 - `OrganizerEventsController`: organizer display, editing, deletion, publication.
 - `RsvpsController`: public response creation and session-owned deletion.
 - `OrganizerRsvpsController`: organizer response editing/deletion.

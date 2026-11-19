@@ -26,6 +26,7 @@ class Event < ApplicationRecord
   before_validation :apply_submitted_schedule, if: :schedule_submitted?
   before_create :set_admin_token
   before_save :apply_spam_check, if: :spam_check_needed?
+  after_save -> { RecentEventCreation.flag!(self) }, if: -> { saved_change_to_spam_at? && spam? }
   before_save :forget_spam_decision, if: :cleared_text_changed?
   after_commit :review_spam_later, on: %i[create update], if: -> { @spam_review_pending }
   after_rollback { @spam_review_pending = false }
