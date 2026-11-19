@@ -93,7 +93,9 @@ RSpec.describe Event::SpamReview do
 
   it 'keeps reviewing when an example or the page is pathological' do
     stub_jev(score: 0.2)
-    create(:event, :spam, title: 'Long spam', body: "<div>#{'rue ' * 32_000}</div>", spam_decided_at: 1.hour.ago)
+    # Saved before the description length limit existed.
+    long_spam = create(:event, :spam, title: 'Long spam', spam_decided_at: 1.hour.ago)
+    long_spam.rich_text_body.update_column(:body, "<div>#{'rue ' * 32_000}</div>")
     event = create(:event, body: %(<div><a href="https://#{'a-' * 125_000}a.com/">here</a></div>))
 
     expect(described_class.score(event)).to eq(0.2)

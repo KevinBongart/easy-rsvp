@@ -86,9 +86,22 @@ asset-compilation, and RSpec checks.
 - `ImageUpload`: legacy records retain old editor uploads and their Active
   Storage attachments. New editor uploads use Action Text direct uploads. The
   browser and server accept declared PNG/JPEG/GIF/WebP files from 1 byte through
-  10 MB before issuing a storage URL. Direct uploads cannot be byte-sniffed
+  5 MB before issuing a storage URL. Direct uploads cannot be byte-sniffed
   before reaching storage. Upload ownership remains independent of event
   creation and needs a separate lifecycle design.
+- Event limits: titles of at most 200 characters (`maxlength` on the inputs),
+  descriptions of at most 20,000 characters of visible text
+  (`Event::SpamCheck.visible_text`: markup and image payloads do not count,
+  captions and pasted content attachments do), and at most 10 MB of embedded
+  images per description. Images count once each: Action Text embeds by blob
+  size, and images from the former Trix uploader (URL-only figures with no sgid)
+  by the file size Trix recorded. Each limit is checked only when its field
+  changes and only rejects a change that makes the value larger than before,
+  so older events over a limit stay editable. Errors show under the title and
+  the editor (`events/_body_error`). Direct uploads happen before the event
+  exists, so the 10 MB total is also checked in the editor
+  (`rich_text_controller.js`) before an upload starts; the server validation is
+  authoritative.
 - `EventsController`: event creation and public display.
 - Spam and search indexing: event pages (public, calendar, organizer) send
   `X-Robots-Tag: noindex, nofollow` and a matching robots meta tag; the home page
@@ -113,6 +126,22 @@ asset-compilation, and RSpec checks.
   set with `update_columns`, bypassing the save-time check. Not spam sets
   `spam_source = "cleared"` (with no `spam_at`) so automatic checks skip the
   event afterwards.
+- Spam images (`Event::SpamImages`): Active Storage's blob and representation
+  redirect/proxy controllers get `HidesOperatorSpamImages` prepended
+  (`config/initializers/spam_images.rb`), which narrows `blob_scope` so the
+  signed-id lookup itself excludes blobs embedded only in descriptions of
+  `operator`-marked events: those answer 404, in the same single indexed query.
+  Images of `automatic` and cleared events, blobs also attached elsewhere,
+  unattached direct uploads, legacy `ImageUpload` blobs, and admin preview
+  sessions are still served. Files on S3 are reached through 5-minute signed
+  URLs, so a mark takes effect within minutes. `bin/rails spam:purge_images`
+  (daily Dokku cron in `app.json`) deletes, with synchronous `purge`, the embeds
+  of operator marks older than 30 days (`spam_decided_at`, falling back to
+  `spam_at`); it detaches blobs still attached to another record without
+  purging them, is idempotent, and prints counts and bytes only. "Not spam"
+  before then keeps the images. Legacy `ImageUpload` images predate the spam
+  wave (that uploader was removed in September 2026) and are never hidden or
+  purged.
 - `Event::SpamReview` / `EventSpamReviewJob`: a second opinion from TypeSafe's
   Jev model (`TYPESAFE_API_KEY`; off when unset) for events the Ruby rules pass
   and no admin has decided on. The job is queued after commit on the in-process

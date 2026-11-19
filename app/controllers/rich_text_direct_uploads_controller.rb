@@ -1,12 +1,12 @@
 class RichTextDirectUploadsController < ActiveStorage::DirectUploadsController
   CONTENT_TYPES = %w[image/png image/jpeg image/gif image/webp].freeze
-  MAXIMUM_SIZE = 10.megabytes
+  MAXIMUM_SIZE = 5.megabytes
 
   def create
     if acceptable_upload?
       super
     else
-      render json: { error: "Upload must be a PNG, JPEG, GIF, or WebP image between 1 byte and 10 MB." },
+      render json: { error: "Upload must be a PNG, JPEG, GIF, or WebP image between 1 byte and 5 MB." },
         status: :unprocessable_content
     end
   end
