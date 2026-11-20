@@ -2,6 +2,8 @@
 
 <h1>Events admin</h1>
 
+<%= render "spam_review_alert", status: @spam_review_status %>
+
 <div class="admin-statistics mb-3">
   <div class="mb-2">
     <strong>Total events created<% if (oldest_date = @event_stats.oldest_creation_date) %> since <%= oldest_date %><% end %>:</strong> <%= @event_stats.total_events %>
@@ -109,7 +111,7 @@
           <% end %>
         </td>
         <% if params[:spam] == "1" %>
-          <td class="text-nowrap small"><%= event.created_at.utc.strftime("%Y-%m-%d %H:%M UTC") %></td>
+          <td class="text-nowrap small"><%= admin_time(event.created_at) %></td>
         <% end %>
         <td class="text-nowrap"><code class="small"><%= link_to event.admin_token.split('-').first, admin_event_row_path(:organizer, event, hashid:), class: "text-body" %></code></td>
         <td class="text-nowrap text-end"><% if event.spam_score %><code class="small" title="Jev advertising score"><%= number_with_precision(event.spam_score, precision: 2) %></code><% end %></td>
