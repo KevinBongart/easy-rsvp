@@ -39,7 +39,7 @@ class RsvpsController < ApplicationController
   def set_event
     hashid = event_hashid_from_param(params[:event_id])
     @event = Event.find_by_hashid!(hashid)
-    return render_removed_event if @event.spam?
+    return render_removed_event if removed_for_this_browser?(@event)
 
     raise ActiveRecord::RecordNotFound unless @event.published?
   end

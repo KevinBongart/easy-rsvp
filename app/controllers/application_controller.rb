@@ -1,6 +1,19 @@
 class ApplicationController < ActionController::Base
   private
 
+  # Guests get the removed page for every spam event; only the browser that
+  # created or manages a confidently flagged event is spared.
+  def removed_for_this_browser?(event)
+    event.spam? && !shown_to_its_creator?(event)
+  end
+
+  # Its spammer is not told they were caught (see Event#confidently_spam?).
+  # Less certain flags stay removed: that organizer sees a notice instead.
+  # The cheap session check runs first, so guests never run the rules.
+  def shown_to_its_creator?(event)
+    ManagedEvents.include?(session, event) && event.confidently_spam?
+  end
+
   def event_hashid_from_param(parameterized_id)
     parameterized_id.to_s.split("-", 2).first
   end

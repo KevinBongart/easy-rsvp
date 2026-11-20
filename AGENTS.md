@@ -115,12 +115,22 @@ asset-compilation, and RSpec checks.
   save that changes the title or body and marks matches as `automatic`; it has
   named title and body rules tuned on the 2026-11 production snapshot (see the
   class comment). Its `non_editor_html` rule assumes the Trix editor. Public and
-  RSVP routes answer `410 Gone` for all spam. Organizers of `automatic` spam keep
-  access, see a notice, and clear the mark by editing the event into something
-  that passes; `operator` marks (the `AddSpamAtToEvents` and `MarkMoreSpamEvents`
-  migrations) are final and lock the organizer out with `410 Gone`. The
-  `FlagUncheckedSpamEvents` migration ran the check once over events created
-  before it existed. Body rules ignore only image payloads; text in figures,
+  RSVP routes answer `410 Gone` to guests for all spam. Organizers of
+  `automatic` spam keep access and clear the mark by editing the event into
+  something that passes. The code is public, so confident spammers are not
+  told they were caught. `Event#confidently_spam?` (automatic, and 2+
+  `SpamCheck` reasons or a Jev score of at least 0.98, computed on demand;
+  `spam_verdict_hidden` keeps it true through later edits) makes the organizer
+  pages look normal and serves the public page, calendar, and RSVPs normally
+  to the browser that created or managed the event (`ManagedEvents`: the 20
+  most recent hashids in the session, skipped during admin previews). Less
+  certain flags show a neutral notice (`organizer_events/_spam_notice`) and
+  stay `410` for everyone. Known limits: any other browser or script still
+  gets `410`, and `RecentEventCreation` refusing the next creation reveals a
+  spam verdict. `operator` marks (the `AddSpamAtToEvents` and
+  `MarkMoreSpamEvents` migrations) are final and lock the organizer out with
+  `410 Gone`. The `FlagUncheckedSpamEvents` migration ran the check once over
+  events created before it existed. Body rules ignore only image payloads; text in figures,
   captions, and content attachments counts because Action Text renders it. The admin
   dashboard lists spam only under its Spam filter (`spam=1`) with creation
   times, badges automatic marks, and never counts spam in the stats. Each row

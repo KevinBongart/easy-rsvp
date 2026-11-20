@@ -258,4 +258,64 @@ RSpec.describe Event, type: :model do
       expect(Event.not_spam).to contain_exactly(legitimate)
     end
   end
+
+  describe '#confidently_spam?' do
+    def flagged(title, spam_score: nil)
+      create(:event, :flagged_as_spam, title: title).tap { |event| event.update_columns(spam_score: spam_score) }
+    end
+
+    it 'needs two Ruby rule reasons' do
+      expect(flagged('Robux generator')).not_to be_confidently_spam
+      expect(flagged('NextGen Peptides working coupon code: NEX55 – 25% Off')).to be_confidently_spam
+    end
+
+    it 'counts a Jev score of at least 0.98' do
+      expect(flagged('Garden party', spam_score: 0.98)).to be_confidently_spam
+      expect(flagged('Garden party', spam_score: 0.97)).not_to be_confidently_spam
+    end
+
+    it 'counts reasons found in the description' do
+      event = flagged('Garden party')
+      event.update_columns(title: 'Robux generator')
+      event.body.update!(body: "<div>#{'Buy now. ' * 800}</div>")
+
+      expect(Event.find(event.id)).to be_confidently_spam
+    end
+
+    it 'stays confident through edits while the event stays flagged' do
+      event = flagged('NextGen Peptides working coupon code: NEX55 – 25% Off')
+
+      event.update!(title: 'NEX55 – 25% Off')
+      expect(event).to be_flagged_as_spam
+      expect(event).to be_confidently_spam
+
+      event.update!(title: 'Garden party')
+      expect(event).not_to be_spam
+      event.update!(title: 'Robux generator')
+      expect(event).to be_confidently_spam
+    end
+
+    it 'stays confident after an edit when Jev was confident' do
+      event = flagged('Robux generator', spam_score: 0.99)
+
+      event.update!(title: 'Robux generator online')
+      expect(event).to have_attributes(spam_score: nil, spam_verdict_hidden: true)
+      expect(event).to be_confidently_spam
+    end
+
+    it 'does not become confident through edits of a less certain flag' do
+      event = flagged('Robux generator')
+
+      event.update!(title: 'Robux generator 2026')
+      expect(event).to be_flagged_as_spam
+      expect(event).not_to be_confidently_spam
+    end
+
+    it 'only applies to automatic flags' do
+      title = 'NextGen Peptides working coupon code: NEX55 – 25% Off'
+
+      expect(create(:event, :spam, title: title, spam_score: 0.99)).not_to be_confidently_spam
+      expect(create(:event, title: 'Garden party', spam_score: 0.99)).not_to be_confidently_spam
+    end
+  end
 end

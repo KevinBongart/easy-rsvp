@@ -7,7 +7,8 @@ require "cgi"
 # Tuned on the November 2026 production snapshot: it catches 99.85% of the
 # 6,064 events marked during the spam wave and flags none of the 11,380 others
 # except 2022 security-scanner probes and two test posts. A flagged organizer
-# sees a notice and can edit the event; the check runs again on save.
+# can edit the event; the check runs again on save. Event#confidently_spam?
+# decides whether they are told.
 #
 # Each rule has a name so failures can be explained and tested. Prefer
 # structural signals (obfuscation, amounts next to codes, body shape) over

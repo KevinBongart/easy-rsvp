@@ -15,6 +15,14 @@ class Event < ApplicationRecord
   LEGACY_UPLOAD_URL = %r{/rails/active_storage/(?:blobs|representations)/(?:redirect/|proxy/)?([^/?#]+)}
   IMAGES_TOO_LARGE ="Images in the description can add up to 10 MB; remove some and try again.".freeze
 
+  # An automatic flag this certain is never revealed to the organizer: the
+  # rules are public, so telling spammers they were caught teaches them what
+  # to edit away. On the 2026-11-20 production copy, no legitimate event ever
+  # met either bar, while 6,149 of 6,277 spam events (34 of the 38 since
+  # November 19) did.
+  CONFIDENT_SPAM_REASONS = 2
+  CONFIDENT_SPAM_SCORE = 0.98
+
   has_many :rsvps, dependent: :destroy
   has_rich_text :body
 
@@ -59,6 +67,14 @@ class Event < ApplicationRecord
   # Marked by Event::SpamCheck; the organizer can edit the event to clear it.
   def flagged_as_spam?
     spam_source == "automatic"
+  end
+
+  # Flagged automatically with enough certainty (see CONFIDENT_SPAM_REASONS)
+  # that the organizer's pages hide the verdict. Runs the Ruby rules for
+  # automatic flags, so it is computed on demand, only on organizer and
+  # creator page views.
+  def confidently_spam?
+    flagged_as_spam? && (spam_verdict_hidden? || confident_spam_signals?(spam_score, title, spam_check_html))
   end
 
   # An operator decided this is not spam; automatic checks leave it alone.
@@ -122,8 +138,9 @@ class Event < ApplicationRecord
   end
 
   def apply_spam_check
+    self.spam_verdict_hidden = true if confidently_spam_before_edit?
     self.spam_score = nil
-    if Event::SpamCheck.spam?(title: title.to_s, html: rich_text_body&.body&.to_html.to_s)
+    if Event::SpamCheck.spam?(title: title.to_s, html: spam_check_html)
       self.spam_at ||= Time.current
       self.spam_source = "automatic"
     elsif flagged_as_spam?
@@ -131,6 +148,25 @@ class Event < ApplicationRecord
       self.spam_source = nil
     end
     @spam_review_pending = spam_review_needed?
+  end
+
+  def spam_check_html
+    rich_text_body&.body&.to_html.to_s
+  end
+
+  def confident_spam_signals?(score, title, html)
+    return true if score && score >= CONFIDENT_SPAM_SCORE
+
+    Event::SpamCheck.reasons(title: title.to_s, html: html).size >= CONFIDENT_SPAM_REASONS
+  end
+
+  # Once confident, the verdict stays hidden through later edits: otherwise
+  # the edit that drops below the bar would tell the spammer they were caught,
+  # and which change mattered.
+  def confidently_spam_before_edit?
+    return false if new_record? || spam_source_was != "automatic" || spam_verdict_hidden?
+
+    confident_spam_signals?(spam_score_was, title_was, rich_text_body&.body_was&.to_html.to_s)
   end
 
   def title_within_limit

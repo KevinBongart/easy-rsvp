@@ -26,6 +26,7 @@ class EventsController < ApplicationController
       flash.now[:alert] = CREATION_LIMITED_MESSAGE
       render :new, status: :too_many_requests
     elsif result
+      ManagedEvents.remember(session, @event)
       redirect_to event_admin_path(@event, @event.admin_token)
     else
       set_placeholders
@@ -46,7 +47,7 @@ class EventsController < ApplicationController
     hashid = event_hashid_from_param(params[:id])
     @event = Event.find_by_hashid!(hashid)
     return if admin_preview?
-    return render_removed_event if @event.spam?
+    return render_removed_event if removed_for_this_browser?(@event)
 
     unless @event.published?
       redirect_to root_path, alert: "This event is no longer viewable."

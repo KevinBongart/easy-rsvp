@@ -14,6 +14,7 @@ RSpec.describe 'Automatic spam flagging', type: :request do
     expect(response).to redirect_to(event_admin_path(event, event.admin_token))
     expect(event).to have_attributes(spam_source: 'automatic', spam_at: be_present)
 
+    reset! # a guest's browser
     get event_path(event)
     expect(response).to have_http_status(:gone)
 
@@ -21,20 +22,24 @@ RSpec.describe 'Automatic spam flagging', type: :request do
     expect(response).to have_http_status(:gone)
   end
 
-  it 'tells the organizer why guests cannot see the event' do
-    event = create_event(title: spam_title)
+  it 'tells the organizer of a less certain flag that guests cannot see the event, but not why' do
+    event = create_event(title: 'Robux generator')
+    expect(event).to be_flagged_as_spam
 
     get event_admin_path(event, event.admin_token)
 
     expect(response).to have_http_status(:ok)
     expect(response.headers['X-Robots-Tag']).to eq('noindex, nofollow')
-    expect(Nokogiri::HTML(response.body).at_css('#spam-notice').text).to include("Your guests can't see this event yet.")
-
     page = Nokogiri::HTML(response.body)
+    notice = page.at_css('#spam-notice[role="status"]').text.squish
+    expect(notice).to eq("Your guests can't see this event yet. Easy RSVP's automatic spam filter is holding it. " \
+                         'If this is a real event, editing it runs the check again.')
+    expect(response.body).not_to match(/advertising|promotional/i)
     expect(page.at_css('a[href$=".ics"]')).to be_nil
 
     get edit_event_admin_path(event, event.admin_token)
-    expect(Nokogiri::HTML(response.body).at_css('#spam-notice')).to be_present
+    expect(Nokogiri::HTML(response.body).at_css('#spam-notice').text).to include('automatic spam filter')
+    expect(response.body).not_to match(/advertising|promotional/i)
   end
 
   it 'publishes the event once the organizer edits it into something that does not look like spam' do
@@ -57,6 +62,7 @@ RSpec.describe 'Automatic spam flagging', type: :request do
     patch event_admin_path(event, event.admin_token), params: { event: { title: spam_title } }
 
     expect(event.reload).to be_flagged_as_spam
+    reset! # a guest's browser
     get event_path(event)
     expect(response).to have_http_status(:gone)
   end
