@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_20_150000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_20_160000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -110,6 +110,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_20_150000) do
     t.index ["event_id"], name: "index_rsvps_on_event_id"
     t.check_constraint "name IS NOT NULL AND name::text ~ '[^[:space:]]'::text", name: "rsvps_name_present"
     t.check_constraint "response IS NOT NULL AND (response::text = ANY (ARRAY['yes'::character varying::text, 'maybe'::character varying::text, 'no'::character varying::text]))", name: "rsvps_supported_response"
+  end
+
+  create_table "spam_review_statuses", force: :cascade do |t|
+    t.integer "consecutive_failures", default: 0, null: false
+    t.datetime "failing_since"
+    t.string "last_error"
+    t.datetime "last_failed_at"
+    t.datetime "last_succeeded_at"
+    t.check_constraint "id = 1", name: "spam_review_statuses_single_row"
   end
 
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"

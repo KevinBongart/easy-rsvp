@@ -33,6 +33,10 @@ Rails.application.configure do
   # Calendar files need one stable public URL regardless of the request Host header.
   config.x.public_origin = "https://www.easy-rsvp.com"
 
+  # Every event should get Jev's review here: the admin dashboard shows a red
+  # alert when TYPESAFE_API_KEY is missing.
+  config.x.spam_review_required = true
+
   # Skip http-to-https redirect for the default health check endpoint.
   # config.ssl_options = { redirect: { exclude: ->(request) { request.path == "/up" } } }
 

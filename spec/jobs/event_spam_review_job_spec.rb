@@ -70,6 +70,7 @@ RSpec.describe EventSpamReviewJob do
     described_class.perform_now(event.id)
 
     expect(event.reload).to have_attributes(spam_source: nil, spam_at: nil, spam_score: nil)
+    expect(SpamReviewStatus.current).to have_attributes(failing?: true, unreviewed_events_count: 1)
   end
 
   it 'leaves the event up and reports when its page cannot be prepared' do

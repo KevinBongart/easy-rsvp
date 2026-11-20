@@ -39,6 +39,15 @@ module Event::SpamReview
   NOT_A_PHONE = /\A(?:\d{4}-\d{2}-\d{2}\b|\d{1,2}[.:]\d{2}\s?[-–]\s?\d{1,2}[.:]\d{2}\z)/
   UK_POSTCODE = /\b[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}\b/
 
+  # TypeSafe does not document its error statuses; these are their standard
+  # HTTP meanings, shown on the admin dashboard to point at the likely fix.
+  HTTP_FAILURE_HINTS = {
+    "401" => "API key rejected",
+    "402" => "payment required: probably out of credits",
+    "403" => "API key rejected",
+    "429" => "rate limited"
+  }.freeze
+
   class Error < StandardError; end
 
   module_function
@@ -47,18 +56,61 @@ module Event::SpamReview
     api_key.present?
   end
 
+  # Only production must review every event; elsewhere a missing key is normal.
+  def required?
+    Rails.configuration.x.spam_review_required.present?
+  end
+
+  def missing_required_key?
+    required? && !enabled?
+  end
+
   # Jev's 0-1 score, or nil when the review is disabled or anything fails.
   def score(event, page: page(event))
     return unless enabled?
 
+    score = ask(event, page)
+    record_success if score
+    score
+  end
+
+  # Only the API call is rescued here, so an error recording Jev's status
+  # cannot pass for a Jev failure or discard a valid score.
+  def ask(event, page)
     response = post(state: page, questions: { advertising: { type: "noul", instructions: instructions(except: event) } })
     score = Float(response.dig("answers", "advertising", "noul")) if response.is_a?(Hash) && response["answers"].is_a?(Hash)
     raise Error, "unexpected answer #{score.inspect}" unless score&.between?(0, 1)
 
     score
   rescue StandardError => e
-    Rails.error.report(e, handled: true, context: { event_id: event.id })
+    record_failure(e, event)
     nil
+  end
+
+  # Status bookkeeping must not change the moderation result.
+  def record_success
+    SpamReviewStatus.record_success!
+  rescue StandardError => e
+    Rails.error.report(e, handled: true)
+  end
+
+  # Notifies once when Jev starts failing rather than for every event: an
+  # outage would otherwise send one notice per event created. The dashboard
+  # shows the streak and its latest error.
+  def record_failure(error, event)
+    started_failing = SpamReviewStatus.record_failure!(failure_summary(error))
+    Rails.error.report(error, handled: true, context: { event_id: event.id }) if started_failing
+  rescue StandardError => status_error
+    # Without the status there is no telling whether a streak started, so
+    # report Jev's error rather than risk missing an outage.
+    Rails.error.report(error, handled: true, context: { event_id: event.id })
+    Rails.error.report(status_error, handled: true)
+  end
+
+  # Only messages this module wrote are kept: other exceptions' messages can
+  # quote the response or the event text.
+  def failure_summary(error)
+    error.is_a?(Error) ? "#{error.class.name}: #{error.message}" : error.class.name
   end
 
   def instructions(except:)
@@ -117,9 +169,14 @@ module Event::SpamReview
     response = Net::HTTP.start(URL.host, URL.port, use_ssl: true, open_timeout: 5, read_timeout: 20, write_timeout: 10) do |http|
       http.request(request, { model: "jev-latest" }.merge(body).to_json)
     end
-    raise Error, "TypeSafe answered #{response.code}" unless response.is_a?(Net::HTTPSuccess)
+    raise Error, http_failure(response) unless response.is_a?(Net::HTTPSuccess)
 
     JSON.parse(response.body)
+  end
+
+  def http_failure(response)
+    hint = HTTP_FAILURE_HINTS[response.code]
+    hint ? "TypeSafe answered HTTP #{response.code} (#{hint})" : "TypeSafe answered HTTP #{response.code}"
   end
 
   def api_key
