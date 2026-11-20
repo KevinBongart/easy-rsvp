@@ -164,6 +164,8 @@ today). Hover, tap, or keyboard-focus a point for its count; the current endpoin
 of the monthly history includes both the actual count so far and the estimated final total.
 The yearly chart has separate points for this year's actual count through today
 and its December 31 projection, connected by a dashed segment.
+A fourth row charts spam events per month the same way, in red, with this month's
+count so far and extrapolation; the other statistics exclude spam.
 These are server-rendered SVGs with CSS tooltips and no charting dependency.
 
 `bin/ci` writes JUnit results to `tmp/test-results/rspec.xml`. Failed system tests

@@ -159,7 +159,7 @@ RSpec.describe 'Site administrator dashboard', type: :request do
     filter_summary = request_metrics_summary(attachment_filtered_metrics, label: 'attachment-filtered dashboard')
 
     expect(larger_database_metrics.queries).to eq(first_page_metrics.queries), scale_summary
-    # Includes one grouped query for the daily spam/legitimate chart.
+    # Includes one grouped query for the monthly spam chart.
     expect(larger_database_metrics.queries).to be <= 7, scale_summary
     expect(attachment_filtered_metrics.queries).to be <= 7, filter_summary
     expect(larger_database_metrics.duration).to be < DASHBOARD_REQUEST_BUDGET_MS, scale_summary
@@ -180,15 +180,16 @@ RSpec.describe 'Site administrator dashboard', type: :request do
     expect(text).to include('September 2026: 2 so far; 6 extrapolated')
   end
 
-  it 'renders three compact charts with actual values and distinct forecasts' do
+  it 'renders the compact charts with actual values and distinct forecasts' do
     travel_to Time.zone.local(2026, 9, 10, 12) do
       create(:event, created_at: Time.zone.local(2025, 1, 1))
       create_list(:event, 2, created_at: Time.zone.local(2026, 9, 1))
       get admin_events_path, headers: dashboard_headers
       doc = Nokogiri::HTML(response.body)
-      expect(doc.css('.admin-sparkline svg[height="20"]').size).to eq(3)
-      expect(doc.css('.admin-sparkline .sparkline-projection').size).to eq(3)
-      expect(doc.css('.admin-sparkline polyline.sparkline-actual').size).to eq(3)
+      # Yearly, monthly, current-month, and monthly spam.
+      expect(doc.css('.admin-sparkline svg[height="20"]').size).to eq(4)
+      expect(doc.css('.admin-sparkline .sparkline-projection').size).to eq(4)
+      expect(doc.css('.admin-sparkline polyline.sparkline-actual').size).to eq(4)
       expect(doc.css('#monthly-chart button').last['aria-label']).to eq('September 2026: 2 so far; 6 extrapolated')
       expect(doc.css('#current-month-chart button').last['aria-label']).to eq('September 30: 6 extrapolated')
       expect(doc.css('#yearly-chart button').first['aria-label']).to eq('2025: 1')
@@ -204,39 +205,48 @@ RSpec.describe 'Site administrator dashboard', type: :request do
     end
   end
 
-  it 'charts spam and legitimate events per day below the statistics, while the stats still exclude spam' do
-    travel_to Time.utc(2026, 11, 19, 12) do
-      create(:event, created_at: Time.utc(2026, 8, 21, 23, 59, 59)) # outside the 90-day window
-      create(:event, :spam, created_at: Time.utc(2026, 8, 22))
-      create_list(:event, 2, :spam, created_at: Time.utc(2026, 11, 18, 8))
-      create(:event, :flagged_as_spam).update_columns(created_at: Time.utc(2026, 11, 18, 9))
-      create(:event, created_at: Time.utc(2026, 11, 19, 7))
+  it 'charts spam per month after the other statistics, while those still exclude spam' do
+    travel_to Time.utc(2026, 11, 10, 12) do
+      create(:event, :spam, created_at: Time.utc(2025, 10, 31, 23, 59, 59)) # before the 12-month window
+      create(:event, :spam, created_at: Time.utc(2025, 11, 1))
+      create_list(:event, 2, :spam, created_at: Time.utc(2026, 11, 2))
+      create(:event, :flagged_as_spam).update_columns(created_at: Time.utc(2026, 11, 3))
+      create(:event, created_at: Time.utc(2026, 11, 4))
 
       get admin_events_path, headers: dashboard_headers
 
       doc = Nokogiri::HTML(response.body)
-      expect(doc.text.squish).to include('Total events created since August 21, 2026: 2')
-      chart = doc.at_css('.admin-statistics > .admin-stat-row:last-of-type ~ #daily-spam-chart')
-      expect(chart).to be_present
-      expect(chart.at_css('[role="group"]')['aria-label']).to eq(
-        'From August 22, 2026 to November 19, 2026: 4 spam and 1 legitimate events created; highest daily count 3'
-      )
-      expect(chart.css('.admin-daily-chart-legend li').map { |item| item.text.squish }).to eq([ 'Spam: 4', 'Legitimate: 1' ])
-      expect(chart.css('.admin-daily-chart-y-axis span').map(&:text)).to eq(%w[3 0])
-      expect(chart.css('.admin-daily-chart-x-axis span').map(&:text)).to eq([ 'August 22', 'November 19' ])
+      expect(doc.text.squish).to include('Total events created since November 4, 2026: 1')
+      row = doc.at_css('.admin-statistics > .admin-stat-row:last-of-type')
+      expect(row.at_css('.admin-stat-label').text.squish).to eq('Spam by month: 3 so far, 9 extrapolated')
+      chart = row.at_css('#spam-monthly-chart')
+      expect(chart['class'].split).to eq(%w[admin-sparkline admin-sparkline-danger])
+      expect(chart['aria-label']).to eq('Spam events created by month, last 12 months')
       labels = chart.css('button').map { |button| button['aria-label'] }
-      expect(labels.size).to eq(90)
-      expect(chart.css('button').map { |button| button['tabindex'] }.uniq).to eq([ '-1' ])
-      expect(labels.first).to eq('August 22, 2026: 1 spam, 0 legitimate')
-      expect(labels[1]).to eq('August 23, 2026: 0 spam, 0 legitimate')
-      expect(labels.last(2)).to eq([ 'November 18, 2026: 3 spam, 0 legitimate', 'November 19, 2026: 0 spam, 1 legitimate' ])
-      spam_line = chart.at_css('polyline.daily-chart-spam')['points'].split
-      legitimate_line = chart.at_css('polyline.daily-chart-legitimate')['points'].split
-      expect([ spam_line.size, legitimate_line.size ]).to eq([ 90, 90 ])
-      expect(spam_line[-2]).to eq('158.2,2.0')
-      expect(legitimate_line.last).to eq('160.0,79.33')
+      expect(labels.size).to eq(13)
+      expect(labels.first).to eq('November 2025: 1')
+      expect(labels.last).to eq('November 2026: 3 so far; 9 extrapolated')
+      expect(chart.at_css('polyline.sparkline-projection')).to be_present
       expect(chart.text).not_to match(/NaN|Infinity/)
     end
+  end
+
+  it 'shows the Jev score in its own column between the organizer link and the spam actions' do
+    scored = create(:event, title: 'Scored party')
+    scored.update_columns(spam_score: 0.98765)
+    create(:event, title: 'Unscored party')
+
+    get admin_events_path, headers: dashboard_headers
+
+    doc = Nokogiri::HTML(response.body)
+    headers = doc.css('thead th').map { |header| header.text.squish }
+    expect(headers.last(3)).to eq([ 'Admin', 'Jev', 'Spam actions' ])
+    rows = doc.css('tbody tr').index_by { |row| row.css('td')[0].text.squish }
+    jev_cell = rows.fetch(scored.title).css('td')[-2]
+    expect(jev_cell.at_css('code.small').text).to eq('0.99')
+    expect(jev_cell['class'].split).to include('text-end')
+    expect(rows.fetch(scored.title).css('td')[0].text).not_to include('Jev', '0.99')
+    expect(rows.fetch('Unscored party').css('td')[-2].text.squish).to be_empty
   end
 
   def insert_events(count)

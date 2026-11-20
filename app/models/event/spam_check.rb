@@ -50,8 +50,8 @@ class Event::SpamCheck
     account_viewer: /\b(private|story|profile|account) viewer\b/i,
     followers: /\bfree [\w ]{0,15}followers\b|\bfollowers? (free|badha|increase|hack)/i,
     gambling: /\brobux\b|\bspoof(er|ing)\b|\bfree spins\b|\bno deposit\b|\b(bitcoin|crypto|online|new|best) casinos?\b|\bgambling sites\b|\bonline pokies\b|\bbetting sites\b/i,
-    adult_drugs: /\b(xvideos|porn|nsfw|hentai|onlyfans|adderall|lorazepam|tramadol|xanax|viagra|cialis|oxycodone)\b/i,
-    clickbait_video: /\b(leak\w*|sex|xxx|xem|18\+)\b.{0,25}\b(clip|video)\b|\bclip\W{1,3}video\b|\b(clip|video)\b.{0,25}\b(leak\w*|xxx)\b|\bfull (hd )?clip\b|clip n[oó]ng/i,
+    adult_drugs: /\b(xvideos|xnxx|xhamster|pornhub|porn|nsfw|hentai|onlyfans|adderall|lorazepam|tramadol|xanax|viagra|cialis|oxycodone)\b/i,
+    clickbait_video: /\b(leak\w*|sex|xxx|xem|18\+)\b.{0,25}\b(clips?|videos?)\b|\bclip\W{1,3}video\b|\b(clips?|videos?)\b.{0,25}\b(leak\w*|xxx)\b|\bfull (hd )?clip\b|clip n[oó]ng/i,
     airline_support: /missed (your )?\w+ flight|miss a \w+ flight|name correction|contatti telefonici|flight (change|cancell?ation) (policy|number)/i,
     # Prefix match: spammers glue words on ("iPTVServices").
     iptv: /\biptv/i,

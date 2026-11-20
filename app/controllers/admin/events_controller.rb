@@ -63,7 +63,8 @@ module Admin
     def index
       AdminPreview.start(session)
       @event_stats = Admin::EventStats.new(Event.not_spam)
-      @daily_creation_counts = Admin::DailyCreationCounts.new(Event.all)
+      # Same monthly chart and projection, over spam only (one grouped query).
+      @spam_stats = Admin::EventStats.new(Event.spam)
       @events = listed_events.page(params[:page]).per(EVENTS_PER_PAGE)
     end
 
