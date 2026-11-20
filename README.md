@@ -176,12 +176,17 @@ traffic to a new web container. After that switch, the `app.json` postdeploy tas
 reports Dokku's exact `GIT_REV` to Honeybadger. The task fails
 visibly when its configuration or request fails, so a missing deploy marker
 cannot be mistaken for success. The `app.json` `cron` entry has Dokku run
-`bin/rails spam:purge_images` daily at 04:17 server time (UTC) in a one-off
-container: it deletes the images embedded in events an operator marked as spam
-more than 30 days earlier and prints a one-line summary (event, blob, and byte
-counts). Blobs still attached to another record are only detached. If a stored
-file can't be deleted, the task logs its key and exits non-zero. Run it by
-hand with `dokku run easy-rsvp bin/rails spam:purge_images`. Bundler-audit, Brakeman, and Rails Omakase are
+`bin/rails images:purge` daily at 04:17 server time (UTC) in a one-off
+container. It deletes images embedded in spam 30 days after an operator mark,
+or after an automatic flag on an event nobody has edited since, and images no
+event uses (uploads never saved into an event, legacy uploads no description
+links to) once they are two days old. A run deletes at most 50 images and
+prints one line per deleted blob (id, key, bytes, reason) and a summary of
+counts; it never prints event content. Blobs something else still uses are
+only detached. If a stored file can't be deleted, the task logs its key and
+exits non-zero. Preview the next run without deleting anything with
+`dokku run easy-rsvp env DRY_RUN=1 bin/rails images:purge`, and run it by hand
+without `DRY_RUN`. Bundler-audit, Brakeman, and Rails Omakase are
 gates in `bin/ci`. Pull requests that change
 only Markdown files or files under `docs/` skip the expensive application checks.
 A documentation-only commit on `main` also skips the production deploy.
