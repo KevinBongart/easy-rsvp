@@ -1,12 +1,15 @@
 class OrganizerEventsController < ApplicationController
   before_action :prevent_search_indexing
   before_action :set_event
+  before_action :set_spam_verdict, only: %i[show edit update]
 
   def show
+    remember_managed_event
     @rsvps = @event.rsvps.persisted.order(:created_at, :id)
   end
 
   def edit
+    remember_managed_event
   end
 
   def update
@@ -37,6 +40,20 @@ class OrganizerEventsController < ApplicationController
     # Admin previews are read-only: they never unlock edits or deletion.
     preview = request.get? && admin_preview?
     render_removed_event if @event.spam_locked? && !preview
+  end
+
+  # Read before an update changes the text, so a failed edit still shows the
+  # saved event's state. Confident spam looks like any other event.
+  def set_spam_verdict
+    verdict_hidden = @event.confidently_spam?
+    @spam_notice_shown = @event.flagged_as_spam? && !verdict_hidden
+    @shown_as_spam = @event.spam? && !verdict_hidden
+  end
+
+  # An operator previewing the page is not its organizer; remembering it
+  # would show them the spam as live once the preview ends.
+  def remember_managed_event
+    ManagedEvents.remember(session, @event) unless admin_preview?
   end
 
   # Never trust parameters from the scary internet, only allow the white list through.
