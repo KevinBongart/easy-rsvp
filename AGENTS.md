@@ -176,10 +176,25 @@ asset-compilation, and RSpec checks.
   spam buttons, posting to the Basic-Auth admin routes with a same-site
   `return_to`. "Close admin session" in the dashboard footer ends it.
 - `RecentEventCreation`: at most 5 successful event creations per client per
-  30 minutes. Clients are keyed by an HMAC of the remote IP (IPv6 reduced to its
-  /64), never the raw address, never linked to the event, and rows are deleted
-  once outside the window. A per-client Postgres advisory lock serializes
-  parallel submissions. Failed validations do not count.
+  30 minutes, and none for 2 hours (`SPAM_BLOCK`) after creating an event
+  that becomes spam, whatever decided it. The counter row records it
+  (`spam_at`): at creation when the Ruby rules flag the event, by `Event`
+  after save when an edit makes it spam (`became_spam?`), and by
+  `RecentEventCreation.record_spam!` from the writes that skip callbacks
+  (`EventSpamReviewJob`, admin Mark spam). It sticks: deleting the event or
+  editing the spam away does not lift the block, because the code is public
+  and either would otherwise cost a spammer one request. Only admin "Not spam"
+  (`clear_spam!`) or the 2-hour expiry lifts it. A wrongly flagged organizer
+  can still edit their event to clear its flag, but can't create another event
+  from that IP (or IPv6 /64) for up to 2 hours. Clients are keyed by an HMAC of
+  the remote IP (IPv6 reduced to its /64), never the raw address and never
+  stored on the event; each row links to the event it created (foreign key
+  nullified when the event is deleted) and is deleted, with the link, on the
+  first creation attempt after it is 2 hours old. One query on the per-client
+  index checks both rules inside a per-client Postgres advisory lock that
+  serializes parallel submissions. Failed validations and refused attempts do
+  not count. Both rules show the same `CREATION_LIMITED_MESSAGE` (429), which
+  deliberately does not say which applied.
 - `OrganizerEventsController`: organizer display, editing, deletion, publication.
 - `RsvpsController`: public response creation and session-owned deletion.
 - `OrganizerRsvpsController`: organizer response editing/deletion.

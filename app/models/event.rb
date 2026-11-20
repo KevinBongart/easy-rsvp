@@ -26,6 +26,7 @@ class Event < ApplicationRecord
   before_validation :apply_submitted_schedule, if: :schedule_submitted?
   before_create :set_admin_token
   before_save :apply_spam_check, if: :spam_check_needed?
+  after_save -> { RecentEventCreation.record_spam!(self) }, if: :became_spam?
   before_save :forget_spam_decision, if: :cleared_text_changed?
   after_commit :review_spam_later, on: %i[create update], if: -> { @spam_review_pending }
   after_rollback { @spam_review_pending = false }
@@ -42,6 +43,12 @@ class Event < ApplicationRecord
 
   def spam?
     spam_at.present?
+  end
+
+  # The save that just happened made the event spam: it was not before, or
+  # it was created as spam.
+  def became_spam?
+    saved_change_to_spam_at? && spam?
   end
 
   # Marked by an operator; final, and the organizer loses access.

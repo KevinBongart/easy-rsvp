@@ -1,5 +1,5 @@
 class EventsController < ApplicationController
-  CREATION_LIMITED_MESSAGE = "To prevent abuse on Easy RSVP, we're limiting how many events you can create in a short window. Please wait 30 minutes and try again.".freeze
+  CREATION_LIMITED_MESSAGE = "To prevent abuse on Easy RSVP, we're limiting how many events you can create in a short window. Please try again later.".freeze
 
   before_action :prevent_search_indexing, only: [ :show, :calendar ]
   before_action :set_event, only: [ :show, :calendar ]
@@ -19,7 +19,7 @@ class EventsController < ApplicationController
 
   def create
     @event = Event.new(event_params)
-    result = RecentEventCreation.limit(request.remote_ip) { @event.save }
+    result = RecentEventCreation.limit(request.remote_ip) { @event.save && @event }
 
     if result == :limited
       set_placeholders
