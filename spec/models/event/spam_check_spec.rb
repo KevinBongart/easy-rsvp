@@ -27,7 +27,9 @@ RSpec.describe Event::SpamCheck do
       'Top 6 Anonymous Facebook Story Viewer That Really Works' => :account_viewer,
       'Keto Gummies Reviews & Complaints (We Tried It)' => :review_bait,
       'Buy Xanax Online No Rx' => :pharmacy,
-      'Best Peptides for Weight Loss 2026' => :weak_topic_corroborated
+      'Best Peptides for Weight Loss 2026' => :weak_topic_corroborated,
+      '(XXX ok xxx)@><🍆++SEX~VIDEOS~XNXX) Xxxx hd' => :adult_drugs,
+      'SEX~VIDEOS hd' => :clickbait_video
     }.each do |title, reason|
       it "flags #{title.inspect} (#{reason})" do
         expect(reasons(title)).to include(reason)
@@ -55,6 +57,7 @@ RSpec.describe Event::SpamCheck do
       'Redeemer Church Fall Festival - $5 hayrides',
       'Trip to Rabat - 300 € all inclusive',
       'Hot dog & video game night',
+      'Wedding videos & photo booth party',
       'Movie night: full movie marathon of LOTR',
       '【2026】忘年会',
       '【ONLINE】Japanese Language Exchange',
