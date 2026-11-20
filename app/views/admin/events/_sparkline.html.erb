@@ -2,7 +2,7 @@
 <% forecast_start = points.index { |point| point.key?(:projected_count) } %>
 <% actual = forecast_start ? points.take(forecast_start) : points %>
 <% forecast = forecast_start ? points.drop([forecast_start - 1, 0].max) : [] %>
-<div class="admin-sparkline" id="<%= id %>" role="group" aria-label="<%= label %>">
+<div class="admin-sparkline<%= " admin-sparkline-#{variant}" if local_assigns[:variant] %>" id="<%= id %>" role="group" aria-label="<%= label %>">
   <svg width="160" height="20" viewBox="0 0 160 20" aria-hidden="true" focusable="false">
     <% if actual.any? %>
       <polyline class="sparkline-actual" points="<%= sparkline_coordinates(actual) %>" />

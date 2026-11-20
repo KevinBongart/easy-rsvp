@@ -9,6 +9,7 @@ RSpec.describe 'Administrator charts', type: :system, js: true do
     travel_to Time.zone.local(2026, 9, 10, 12) do
       create(:event, title: 'Chart example', created_at: Time.zone.local(2025, 1, 1))
       create_list(:event, 2, created_at: Time.zone.local(2026, 9, 2))
+      create(:event, :spam, created_at: Time.zone.local(2026, 9, 3))
       visit_dashboard
       expect(page).to have_content('Total events created since January 1, 2025: 3')
       expect(page).to have_content('September 2026: 2 so far, 6 extrapolated')
@@ -38,14 +39,14 @@ RSpec.describe 'Administrator charts', type: :system, js: true do
         expect(page).to have_css('[role="tooltip"]', text: 'September 30: 6 extrapolated', visible: true)
       end
       expect(find('#monthly-chart .sparkline-projection').evaluate_script('getComputedStyle(this).strokeDasharray')).not_to eq('none')
-      within('#daily-spam-chart') do
-        expect(page).to have_content('Spam: 0')
-        expect(page).to have_content('Legitimate: 2')
-        all('button')[-9].hover
-        expect(page).to have_css('[role="tooltip"]', text: 'September 2, 2026: 0 spam, 2 legitimate', visible: true)
-        expect(find('polyline.daily-chart-legitimate').evaluate_script('getComputedStyle(this).strokeDasharray')).not_to eq('none')
-        expect(find('polyline.daily-chart-spam').evaluate_script('getComputedStyle(this).strokeDasharray')).to eq('none')
+      expect(page).to have_content('Spam by month: 1 so far, 3 extrapolated')
+      within('#spam-monthly-chart') do
+        all('button').last.hover
+        expect(page).to have_css('[role="tooltip"]', text: 'September 2026: 1 so far; 3 extrapolated', visible: true)
+        expect(find('polyline.sparkline-actual').evaluate_script('getComputedStyle(this).stroke')).to eq('rgb(200, 35, 51)')
+        expect(find('polyline.sparkline-projection').evaluate_script('getComputedStyle(this).strokeDasharray')).not_to eq('none')
       end
+      expect(find('#monthly-chart polyline.sparkline-actual').evaluate_script('getComputedStyle(this).stroke')).to eq('rgb(0, 99, 220)')
 
       click_link 'Sort by RSVP count'
       within('#monthly-chart') do
@@ -61,8 +62,8 @@ RSpec.describe 'Administrator charts', type: :system, js: true do
       find('#current-month-chart button', match: :first).click
       expect(page).to have_css('#current-month-chart [role="tooltip"]', text: 'September 1: 0', visible: true)
       expect(find('.admin-statistics').evaluate_script('this.scrollWidth <= this.clientWidth')).to be(true)
-      find('#daily-spam-chart .sparkline-point:nth-child(46) button').hover
-      expect(page).to have_css('#daily-spam-chart [role="tooltip"]', visible: true, count: 1)
+      find('#spam-monthly-chart button', match: :first).click
+      expect(page).to have_css('#spam-monthly-chart [role="tooltip"]', text: 'September 2025: 0', visible: true)
       expect(find('.admin-statistics').evaluate_script('this.scrollWidth <= this.clientWidth')).to be(true)
       find('.admin-statistics').native.save_screenshot(Rails.root.join('tmp/screenshots/admin-charts-mobile.png'))
     end
@@ -70,7 +71,7 @@ RSpec.describe 'Administrator charts', type: :system, js: true do
 
   it 'renders empty charts without broken coordinates or hover values' do
     visit_dashboard
-    expect(page).to have_css('.admin-sparkline svg', count: 3)
+    expect(page).to have_css('.admin-sparkline svg', count: 4)
     within('#monthly-chart') do
       all('button').last.hover
       expect(page).to have_css('[role="tooltip"]', text: '0 so far; 0 extrapolated', visible: true)

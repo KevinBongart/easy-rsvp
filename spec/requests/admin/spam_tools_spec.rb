@@ -69,13 +69,13 @@ RSpec.describe 'Admin spam tools', type: :request do
       expect(actions).to eq(%w[mark_spam unmark_spam])
     end
 
-    it 'offers a confirmed link-style button next to the admin link' do
+    it 'offers a confirmed link-style button after the admin link and Jev score' do
       create(:event, title: 'Garden party')
 
       get admin_events_path, headers: dashboard_headers
 
       cells = row_for('Garden party').css('td')
-      expect(cells[-2].at_css('a')['href']).to include('/admin/')
+      expect(cells[-3].at_css('a')['href']).to include('/admin/')
       button = cells[-1].at_css('button')
       expect(button['formaction']).to end_with('/mark_spam')
       expect(button['data-turbo-confirm']).to include('Mark “Garden party” as spam?')
