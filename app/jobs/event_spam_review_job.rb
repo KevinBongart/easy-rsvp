@@ -24,7 +24,7 @@ class EventSpamReviewJob < ApplicationJob
       next unless event.spam_review_needed? && Event::SpamReview.page(event) == page
 
       event.update_columns(changes)
-      RecentEventCreation.flag!(event) if event.spam?
+      RecentEventCreation.record_spam!(event) if event.spam?
     end
   end
 end

@@ -68,7 +68,7 @@ RSpec.describe 'Event creation limit', type: :request do
     create_event
 
     record = RecentEventCreation.sole
-    expect(RecentEventCreation.column_names).to contain_exactly('id', 'client_digest', 'created_at', 'event_id', 'flagged_at')
+    expect(RecentEventCreation.column_names).to contain_exactly('id', 'client_digest', 'created_at', 'event_id', 'spam_at')
     expect(record.event).to eq(Event.sole)
     expect(record.client_digest).to match(/\A\h{64}\z/)
     expect(record.client_digest).not_to include(ip)
@@ -225,7 +225,7 @@ RSpec.describe 'Event creation limit', type: :request do
       allow(RecentEventCreation).to receive(:where).with(created_at: anything).and_return(RecentEventCreation.none)
 
       expect { create_event }.to change(Event, :count).by(1)
-      expect(RecentEventCreation.where(flagged_at: ..Time.current).count).to eq(1)
+      expect(RecentEventCreation.where(spam_at: ..Time.current).count).to eq(1)
     end
 
     it 'keeps working when the organizer deletes an event' do

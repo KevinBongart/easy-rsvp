@@ -74,14 +74,14 @@ module Admin
     def mark_spam
       event = Event.find_by_hashid!(event_hashid_from_param(params[:id]))
       event.update_columns(spam_at: event.spam_at || Time.current, spam_source: "operator", spam_decided_at: Time.current)
-      RecentEventCreation.flag!(event)
+      RecentEventCreation.record_spam!(event)
       redirect_after_spam_change admin_events_path, notice: "“#{event.title}” was marked as spam."
     end
 
     def unmark_spam
       event = Event.find_by_hashid!(event_hashid_from_param(params[:id]))
       event.update_columns(spam_at: nil, spam_source: "cleared", spam_decided_at: Time.current)
-      RecentEventCreation.unflag!(event)
+      RecentEventCreation.clear_spam!(event)
       redirect_after_spam_change admin_events_path(spam: "1"), notice: "“#{event.title}” is no longer marked as spam."
     end
 

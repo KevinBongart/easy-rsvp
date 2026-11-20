@@ -176,16 +176,16 @@ asset-compilation, and RSpec checks.
   spam buttons, posting to the Basic-Auth admin routes with a same-site
   `return_to`. "Close admin session" in the dashboard footer ends it.
 - `RecentEventCreation`: at most 5 successful event creations per client per
-  30 minutes, and none for 2 hours (`FLAGGED_BLOCK`) after creating an event
-  that gets flagged as spam, whatever the source. The flag is recorded on the
-  counter row (`flagged_at`): at creation when the Ruby rules flag the event,
-  by `Event` after save when an edit makes it spam, and by
-  `RecentEventCreation.flag!` from the writes that skip callbacks
+  30 minutes, and none for 2 hours (`SPAM_BLOCK`) after creating an event
+  that becomes spam, whatever decided it. The counter row records it
+  (`spam_at`): at creation when the Ruby rules flag the event, by `Event`
+  after save when an edit makes it spam (`became_spam?`), and by
+  `RecentEventCreation.record_spam!` from the writes that skip callbacks
   (`EventSpamReviewJob`, admin Mark spam). It sticks: deleting the event or
-  editing the flag away does not lift the block, because the code is public and
-  either would otherwise cost a spammer one request. Only admin "Not spam"
-  (`unflag!`) or the 2-hour expiry lifts it. A wrongly flagged organizer can
-  still edit their event to clear its flag, but can't create another event
+  editing the spam away does not lift the block, because the code is public
+  and either would otherwise cost a spammer one request. Only admin "Not spam"
+  (`clear_spam!`) or the 2-hour expiry lifts it. A wrongly flagged organizer
+  can still edit their event to clear its flag, but can't create another event
   from that IP (or IPv6 /64) for up to 2 hours. Clients are keyed by an HMAC of
   the remote IP (IPv6 reduced to its /64), never the raw address and never
   stored on the event; each row links to the event it created (foreign key
