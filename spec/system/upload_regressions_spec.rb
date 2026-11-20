@@ -135,4 +135,29 @@ RSpec.describe 'Upload lifecycle regressions', type: :system, js: true do
       expect(ActiveStorage::Blob.count).to eq(1)
     end
   end
+
+  it 'explains a rate-limited upload' do
+    visit root_path
+    # Real 429s are covered by the request spec; the browser only needs to
+    # map that status to its message.
+    page.execute_script(<<~JS)
+      const originalOpen = XMLHttpRequest.prototype.open;
+      const originalSend = XMLHttpRequest.prototype.send;
+      XMLHttpRequest.prototype.open = function(method, url) {
+        this.specUpload = method === 'POST' && String(url).includes('/rails/active_storage/direct_uploads');
+        return originalOpen.apply(this, arguments);
+      };
+      XMLHttpRequest.prototype.send = function() {
+        if (!this.specUpload) return originalSend.apply(this, arguments);
+        XMLHttpRequest.prototype.open = originalOpen;
+        XMLHttpRequest.prototype.send = originalSend;
+        Object.defineProperty(this, 'status', { value: 429 });
+        this.dispatchEvent(new Event('load'));
+      };
+    JS
+    find('trix-editor').drop(Rails.root.join('spec/fixtures/files/party.png').to_s)
+    expect(page).to have_css('[role=alert]', text: RichTextDirectUploadsController::LIMITED_MESSAGE)
+    expect(page).to have_no_css('trix-editor figure')
+    expect(ActiveStorage::Blob.count).to eq(0)
+  end
 end
