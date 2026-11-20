@@ -13,6 +13,8 @@ require "cgi"
 # Each rule has a name so failures can be explained and tested. Prefer
 # structural signals (obfuscation, amounts next to codes, body shape) over
 # topic keywords; topic words only count with a second signal.
+#
+# RSVP names reuse the title's content rules (.spam_content?).
 class Event::SpamCheck
   MAX_TITLE_LENGTH = 2_000 # caps regex work; real titles stay well below
   LONG_TEXT = 3_500
@@ -77,6 +79,14 @@ class Event::SpamCheck
     new(title, html).reasons
   end
 
+  # The content rules (promo codes, offers, call center numbers, and the
+  # gambling, adult, drug, review-bait, and IPTV phrases) for other short
+  # texts such as RSVP names. The formatting rules stay title-only: people
+  # style their own names with fancy letters, handles, and brackets.
+  def self.spam_content?(text)
+    new(text, "").content_reasons.any?
+  end
+
   # The description's text as guests read it, whitespace collapsed; image
   # payloads do not count. Also used for Event's description length limit.
   def self.visible_text(html)
@@ -96,16 +106,10 @@ class Event::SpamCheck
     raw_text.gsub(/[[:space:]]+/, " ").strip
   end
 
-  private
-
-  attr_reader :title, :html
-
-  def title_reasons
+  # The title rules about what the text says, as opposed to how it is
+  # formatted.
+  def content_reasons
     reasons = []
-    reasons << :fancy_letters if title.match?(FANCY_LETTERS)
-    reasons << :decorative_brackets if title.match?(DECORATIVE_BRACKETS)
-    reasons << :social_handle if title.strip.match?(SOCIAL_HANDLE)
-    reasons << :code_wrapper if title.match?(CODE_WRAPPER) || title.match?(CJK_WRAPPED_CODE)
     reasons << :promo_code if title.match?(PROMO_PHRASE)
     if !title.match?(NOT_PROMO) && title.match?(COMMERCE_WORD) && (title.match?(AMOUNT) || title.match?(CODE_TOKEN))
       reasons << :offer_amount
@@ -117,6 +121,19 @@ class Event::SpamCheck
       reasons << :weak_topic_corroborated
     end
     reasons
+  end
+
+  private
+
+  attr_reader :title, :html
+
+  def title_reasons
+    reasons = []
+    reasons << :fancy_letters if title.match?(FANCY_LETTERS)
+    reasons << :decorative_brackets if title.match?(DECORATIVE_BRACKETS)
+    reasons << :social_handle if title.strip.match?(SOCIAL_HANDLE)
+    reasons << :code_wrapper if title.match?(CODE_WRAPPER) || title.match?(CJK_WRAPPED_CODE)
+    reasons + content_reasons
   end
 
   def body_reasons

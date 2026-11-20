@@ -546,6 +546,15 @@ provided; Bon App's accepted risks do not transfer.
   work. Avoid purging production blobs based only on an imported local database.
 
 - [ ] **2.5 P2 — Review abuse and browser policies against the actual product.**
+  Status 2026-11-20: per-client limits now cover event creation
+  (`RecentEventCreation`), public RSVP writes (200 per 10 minutes), direct
+  uploads (20 per 10 minutes, 60 per day), and failed admin Basic Auth
+  sign-ins (10 per hour, then 429 for all admin requests; 50 site-wide per
+  hour report to Honeybadger); RSVP names have a 200-character limit and
+  reject invisible names, links, and spam content. The request counters live
+  in process memory and reset on deploy. Still open: CSP and
+  permissions-policy, and checking the reverse proxy's own limits.
+  Original finding:
   No app-level throttling exists for event creation, public RSVPs, Basic Auth,
   uploads, or organizer-link mail. CSP and permissions-policy files are commented
   templates. Define proportionate controls and test them; inspect actual reverse

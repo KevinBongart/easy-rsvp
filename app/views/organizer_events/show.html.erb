@@ -97,7 +97,7 @@
 
             <div class='mb-3'>
               <%= f.label :name %>
-              <%= f.text_field :name, class: 'form-control' %>
+              <%= f.text_field :name, class: 'form-control', maxlength: Rsvp::MAXIMUM_NAME_LENGTH %>
             </div>
 
             <div class='mb-3'>
