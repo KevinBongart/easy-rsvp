@@ -32,44 +32,6 @@ module Admin::EventsHelper
     "left: #{left / 1.6}%; width: #{(right - left) / 1.6}%"
   end
 
-  DAILY_CHART_HEIGHT = 120
-
-  # Points for the daily spam/legitimate chart. x uses the sparkline's 0-160
-  # range so sparkline_hit_area can place the hit areas; the SVG stretches that
-  # range across the full chart width.
-  def daily_chart_points(series, maximum:)
-    scale = [ maximum, 1 ].max
-    # Keep 2px clear at the top and bottom for the line width.
-    y = ->(value) { (DAILY_CHART_HEIGHT - 2 - value * (DAILY_CHART_HEIGHT - 4.0) / scale).round(2) }
-    series.each_with_index.map do |day, index|
-      x = index * 160.0 / [ series.size - 1, 1 ].max
-      day.merge(x: x.round(2), spam_y: y.(day[:spam]), legitimate_y: y.(day[:legitimate]))
-    end
-  end
-
-  def daily_chart_coordinates(points, series)
-    points.map { |point| "#{point[:x]},#{point[:"#{series}_y"]}" }.join(" ")
-  end
-
-  def daily_chart_tooltip(point)
-    "#{point[:date].strftime('%B %-d, %Y')}: #{number_with_delimiter(point[:spam])} spam, " \
-      "#{number_with_delimiter(point[:legitimate])} legitimate"
-  end
-
-  # Tooltips open toward the middle so those near either edge stay on screen.
-  # Tooltips in the outer thirds align with the nearer edge; the middle third
-  # is centered, so a tooltip never reaches past either edge of the plot.
-  def daily_chart_tooltip_position(points, index)
-    percent = points[index][:x] / 1.6
-    if percent < 100 / 3.0
-      "left: #{percent.round(2)}%"
-    elsif percent > 200 / 3.0
-      "right: #{(100 - percent).round(2)}%"
-    else
-      "left: #{percent.round(2)}%; transform: translateX(-50%)"
-    end
-  end
-
   ROW_PATH_ID = "__event_id__"
   ROW_PATH_TOKEN = "__admin_token__"
 

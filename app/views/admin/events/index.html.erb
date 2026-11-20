@@ -18,7 +18,10 @@
     <span class="admin-stat-label"><%= @event_stats.current_month_label %>: <strong><%= @event_stats.current_month_count %> so far</strong>, <%= @event_stats.extrapolated_current_month_count %> extrapolated</span>
     <%= render 'sparkline', id: 'current-month-chart', label: 'Running total of events created this month', series: @event_stats.current_month_chart %>
   </div>
-  <%= render 'daily_chart', id: 'daily-spam-chart', counts: @daily_creation_counts %>
+  <div class="admin-stat-row">
+    <span class="admin-stat-label">Spam by month: <strong><%= @spam_stats.current_month_count %> so far</strong>, <%= @spam_stats.extrapolated_current_month_count %> extrapolated</span>
+    <%= render 'sparkline', id: 'spam-monthly-chart', label: "Spam events created by month, last #{@spam_stats.months_back} months", series: @spam_stats.monthly_chart, variant: 'danger' %>
+  </div>
 </div>
 
 <div class="admin-sort mb-2">
@@ -81,6 +84,7 @@
         <th scope="col">Created</th>
       <% end %>
       <th scope="col">Admin</th>
+      <th scope="col" class="text-end" title="Jev advertising score">Jev</th>
       <th scope="col"><span class="visually-hidden">Spam actions</span></th>
     </tr>
   </thead>
@@ -90,7 +94,7 @@
       <% public_path = admin_event_row_path(:public, event, hashid:) %>
       <tr>
         <th scope="row" class="text-nowrap"><%= link_to event.id, public_path %></th>
-        <td><%= link_to event.title, public_path %><% if event.flagged_as_spam? %> <span class="badge text-bg-warning">auto-flagged</span><% end %><% if event.spam_score %> <small class="text-muted text-nowrap" title="Jev advertising score">Jev <%= number_with_precision(event.spam_score, precision: 2) %></small><% end %></td>
+        <td><%= link_to event.title, public_path %><% if event.flagged_as_spam? %> <span class="badge text-bg-warning">auto-flagged</span><% end %></td>
         <td class="text-nowrap">
           <%= event.date %>
           <% if (time = event_time(event)) %>
@@ -108,6 +112,7 @@
           <td class="text-nowrap small"><%= event.created_at.utc.strftime("%Y-%m-%d %H:%M UTC") %></td>
         <% end %>
         <td class="text-nowrap"><code class="small"><%= link_to event.admin_token.split('-').first, admin_event_row_path(:organizer, event, hashid:), class: "text-body" %></code></td>
+        <td class="text-nowrap text-end"><% if event.spam_score %><code class="small" title="Jev advertising score"><%= number_with_precision(event.spam_score, precision: 2) %></code><% end %></td>
         <td class="text-nowrap">
           <% unless event.spam_locked? %>
             <button type="submit" form="spam-actions" formaction="<%= admin_event_row_path(:mark_spam, event, hashid:) %>"
