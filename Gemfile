@@ -39,7 +39,7 @@ group :test do
   gem "axe-core-rspec", "~> 4.14"
   gem "factory_bot_rails", "~> 6.4"
   gem "selenium-webdriver", "~> 4.53"
-  gem "webmock", "~> 3.34"
+  gem "webmock", "~> 3.36"
 end
 
 group :development do
