@@ -549,15 +549,6 @@ provided; Bon App's accepted risks do not transfer.
   work. Avoid purging production blobs based only on an imported local database.
 
 - [ ] **2.5 P2 — Review abuse and browser policies against the actual product.**
-  Status 2026-11-24: event creation is limited per client
-  (`RecentEventCreation`); public RSVP writes (200 per 10 minutes) and direct
-  uploads (20 per 10 minutes, 60 per day) use Rails' `rate_limit` per IP in an
-  in-process store that resets on deploy. RSVP names have a 200-character
-  limit and reject invisible names, links, and spam content. Admin Basic Auth
-  is deliberately not throttled; a long random `ADMIN_PASSWORD` is the
-  defense. Still open: CSP and permissions-policy, and checking the reverse
-  proxy's own limits.
-  Original finding:
   No app-level throttling exists for event creation, public RSVPs, Basic Auth,
   uploads, or organizer-link mail. CSP and permissions-policy files are commented
   templates. Define proportionate controls and test them; inspect actual reverse
@@ -635,8 +626,8 @@ provided; Bon App's accepted risks do not transfer.
   hashid from an event's slugged public parameter. Public and organizer
   controllers share only that parser; organizer-token matching remains in each
   authorization boundary. The `Admin` namespace now belongs only to the
-  site-wide HTTP Basic dashboard; `Admin::BaseController` applies the
-  authentication so every `Admin` controller inherits it. Separately named
+  site-wide HTTP Basic dashboard through `Admin::EventsController`, which applies
+  its own authentication without an otherwise-empty parent class. Separately named
   `Organizer*Controller` classes authorize creator actions with the event's private
   token. Existing negative request coverage continues to prove wrong
   credentials, cross-event tokens, and unrelated RSVP IDs cannot cross either

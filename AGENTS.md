@@ -31,10 +31,9 @@ model when applying the playbook's authentication and ownership guidance.
 - Public RSVP deletion uses event-scoped session hashids. Organizer RSVP
   mutations find the response through the token-authorized event's association.
 - The cross-event `/admin/events` dashboard uses HTTP Basic authentication from
-  `ADMIN_USER` and `ADMIN_PASSWORD` (`http_basic_authenticate_with` in
-  `Admin::BaseController`, the parent of every `Admin` controller). The
-  separately named `Organizer*Controller` classes authorize event-scoped creator
-  actions with `Event#admin_token`. An organizer
+  `ADMIN_USER` and `ADMIN_PASSWORD`, applied directly by
+  `Admin::EventsController`. The separately named `Organizer*Controller` classes
+  authorize event-scoped creator actions with `Event#admin_token`. An organizer
   token never grants access to the site-wide `Admin` namespace.
 - Owner-approved policy: unpublished events block guest RSVP additions and
   deletions, including deletion by a guest who previously owned a response.
@@ -284,8 +283,9 @@ asset-compilation, and RSpec checks.
   serializes parallel submissions. Failed validations and refused attempts do
   not count. Both rules show the same `CREATION_LIMITED_MESSAGE` (429), which
   deliberately does not say which applied.
-- Request rate limits: Rails' `rate_limit`, per `request.remote_ip`, counted
-  in `ApplicationController::RATE_LIMIT_STORE`, an 8 MB in-process
+- Request rate limits: Rails' `rate_limit`, per client (`RateLimitedPerClient`:
+  the IP address, or its /64 for IPv6), counted in
+  `RateLimitedPerClient::STORE`, an 8 MB in-process
   `MemoryStore` shared by Puma's threads (one Puma process; production
   configures no `cache_store`, and the test null store would disable the
   limits). Counters reset on every deploy or restart; specs clear the store
@@ -303,7 +303,6 @@ asset-compilation, and RSpec checks.
 - `OrganizerEventsController`: organizer display, editing, deletion, publication.
 - `RsvpsController`: public response creation and session-owned deletion.
 - `OrganizerRsvpsController`: organizer response editing/deletion.
-- `Admin::BaseController`: HTTP Basic authentication for the `Admin` namespace.
 - `Admin::EventsController` / `Admin::EventStats`: dashboard listing and stats.
   Owner-approved rule: yearly/monthly counts and projections measure event creation
   using `created_at`, independent of scheduled `date`. Monthly numeric counts are

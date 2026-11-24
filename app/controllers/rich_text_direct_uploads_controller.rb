@@ -1,4 +1,6 @@
 class RichTextDirectUploadsController < ActiveStorage::DirectUploadsController
+  include RateLimitedPerClient
+
   CONTENT_TYPES = %w[image/png image/jpeg image/gif image/webp].freeze
   MAXIMUM_SIZE = 5.megabytes
   LIMITED_MESSAGE = "To prevent abuse on Easy RSVP, we're limiting how many images you can upload in a short window. Please try again later.".freeze
@@ -12,12 +14,10 @@ class RichTextDirectUploadsController < ActiveStorage::DirectUploadsController
   DAILY_LIMIT = 60
   DAILY_WINDOW = 1.day
 
-  # Shares ApplicationController's store and client key; this controller inherits from
-  # Active Storage's instead.
   rate_limit to: BURST_LIMIT, within: BURST_WINDOW, name: "burst", only: :create,
-    store: ApplicationController::RATE_LIMIT_STORE, by: ApplicationController::RATE_LIMIT_CLIENT, with: :refuse_upload
+    store: RateLimitedPerClient::STORE, by: :rate_limit_client, with: :refuse_upload
   rate_limit to: DAILY_LIMIT, within: DAILY_WINDOW, name: "daily", only: :create,
-    store: ApplicationController::RATE_LIMIT_STORE, by: ApplicationController::RATE_LIMIT_CLIENT, with: :refuse_upload
+    store: RateLimitedPerClient::STORE, by: :rate_limit_client, with: :refuse_upload
 
   def create
     if acceptable_upload?
