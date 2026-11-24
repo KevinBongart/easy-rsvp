@@ -8,7 +8,7 @@ class RsvpsController < ApplicationController
   WRITE_LIMIT = 200
   WRITE_WINDOW = 10.minutes
 
-  rate_limit to: WRITE_LIMIT, within: WRITE_WINDOW, store: RATE_LIMIT_STORE, with: :render_rate_limited,
+  rate_limit to: WRITE_LIMIT, within: WRITE_WINDOW, store: RATE_LIMIT_STORE, by: RATE_LIMIT_CLIENT, with: :render_rate_limited,
     only: [ :create, :destroy ]
   before_action :set_event
 

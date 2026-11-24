@@ -4,6 +4,15 @@ class ApplicationController < ActionController::Base
   # store shared by its threads sees every request; counters reset on deploy.
   # The size cap evicts old counters, so many addresses cannot exhaust memory.
   RATE_LIMIT_STORE = ActiveSupport::Cache::MemoryStore.new(size: 8.megabytes)
+  # Who rate_limit counts as one client. An IPv6 connection usually gets a
+  # whole /64, so counting single addresses would let one client rotate
+  # through millions of them.
+  RATE_LIMIT_CLIENT = lambda do
+    address = IPAddr.new(request.remote_ip)
+    address.ipv6? && !address.ipv4_mapped? ? address.mask(64).to_s : address.to_s
+  rescue IPAddr::Error
+    request.remote_ip.to_s
+  end
 
   private
 

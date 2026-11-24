@@ -12,12 +12,12 @@ class RichTextDirectUploadsController < ActiveStorage::DirectUploadsController
   DAILY_LIMIT = 60
   DAILY_WINDOW = 1.day
 
-  # Shares ApplicationController's store; this controller inherits from
+  # Shares ApplicationController's store and client key; this controller inherits from
   # Active Storage's instead.
   rate_limit to: BURST_LIMIT, within: BURST_WINDOW, name: "burst", only: :create,
-    store: ApplicationController::RATE_LIMIT_STORE, with: :refuse_upload
+    store: ApplicationController::RATE_LIMIT_STORE, by: ApplicationController::RATE_LIMIT_CLIENT, with: :refuse_upload
   rate_limit to: DAILY_LIMIT, within: DAILY_WINDOW, name: "daily", only: :create,
-    store: ApplicationController::RATE_LIMIT_STORE, with: :refuse_upload
+    store: ApplicationController::RATE_LIMIT_STORE, by: ApplicationController::RATE_LIMIT_CLIENT, with: :refuse_upload
 
   def create
     if acceptable_upload?
