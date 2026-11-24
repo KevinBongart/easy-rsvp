@@ -76,7 +76,9 @@ RSpec.describe EventSpamReviewJob do
   it 'leaves the event up and reports when its page cannot be prepared' do
     event = create(:event)
     allow(Rails.error).to receive(:report)
-    allow(Event::SpamReview).to receive(:page).and_raise(Regexp::TimeoutError)
+    review = instance_double(Event::SpamReview)
+    allow(review).to receive(:page).and_raise(Regexp::TimeoutError)
+    allow(Event::SpamReview).to receive(:new).with(event).and_return(review)
 
     described_class.perform_now(event.id)
 
