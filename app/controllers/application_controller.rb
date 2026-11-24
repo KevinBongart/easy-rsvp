@@ -1,4 +1,10 @@
 class ApplicationController < ActionController::Base
+  # Counters for rate_limit. Production configures no cache_store and runs a
+  # single Puma process (config/puma.rb sets no workers), so one in-memory
+  # store shared by its threads sees every request; counters reset on deploy.
+  # The size cap evicts old counters, so many addresses cannot exhaust memory.
+  RATE_LIMIT_STORE = ActiveSupport::Cache::MemoryStore.new(size: 8.megabytes)
+
   private
 
   # Guests get the removed page for every spam event; only the browser that

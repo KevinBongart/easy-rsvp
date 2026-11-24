@@ -68,13 +68,11 @@ RSpec.describe 'Rich text direct uploads', type: :request do
       expect(response).to have_http_status(:too_many_requests)
     end
 
-    it 'counts each client separately, treating an IPv6 /64 as one client' do
-      RichTextDirectUploadsController::BURST_LIMIT.times { |n| upload(from: "2001:db8:1:2::#{n + 1}") }
+    it 'counts each client separately' do
+      RichTextDirectUploadsController::BURST_LIMIT.times { upload }
 
-      upload(from: '2001:db8:1:2:ffff::9')
+      upload
       expect(response).to have_http_status(:too_many_requests)
-      upload(from: '2001:db8:1:3::1')
-      expect(response).to have_http_status(:ok)
       upload(from: '198.51.100.20')
       expect(response).to have_http_status(:ok)
     end

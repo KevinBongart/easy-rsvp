@@ -1,6 +1,4 @@
 class RsvpsController < ApplicationController
-  include RateLimitedPerClient
-
   LIMITED_MESSAGE = "To prevent abuse on Easy RSVP, we're limiting how many responses you can send in a short window. Please try again later.".freeze
   # Responses and deletions per client, across all events. On the 2026-11-20
   # production copy the busiest legitimate event took 182 responses in 10
@@ -10,7 +8,8 @@ class RsvpsController < ApplicationController
   WRITE_LIMIT = 200
   WRITE_WINDOW = 10.minutes
 
-  rate_limit_per_client to: WRITE_LIMIT, within: WRITE_WINDOW, message: LIMITED_MESSAGE, only: [ :create, :destroy ]
+  rate_limit to: WRITE_LIMIT, within: WRITE_WINDOW, store: RATE_LIMIT_STORE, with: :render_rate_limited,
+    only: [ :create, :destroy ]
   before_action :set_event
 
   def create
@@ -49,6 +48,11 @@ class RsvpsController < ApplicationController
   end
 
   private
+
+  def render_rate_limited
+    render "application/rate_limited", locals: { message: LIMITED_MESSAGE }, status: :too_many_requests,
+      formats: :html, content_type: "text/html"
+  end
 
   def set_event
     hashid = event_hashid_from_param(params[:event_id])

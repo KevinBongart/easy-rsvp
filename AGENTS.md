@@ -31,9 +31,10 @@ model when applying the playbook's authentication and ownership guidance.
 - Public RSVP deletion uses event-scoped session hashids. Organizer RSVP
   mutations find the response through the token-authorized event's association.
 - The cross-event `/admin/events` dashboard uses HTTP Basic authentication from
-  `ADMIN_USER` and `ADMIN_PASSWORD`, applied directly by
-  `Admin::EventsController`, which limits failed attempts per client. The
-  separately named `Organizer*Controller` classes authorize event-scoped creator actions with `Event#admin_token`. An organizer
+  `ADMIN_USER` and `ADMIN_PASSWORD` (`http_basic_authenticate_with` in
+  `Admin::BaseController`, the parent of every `Admin` controller). The
+  separately named `Organizer*Controller` classes authorize event-scoped creator
+  actions with `Event#admin_token`. An organizer
   token never grants access to the site-wide `Admin` namespace.
 - Owner-approved policy: unpublished events block guest RSVP additions and
   deletions, including deletion by a guest who previously owned a response.
@@ -101,8 +102,9 @@ asset-compilation, and RSpec checks.
 - `ImageUpload`: legacy records retain old editor uploads and their Active
   Storage attachments. New editor uploads use Action Text direct uploads. The
   browser and server accept declared PNG/JPEG/GIF/WebP files from 1 byte through
-  5 MB before issuing a storage URL, at a limited rate per client. Direct uploads cannot be byte-sniffed
-  before reaching storage. Uploads have no owner until an event uses them;
+  5 MB before issuing a storage URL, at a limited rate per IP (see Request
+  rate limits below). Direct uploads cannot be byte-sniffed before reaching
+  storage. Uploads have no owner until an event uses them;
   `OrphanedImages` deletes those no event uses (see Image cleanup below).
 - Event limits: titles of at most 200 characters (`maxlength` on the inputs),
   descriptions of at most 20,000 characters of visible text
@@ -273,45 +275,35 @@ asset-compilation, and RSpec checks.
   and either would otherwise cost a spammer one request. Only admin "Not spam"
   (`clear_spam!`) or the 2-hour expiry lifts it. A wrongly flagged organizer
   can still edit their event to clear its flag, but can't create another event
-  from that IP (or IPv6 /64) for up to 2 hours. Clients are keyed by
-  `ClientDigest`, an HMAC of the remote IP (IPv6 reduced to its /64), never the
-  raw address and never stored on the event; each row links to the event it created (foreign key
+  from that IP (or IPv6 /64) for up to 2 hours. Clients are keyed by an HMAC of
+  the remote IP (IPv6 reduced to its /64), never the raw address and never
+  stored on the event; each row links to the event it created (foreign key
   nullified when the event is deleted) and is deleted, with the link, on the
   first creation attempt after it is 2 hours old. One query on the per-client
   index checks both rules inside a per-client Postgres advisory lock that
   serializes parallel submissions. Failed validations and refused attempts do
   not count. Both rules show the same `CREATION_LIMITED_MESSAGE` (429), which
   deliberately does not say which applied.
-- Request rate limits: per client, keyed by `ClientDigest` (the same HMAC of
-  the remote IP, IPv6 reduced to its /64, that `RecentEventCreation` uses), in
-  `ClientRequestCounts::STORE`, an 8 MB in-process `MemoryStore` shared by
-  Puma's threads. RSVP and upload limits use Rails' `rate_limit` through
-  `RateLimitedPerClient`; `AdminSignInFailures` is a `before_action` that
-  counts only failed Basic Auth attempts in the same store. The store is not
-  `Rails.cache`: production configures none (Rails would fall back to
-  `tmp/cache` files) and the test null store would disable the limits.
-  Counters reset on every deploy or restart; specs clear them before each
-  example. Limits, measured on the 2026-11-20 production copy: public RSVP
-  creations and deletions, 200 per 10 minutes across all events (the busiest
-  legitimate event took 182 in 10 minutes, so even a whole room on one shared
-  address passes); direct uploads, 20 per 10 minutes and 60 per day, counted
-  whether accepted or not (no legitimate event embeds more than 2 images);
-  failed admin Basic Auth sign-ins, 10 per hour, after which every admin
-  request from that client, even with the right password, gets 429 until the
-  hour since the first failure passes. Successful sign-ins and
-  credential-less challenges never count; unset
-  `ADMIN_USER`/`ADMIN_PASSWORD` match nothing. The per-client admin limit
-  does not stop guessing spread over many addresses, so `ADMIN_PASSWORD` must
-  be a long random secret (20+ characters from a password manager); 50
-  failures site-wide within an hour report once to Honeybadger, and never
-  lock anyone out. Refusals are 429 (`RendersRateLimited`) with a neutral
-  "Please try again later." message: a page (`application/rate_limited`), or
-  JSON `{ error: }` for uploads, which `rich_text_controller.js` recognizes
-  by status and explains under the editor. Organizer RSVP edits are
-  token-gated and not limited, so an organizer can clean up a flood.
+- Request rate limits: Rails' `rate_limit`, per `request.remote_ip`, counted
+  in `ApplicationController::RATE_LIMIT_STORE`, an 8 MB in-process
+  `MemoryStore` shared by Puma's threads (one Puma process; production
+  configures no `cache_store`, and the test null store would disable the
+  limits). Counters reset on every deploy or restart; specs clear the store
+  before each example. Limits, measured on the 2026-11-20 production copy:
+  public RSVP creations and deletions, 200 per 10 minutes across all events
+  (the busiest legitimate event took 182 in 10 minutes, so even a whole room
+  on one shared address passes); direct uploads, 20 per 10 minutes and 60 per
+  day, counted whether accepted or not (no legitimate event embeds more than
+  2 images). Refusals are 429 with a neutral "Please try again later."
+  message: a page (`application/rate_limited`) for RSVPs, JSON `{ error: }`
+  for uploads, which `rich_text_controller.js` recognizes by status and
+  explains under the editor. Organizer RSVP edits are token-gated and not
+  limited, so an organizer can clean up a flood. Admin sign-ins are not
+  limited: `ADMIN_PASSWORD` must be a long random secret.
 - `OrganizerEventsController`: organizer display, editing, deletion, publication.
 - `RsvpsController`: public response creation and session-owned deletion.
 - `OrganizerRsvpsController`: organizer response editing/deletion.
+- `Admin::BaseController`: HTTP Basic authentication for the `Admin` namespace.
 - `Admin::EventsController` / `Admin::EventStats`: dashboard listing and stats.
   Owner-approved rule: yearly/monthly counts and projections measure event creation
   using `created_at`, independent of scheduled `date`. Monthly numeric counts are

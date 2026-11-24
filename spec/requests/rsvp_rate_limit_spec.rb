@@ -34,13 +34,6 @@ RSpec.describe 'RSVP rate limit', type: :request do
     expect { respond(from: '198.51.100.20') }.to change(Rsvp, :count).by(1)
   end
 
-  it 'treats addresses in the same IPv6 /64 as one client' do
-    limit.times { |n| respond(from: "2001:db8:1:2::#{n + 1}") }
-
-    expect { respond(from: '2001:db8:1:2:ffff::9') }.not_to change(Rsvp, :count)
-    expect { respond(from: '2001:db8:1:3::1') }.to change(Rsvp, :count).by(1)
-  end
-
   it 'accepts responses again once the window has passed' do
     travel_to(Time.zone.local(2026, 11, 20, 12, 0)) { limit.times { respond } }
 

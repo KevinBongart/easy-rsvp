@@ -12,10 +12,12 @@ class RichTextDirectUploadsController < ActiveStorage::DirectUploadsController
   DAILY_LIMIT = 60
   DAILY_WINDOW = 1.day
 
-  include RateLimitedPerClient
-
-  rate_limit_per_client to: BURST_LIMIT, within: BURST_WINDOW, message: LIMITED_MESSAGE, name: "burst", only: :create
-  rate_limit_per_client to: DAILY_LIMIT, within: DAILY_WINDOW, message: LIMITED_MESSAGE, name: "daily", only: :create
+  # Shares ApplicationController's store; this controller inherits from
+  # Active Storage's instead.
+  rate_limit to: BURST_LIMIT, within: BURST_WINDOW, name: "burst", only: :create,
+    store: ApplicationController::RATE_LIMIT_STORE, with: :refuse_upload
+  rate_limit to: DAILY_LIMIT, within: DAILY_WINDOW, name: "daily", only: :create,
+    store: ApplicationController::RATE_LIMIT_STORE, with: :refuse_upload
 
   def create
     if acceptable_upload?
@@ -27,6 +29,11 @@ class RichTextDirectUploadsController < ActiveStorage::DirectUploadsController
   end
 
   private
+
+  # rich_text_controller.js recognizes the 429 and shows LIMITED_MESSAGE.
+  def refuse_upload
+    render json: { error: LIMITED_MESSAGE }, status: :too_many_requests
+  end
 
   def acceptable_upload?
     attributes = blob_args

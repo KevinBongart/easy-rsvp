@@ -1,10 +1,12 @@
 # Limits how many events one client can create in a short window, and refuses
 # clients who recently created spam.
 #
-# Clients are identified by ClientDigest, never their address, and the digest
-# is never stored on the event. Each row links to the event it created; the
-# link lives only in this table and the row is deleted on the first creation
-# attempt after it is older than SPAM_BLOCK.
+# Clients are identified by a keyed one-way digest of their address, never the
+# address itself, and the digest is never stored on the event. IPv6 addresses
+# are reduced to their /64 prefix, which a single household or host controls.
+# Each row links to the event it created; the link lives only in this table
+# and the row is deleted on the first creation attempt after it is older than
+# SPAM_BLOCK.
 class RecentEventCreation < ApplicationRecord
   LIMIT = 5
   WINDOW = 30.minutes
@@ -16,6 +18,7 @@ class RecentEventCreation < ApplicationRecord
   # "Not spam" or this expiry lifts it. Rows are kept this long, which also
   # covers WINDOW.
   SPAM_BLOCK = 2.hours
+  DIGEST_PURPOSE = "recent_event_creations/client_digest"
 
   belongs_to :event, optional: true
 
@@ -25,7 +28,7 @@ class RecentEventCreation < ApplicationRecord
   # Concurrent requests from the same client are serialized so parallel bursts
   # cannot exceed the limit.
   def self.limit(remote_ip)
-    digest = ClientDigest.for(remote_ip)
+    digest = digest_for(remote_ip)
 
     # Clean up outside the locked transaction so its row locks never make one
     # client's creation wait for another client's.
@@ -55,6 +58,10 @@ class RecentEventCreation < ApplicationRecord
     where(event_id: event.id).update_all(spam_at: nil)
   end
 
+  def self.digest_for(remote_ip)
+    OpenSSL::HMAC.hexdigest("SHA256", digest_key, client_key(remote_ip))
+  end
+
   # One query on the (client_digest, created_at) index. A client has at most
   # LIMIT rows per WINDOW, so the rows from the last SPAM_BLOCK are few.
   def self.limited?(digest)
@@ -64,6 +71,20 @@ class RecentEventCreation < ApplicationRecord
     rows.any? { |_, spam_at| spam_at } || rows.count { |created_at, _| created_at >= window_start } >= LIMIT
   end
   private_class_method :limited?
+
+  def self.client_key(remote_ip)
+    address = IPAddr.new(remote_ip.to_s)
+    address = address.mask(64) if address.ipv6? && !address.ipv4_mapped?
+    address.to_s
+  rescue IPAddr::InvalidAddressError
+    remote_ip.to_s
+  end
+  private_class_method :client_key
+
+  def self.digest_key
+    Rails.application.key_generator.generate_key(DIGEST_PURPOSE, 32)
+  end
+  private_class_method :digest_key
 
   def self.lock_client(digest)
     connection.execute(

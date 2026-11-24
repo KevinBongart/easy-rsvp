@@ -1,11 +1,5 @@
 module Admin
-  class EventsController < ApplicationController
-    include RendersRateLimited
-
-    SIGN_IN_LIMITED_MESSAGE = "To prevent abuse on Easy RSVP, we're limiting sign-in attempts. Please try again later.".freeze
-
-    before_action :authenticate_admin
-
+  class EventsController < BaseController
     EVENTS_PER_PAGE = 1000
     RSVP_COUNT_SQL = <<~SQL.squish.freeze
       (SELECT COUNT(*) FROM rsvps WHERE rsvps.event_id = events.id)
@@ -97,29 +91,6 @@ module Admin
     end
 
     private
-
-    # HTTP Basic, like http_basic_authenticate_with, but counting failures
-    # per client (AdminSignInFailures). A request without credentials only
-    # asks the browser for them and does not count.
-    def authenticate_admin
-      failures = AdminSignInFailures.new(ClientDigest.for(request.remote_ip))
-      return render_rate_limited(SIGN_IN_LIMITED_MESSAGE) if failures.too_many?
-
-      authenticate_or_request_with_http_basic do |name, password|
-        admin_credentials?(name, password).tap { |valid| failures.record unless valid }
-      end
-    end
-
-    # Compares both values in full (& does not short-circuit), so timing
-    # reveals neither which one was wrong nor its length. Unset credentials
-    # never match, not even empty ones.
-    def admin_credentials?(name, password)
-      expected_name, expected_password = ENV["ADMIN_USER"].to_s, ENV["ADMIN_PASSWORD"].to_s
-      return false if expected_name.empty? || expected_password.empty?
-
-      ActiveSupport::SecurityUtils.secure_compare(name.to_s, expected_name) &
-        ActiveSupport::SecurityUtils.secure_compare(password.to_s, expected_password)
-    end
 
     # Buttons on preview pages pass return_to so the admin lands back on the
     # page they were viewing. url_from only accepts same-site URLs.
