@@ -134,6 +134,55 @@ RSpec.describe 'Site administrator dashboard', type: :request do
     expect(rows.fetch('Peptides coupon code').at_css('.badge')).to be_nil
   end
 
+  describe 'Jev health alert' do
+    def alert
+      Nokogiri::HTML(response.body).at_css('#spam-review-alert')
+    end
+
+    it 'shows nothing while Jev answers' do
+      SpamReviewStatus.record_success!
+      get admin_events_path, headers: dashboard_headers
+      expect(alert).to be_nil
+    end
+
+    it 'shows since when Jev fails, how many events went unreviewed, and the last error' do
+      now = Time.zone.local(2026, 11, 20, 12)
+      out_of_credits = 'Event::SpamReview::Error: TypeSafe answered HTTP 402 (payment required: probably out of credits)'
+      travel_to(now - 150.minutes) { SpamReviewStatus.record_success! }
+      travel_to(now - 2.hours) { SpamReviewStatus.record_failure!(out_of_credits) }
+      travel_to(now - 1.hour) { SpamReviewStatus.record_failure!(out_of_credits) }
+      travel_to now do
+        create(:event, created_at: 3.hours.ago)
+        create_list(:event, 2, created_at: 90.minutes.ago)
+
+        get admin_events_path, headers: dashboard_headers
+
+        expect(alert['class'].split).to include('alert', 'alert-danger')
+        text = alert.text.squish
+        expect(text).to include(
+          'Jev is failing', 'Every review since 2026-11-20 10:00 UTC (about 2 hours ago) has failed (2 failures in a row)',
+          'Last successful review: 2026-11-20 09:30 UTC (about 3 hours ago)',
+          '2 events created since 2026-11-20 09:30 UTC have no Jev review',
+          'Last error: Event::SpamReview::Error: TypeSafe answered HTTP 402 (payment required: probably out of credits), 2026-11-20 11:00 UTC'
+        )
+        expect(response.body.index('spam-review-alert')).to be < response.body.index('admin-statistics')
+      end
+    end
+
+    it 'warns when reviews are required but TYPESAFE_API_KEY is missing' do
+      Rails.configuration.x.spam_review_required = true
+      get admin_events_path, headers: dashboard_headers
+      expect(alert.text.squish).to include('Jev is off', 'TYPESAFE_API_KEY is not set')
+    ensure
+      Rails.configuration.x.spam_review_required = nil
+    end
+
+    it 'does not warn about the missing key where reviews are optional' do
+      get admin_events_path, headers: dashboard_headers
+      expect(alert).to be_nil
+    end
+  end
+
   it 'renders an empty state without broken statistics' do
     get admin_events_path, headers: dashboard_headers
     expect(response).to have_http_status(:ok)
@@ -157,11 +206,15 @@ RSpec.describe 'Site administrator dashboard', type: :request do
       request_metrics_summary(larger_database_metrics, label: 'dashboard with 2,001 events')
     ].join("\n")
     filter_summary = request_metrics_summary(attachment_filtered_metrics, label: 'attachment-filtered dashboard')
+    SpamReviewStatus.record_failure!('SocketError')
+    failing_review_metrics = measure_request { get admin_events_path, headers: dashboard_headers }
 
     expect(larger_database_metrics.queries).to eq(first_page_metrics.queries), scale_summary
-    # Includes one grouped query for the monthly spam chart.
-    expect(larger_database_metrics.queries).to be <= 7, scale_summary
-    expect(attachment_filtered_metrics.queries).to be <= 7, filter_summary
+    # Includes one grouped query for the monthly spam chart and one reading
+    # Jev's status, which adds a count of unreviewed events while Jev fails.
+    expect(larger_database_metrics.queries).to be <= 8, scale_summary
+    expect(failing_review_metrics.queries).to eq(larger_database_metrics.queries + 1)
+    expect(attachment_filtered_metrics.queries).to be <= 8, filter_summary
     expect(larger_database_metrics.duration).to be < DASHBOARD_REQUEST_BUDGET_MS, scale_summary
     expect(larger_database_metrics.db_runtime).to be < DASHBOARD_DATABASE_BUDGET_MS, scale_summary
     expect(larger_database_metrics.sql_runtime).to be < DASHBOARD_DATABASE_BUDGET_MS, scale_summary

@@ -1,6 +1,14 @@
 # frozen_string_literal: true
 
 module Admin::EventsHelper
+  def admin_time(time)
+    time.utc.strftime("%Y-%m-%d %H:%M UTC")
+  end
+
+  def admin_time_with_age(time)
+    "#{admin_time(time)} (#{time_ago_in_words(time)} ago)"
+  end
+
   def sparkline_points(series)
     maximum = [ series.map { |point| point[:projected_count] || point[:count] }.max, 1 ].max
     series.each_with_index.map do |point, index|

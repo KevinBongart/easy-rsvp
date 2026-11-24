@@ -532,8 +532,11 @@ provided; Bon App's accepted risks do not transfer.
   direct-upload controller enforce declared PNG/JPEG/GIF/WebP types and a
   1-byte-to-10-MB range; storage verifies the signed byte length and checksum.
   Direct upload cannot byte-sniff content before it reaches storage. The owner
-  deferred ownership/expiry and purge scheduling on 2026-09-09. Byte-level policy,
-  request-level abuse controls, and lifecycle remain separate follow-ups.
+  deferred ownership/expiry and purge scheduling on 2026-09-09. Since 2026-11-20,
+  the daily `bin/rails images:purge` deletes uploads no event uses once they are
+  two days old, and spam images after 30 days, capped at 50 per run with a dry-run
+  mode (see AGENTS.md, Image cleanup). Byte-level policy and request-level abuse
+  controls remain separate follow-ups.
   Original finding:
   `ImageUploadsController#create` permits any file and `ImageUpload` has no
   presence/type/size validation. A public JSON upload of a plain text file returned

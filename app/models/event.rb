@@ -22,12 +22,38 @@ class Event < ApplicationRecord
   # November 19) did.
   CONFIDENT_SPAM_REASONS = 2
   CONFIDENT_SPAM_SCORE = 0.98
+  # How long images of spam stay stored after the mark or flag (see
+  # Event::SpamImages).
+  SPAM_IMAGE_RETENTION = 30.days
 
   has_many :rsvps, dependent: :destroy
   has_rich_text :body
 
   scope :spam, -> { where.not(spam_at: nil) }
   scope :not_spam, -> { where(spam_at: nil) }
+  # Not flagged, not decided by an admin, and never scored by Jev.
+  scope :without_spam_review, -> { where(spam_source: nil, spam_score: nil) }
+  # Spam whose images are due for deletion (Event::SpamImages).
+  scope :spam_images_expired, ->(now) do
+    cutoff = now - SPAM_IMAGE_RETENTION
+    operator_spam_marked_before(cutoff).or(automatic_spam_unedited_since(cutoff))
+  end
+  # Retention counts from the operator's decision: an automatic flag keeps its
+  # earlier spam_at when an operator confirms it. spam_decided_at was
+  # backfilled from spam_at for older marks; spam_at covers any gap.
+  scope :operator_spam_marked_before, ->(cutoff) do
+    where(spam_source: "operator").where("COALESCE(events.spam_decided_at, events.spam_at) < ?", cutoff)
+  end
+  # Flagged by the Ruby rules or Jev before the cutoff and not edited since.
+  # Every title or description edit touches updated_at (Action Text touches
+  # the event) and re-runs the check, which keeps or clears the flag, so an
+  # organizer still fixing a wrongly flagged event keeps its images. Jev flags
+  # with update_columns, which sets spam_at without touching updated_at, hence
+  # both. Cleared events and events edited out of spam have another
+  # spam_source and never match.
+  scope :automatic_spam_unedited_since, ->(cutoff) do
+    where(spam_source: "automatic", spam_at: ...cutoff, updated_at: ...cutoff)
+  end
 
   normalizes :time_zone, with: ->(time_zone) { time_zone.presence }
 

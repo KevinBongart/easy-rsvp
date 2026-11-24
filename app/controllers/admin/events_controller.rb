@@ -66,6 +66,7 @@ module Admin
 
     def index
       AdminPreview.start(session)
+      @spam_review_status = SpamReviewStatus.current
       @event_stats = Admin::EventStats.new(Event.not_spam)
       # Same monthly chart and projection, over spam only (one grouped query).
       @spam_stats = Admin::EventStats.new(Event.spam)

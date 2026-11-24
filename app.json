@@ -14,7 +14,7 @@
   },
   "cron": [
     {
-      "command": "bin/rails spam:purge_images",
+      "command": "bin/rails images:purge",
       "schedule": "17 4 * * *",
       "concurrency_policy": "forbid"
     }

@@ -6,13 +6,14 @@ class EventSpamReviewJob < ApplicationJob
     event = Event.find_by(id: event_id)
     return unless event&.spam_review_needed?
 
+    review = Event::SpamReview.new(event)
     page = begin
-      Event::SpamReview.page(event)
+      review.page
     rescue StandardError => e
       Rails.error.report(e, handled: true, context: { event_id: event.id })
       return
     end
-    score = Event::SpamReview.score(event, page:)
+    score = review.score(page:)
     return if score.nil?
 
     changes = { spam_score: score }
@@ -21,7 +22,7 @@ class EventSpamReviewJob < ApplicationJob
     # decided meanwhile. A text edit queued its own review; other edits (date,
     # publication) do not change the answer.
     event.with_lock do
-      next unless event.spam_review_needed? && Event::SpamReview.page(event) == page
+      next unless event.spam_review_needed? && review.page == page
 
       event.update_columns(changes)
       RecentEventCreation.record_spam!(event) if event.spam?
