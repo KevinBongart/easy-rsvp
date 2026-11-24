@@ -50,7 +50,7 @@ Verified against the repository on 2026-09-18; the version files remain authorit
 
 | Concern | Current implementation |
 | --- | --- |
-| Runtime | Ruby 4.0.9; Rails 8.1.4.1 in `Gemfile.lock` |
+| Runtime | Ruby as pinned in `.ruby-version`; Rails as resolved in `Gemfile.lock` |
 | Framework defaults | `config.load_defaults 8.1`, with a SHA-1 key-generator compatibility hold |
 | Database | PostgreSQL; `events_development`, `events_test`, `events_production` |
 | UI | ERB, Simple Form, Bootstrap 5.3.8 |
@@ -205,8 +205,29 @@ asset-compilation, and RSpec checks.
   restart can drop it), stores Jev's advertising score in
   `Event#spam_score`, and flags the event `automatic` at `THRESHOLD` (0.9); the
   organizer clears it the same way, by editing, which queues a new review.
-  Errors fail open. Under a row lock, the job writes only if the masked text it
-  sent is still the event's text and no admin decided meanwhile. Jev cannot be
+  Errors fail open, so `SpamReviewStatus` (one row, `id = 1`) records Jev's
+  health across restarts:
+  - Columns: `last_succeeded_at`, the current streak's `failing_since` and
+    `consecutive_failures`, and the latest `last_failed_at` and `last_error`.
+  - `last_error` is the exception class, plus the message only for
+    `Event::SpamReview::Error`, which states the HTTP status. For 401, 402, 403
+    and 429 it adds the standard meaning; TypeSafe documents no codes, so 402
+    reads "probably out of credits". It never holds event text or the key.
+  - A success is one `upsert`; a failure updates the row under a lock. Only the
+    API call counts: an error writing the status is reported on its own and
+    never discards a score.
+  - Honeybadger (`Rails.error`) hears only about the failure that starts a
+    streak, so an outage sends one notice.
+  - The admin dashboard shows a red alert above the stats while Jev is failing:
+    since when, the streak, the last success and error, and how many events
+    have no score, flag, or admin decision (`Event.without_spam_review`) since
+    the earlier of the last success and five minutes before the first failure.
+    That costs one query, plus the count while failing.
+  - It also shows a red alert when `config.x.spam_review_required` (production
+    only) is set without `TYPESAFE_API_KEY`.
+
+  Under a row lock, the job writes only if the masked text it sent is still the
+  event's text and no admin decided meanwhile. Jev cannot be
   fine-tuned, so admin decisions teach it in context: each request lists the 10
   most recent published "Not spam" events and the 10 most recent admin spam marks,
   ordered by `spam_decided_at`, which only the admin actions set. Editing a
@@ -276,6 +297,9 @@ rules only after their different authorization boundaries are covered by tests.
 ## Validation and operations
 
 Run `bin/ci` for all local CI checks or `bundle exec rspec` for the full suite.
+Specs refuse any database but a local `events_test` or `events_test_<suffix>`;
+parallel checkouts each set their own with
+`DATABASE_URL=postgresql:///events_test_<suffix>`.
 The full suite includes headless Firefox. Use `bundle exec rspec --tag ~js` for
 fast checks and `bundle exec rspec spec/system/javascript_smoke_spec.rb` for
 passing Firefox smoke flows. The database pull specs run without
