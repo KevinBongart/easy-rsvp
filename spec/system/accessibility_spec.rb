@@ -28,7 +28,7 @@ RSpec.describe "Accessibility", type: :system, js: true do
   end
 
   it "wraps a long title and organizer URLs at Firefox's narrow viewport" do
-    event = create(:event, title: "AnUnusuallyLongEventName" * 12)
+    event = create(:event, title: "AnUnusuallyLongEventName" * 8) # 192 characters, near the 200 limit
     page.current_window.resize_to(500, 844)
     visit event_admin_path(event, event.admin_token)
 

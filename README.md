@@ -140,8 +140,12 @@ operations are part of the suite.
 All 19 original pending expectations now pass. Guest RSVP additions/deletions are
 blocked on unpublished events while organizer editing remains available. Dashboard
 counts and projections use creation dates. The editor and direct-upload endpoint
-accept declared PNG/JPEG/GIF/WebP files between 1 byte and 10 MB; failed Trix
-uploads show an error and permit another attempt. Because files upload directly
+accept declared PNG/JPEG/GIF/WebP files between 1 byte and 5 MB; failed Trix
+uploads show an error and permit another attempt. The editor also refuses an
+image that would take the description's images past 10 MB in total, and saving
+enforces that total, a 200-character title, and 20,000 characters of visible
+description text. Each limit applies only when its field changes and never
+blocks an edit that does not make an older event worse. Because files upload directly
 to storage, the endpoint can enforce declared metadata and signed upload length
 but cannot inspect the bytes before issuing the storage URL. If organizer-link
 email delivery is ever restored, it should be designed and verified as a new
@@ -160,6 +164,8 @@ today). Hover, tap, or keyboard-focus a point for its count; the current endpoin
 of the monthly history includes both the actual count so far and the estimated final total.
 The yearly chart has separate points for this year's actual count through today
 and its December 31 projection, connected by a dashed segment.
+A fourth row charts spam events per month the same way, in red, with this month's
+count so far and extrapolation; the other statistics exclude spam.
 These are server-rendered SVGs with CSS tooltips and no charting dependency.
 
 `bin/ci` writes JUnit results to `tmp/test-results/rspec.xml`. Failed system tests
@@ -169,7 +175,18 @@ health endpoint, which Dokku must successfully probe before switching production
 traffic to a new web container. After that switch, the `app.json` postdeploy task
 reports Dokku's exact `GIT_REV` to Honeybadger. The task fails
 visibly when its configuration or request fails, so a missing deploy marker
-cannot be mistaken for success. Bundler-audit, Brakeman, and Rails Omakase are
+cannot be mistaken for success. The `app.json` `cron` entry has Dokku run
+`bin/rails images:purge` daily at 04:17 server time (UTC) in a one-off
+container. It deletes images embedded in spam 30 days after an operator mark,
+or after an automatic flag on an event nobody has edited since, and images no
+event uses (uploads never saved into an event, legacy uploads no description
+links to) once they are two days old. A run deletes at most 50 images and
+prints one line per deleted blob (id, key, bytes, reason) and a summary of
+counts; it never prints event content. Blobs something else still uses are
+only detached. If a stored file can't be deleted, the task logs its key and
+exits non-zero. Preview the next run without deleting anything with
+`dokku run easy-rsvp env DRY_RUN=1 bin/rails images:purge`, and run it by hand
+without `DRY_RUN`. Bundler-audit, Brakeman, and Rails Omakase are
 gates in `bin/ci`. Pull requests that change
 only Markdown files or files under `docs/` skip the expensive application checks.
 A documentation-only commit on `main` also skips the production deploy.
@@ -299,7 +316,7 @@ fingerprint on refresh. Normal development never requires `assets:clean`,
 precompiled manifest left in `public/assets`, so local CI output cannot pin the
 server to stale files. `bin/ci` audits the locked npm graph,
 builds both asset entrypoints through Rails' `assets:precompile` hooks, and
-exercises the real Firefox paste/upload specs. Node 24.13.0 is selected locally
+exercises the real Firefox paste/upload specs. Node 24.22.2 is selected locally
 by `.node-version`; buildpack deploys follow the `24.x` range in `package.json`.
 
 Dokku uses the pinned Node and Ruby buildpacks in `.buildpacks`, in that order.

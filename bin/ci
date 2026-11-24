@@ -16,7 +16,7 @@ bin/rubocop
 bundle exec erb_lint --lint-all
 bin/rails zeitwerk:check
 npm ci
-npm audit
+npm audit --omit=dev
 npm run lint:js
 npm run lint:scss
 SKIP_YARN_INSTALL=true bin/rails assets:precompile

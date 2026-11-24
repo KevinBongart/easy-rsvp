@@ -8,6 +8,17 @@ FactoryBot.define do
       published { false }
     end
 
+    trait :spam do
+      spam_at { Time.current }
+      spam_source { 'operator' }
+    end
+
+    # Applied after create: the save-time spam check would otherwise clear a
+    # flag on a title that does not look like spam.
+    trait :flagged_as_spam do
+      after(:create) { |event| event.update_columns(spam_at: Time.current, spam_source: 'automatic') }
+    end
+
     trait :private_names do
       show_rsvp_names { false }
     end

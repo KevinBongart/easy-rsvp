@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_23_191715) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_20_170000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -65,7 +65,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_23_191715) do
     t.string "time_zone"
     t.string "title", null: false
     t.datetime "updated_at", precision: nil, null: false
+    t.datetime "spam_at"
+    t.string "spam_source"
+    t.float "spam_score"
+    t.datetime "spam_decided_at"
+    t.boolean "spam_verdict_hidden", default: false, null: false
+    t.index ["created_at"], name: "index_events_on_created_at"
     t.check_constraint "ends_at IS NULL OR starts_at IS NULL OR ends_at > starts_at", name: "events_schedule_ordered"
+    t.check_constraint "spam_at IS NULL AND (spam_source IS NULL OR spam_source::text = 'cleared'::text) OR spam_at IS NOT NULL AND (spam_source::text = ANY (ARRAY['operator'::character varying, 'automatic'::character varying]::text[]))", name: "events_spam_source_matches_spam_at"
     t.check_constraint "starts_at IS NULL AND ends_at IS NULL AND time_zone IS NULL OR starts_at IS NOT NULL AND ends_at IS NOT NULL AND time_zone IS NOT NULL AND btrim(time_zone::text) <> ''::text", name: "events_schedule_complete"
     t.check_constraint "starts_at IS NULL OR ((starts_at AT TIME ZONE 'UTC'::text) AT TIME ZONE time_zone)::date = date AND ((ends_at AT TIME ZONE 'UTC'::text) AT TIME ZONE time_zone)::date = date", name: "events_schedule_matches_date"
   end
@@ -84,6 +91,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_23_191715) do
     t.index ["event_id"], name: "index_legacy_event_body_conflicts_on_event_id", unique: true
   end
 
+  create_table "recent_event_creations", force: :cascade do |t|
+    t.string "client_digest", null: false
+    t.datetime "created_at", null: false
+    t.bigint "event_id"
+    t.datetime "spam_at"
+    t.index ["client_digest", "created_at"], name: "index_recent_event_creations_on_client_digest_and_created_at"
+    t.index ["created_at"], name: "index_recent_event_creations_on_created_at"
+    t.index ["event_id"], name: "index_recent_event_creations_on_event_id"
+  end
+
   create_table "rsvps", force: :cascade do |t|
     t.datetime "created_at", precision: nil, null: false
     t.bigint "event_id", null: false
@@ -95,7 +112,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_23_191715) do
     t.check_constraint "response IS NOT NULL AND (response::text = ANY (ARRAY['yes'::character varying::text, 'maybe'::character varying::text, 'no'::character varying::text]))", name: "rsvps_supported_response"
   end
 
+  create_table "spam_review_statuses", force: :cascade do |t|
+    t.integer "consecutive_failures", default: 0, null: false
+    t.datetime "failing_since"
+    t.string "last_error"
+    t.datetime "last_failed_at"
+    t.datetime "last_succeeded_at"
+    t.check_constraint "id = 1", name: "spam_review_statuses_single_row"
+  end
+
+  add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "legacy_event_body_conflicts", "events", on_delete: :cascade
+  add_foreign_key "recent_event_creations", "events", on_delete: :nullify
   add_foreign_key "rsvps", "events"
 end

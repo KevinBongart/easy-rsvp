@@ -1,17 +1,22 @@
 <h1>Edit your event</h1>
 
+<%= render 'organizer_events/spam_notice' if @spam_notice_shown %>
+
 <%= simple_form_for @event, url: event_admin_path(@event, @event.admin_token) do |f| %>
-  <%= f.input :title, error: 'Your event needs a name!' %>
+  <%= f.input :title,
+    error: title_error(@event),
+    input_html: { maxlength: Event::MAXIMUM_TITLE_LENGTH } %>
 
   <%= render 'events/schedule_fields', f: f %>
 
   <%= f.label :body, 'More details (optional):', class: 'form-label mb-2' %>
   <%= f.rich_text_area :body,
-    aria: { label: 'More details (optional)' },
+    aria: { label: 'More details (optional)', describedby: ('event_body_error' if @event.errors[:body].any?) },
     data: {
       controller: 'rich-text',
       action: 'trix-file-accept->rich-text#acceptFile direct-upload:error->rich-text#uploadFailed direct-upload:end->rich-text#uploadFinished'
     } %>
+  <%= render 'events/body_error', event: @event %>
 
   <br>
 

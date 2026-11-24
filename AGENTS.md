@@ -50,7 +50,7 @@ Verified against the repository on 2026-09-18; the version files remain authorit
 
 | Concern | Current implementation |
 | --- | --- |
-| Runtime | Ruby 3.3.12; Rails 8.1.3.1 in `Gemfile.lock` |
+| Runtime | Ruby as pinned in `.ruby-version`; Rails as resolved in `Gemfile.lock` |
 | Framework defaults | `config.load_defaults 8.1`, with a SHA-1 key-generator compatibility hold |
 | Database | PostgreSQL; `events_development`, `events_test`, `events_production` |
 | UI | ERB, Simple Form, Bootstrap 5.3.8 |
@@ -83,13 +83,223 @@ asset-compilation, and RSpec checks.
 - `Rsvp`: belongs to an event, name/response presence validation,
   `RESPONSES = [:yes, :maybe, :no]`, with non-null database columns, a nonblank
   name check, and a supported-response check validated against existing rows.
+  The name is the only free-text field. When it changes, it may be at most 200
+  characters (only growth past the limit is refused, so older long names stay
+  editable; `maxlength` on both forms), must contain a visible character
+  (zero-width and filler characters alone count as blank), may not stack more
+  than 15 combining marks on a letter, and must not contain a link
+  (`Rsvp::LINK`: a scheme, `www.`, or a domain with any subdomains on a
+  generic TLD spammers favor or on .ru/.cn/.tk/.io/.ly; emails and other
+  country domains such as .de pass because guests sign with them) or spam
+  content (`Event::SpamCheck.spam_content?`: the title's content rules, not
+  the formatting rules people use in their own names). The link and content
+  rules read an NFKC-normalized copy without format characters, so fullwidth
+  or zero-width obfuscation does not slip past; the name is saved as typed.
+  The error, "Name should be just your name", does not say which rule
+  matched. On the 2026-11-20 production copy these rules refused 1 of
+  ~98,000 legitimate names.
 - `ImageUpload`: legacy records retain old editor uploads and their Active
   Storage attachments. New editor uploads use Action Text direct uploads. The
   browser and server accept declared PNG/JPEG/GIF/WebP files from 1 byte through
-  10 MB before issuing a storage URL. Direct uploads cannot be byte-sniffed
-  before reaching storage. Upload ownership remains independent of event
-  creation and needs a separate lifecycle design.
+  5 MB before issuing a storage URL, at a limited rate per IP (see Request
+  rate limits below). Direct uploads cannot be byte-sniffed before reaching
+  storage. Uploads have no owner until an event uses them;
+  `OrphanedImages` deletes those no event uses (see Image cleanup below).
+- Event limits: titles of at most 200 characters (`maxlength` on the inputs),
+  descriptions of at most 20,000 characters of visible text
+  (`Event::SpamCheck.visible_text`: markup and image payloads do not count,
+  captions and pasted content attachments do), and at most 10 MB of embedded
+  images per description. Images count once each: Action Text embeds by blob
+  size, and images referenced only by an Active Storage URL (the former Trix
+  uploader) by the size of the blob that URL's signed id resolves to; the
+  submitted `filesize` is never trusted. The editor also counts images accepted
+  earlier in the same multi-file drop or pick. Each limit is checked only when its field
+  changes and only rejects a change that makes the value larger than before,
+  so older events over a limit stay editable. Errors show under the title and
+  the editor (`events/_body_error`). Direct uploads happen before the event
+  exists, so the 10 MB total is also checked in the editor
+  (`rich_text_controller.js`) before an upload starts; the server validation is
+  authoritative.
 - `EventsController`: event creation and public display.
+- Spam and search indexing: event pages (public, calendar, organizer) send
+  `X-Robots-Tag: noindex, nofollow` and a matching robots meta tag; the home page
+  stays indexable. `UserContentLinkScrubber` keeps Action Text's default safe list
+  and adds `rel="nofollow ugc noopener noreferrer"` to every rendered link; Action
+  Text ignores its tag/attribute lists when a scrubber is set, so the scrubber
+  carries them itself. `Event#spam_at` marks spam (`Event.spam` / `Event.not_spam` scopes) and
+  `Event#spam_source` records who marked it. `Event::SpamCheck` runs on every
+  save that changes the title or body and marks matches as `automatic`; it has
+  named title and body rules tuned on the 2026-11 production snapshot (see the
+  class comment). Its `non_editor_html` rule assumes the Trix editor. Public and
+  RSVP routes answer `410 Gone` to guests for all spam. Organizers of
+  `automatic` spam keep access and clear the mark by editing the event into
+  something that passes. The code is public, so confident spammers are not
+  told they were caught. `Event#confidently_spam?` (automatic, and 2+
+  `SpamCheck` reasons or a Jev score of at least 0.98, computed on demand;
+  `spam_verdict_hidden` keeps it true through later edits) makes the organizer
+  pages look normal and serves the public page, calendar, and RSVPs normally
+  to the browser that created or managed the event (`ManagedEvents`: the 20
+  most recent hashids in the session, skipped during admin previews). Less
+  certain flags show a neutral notice (`organizer_events/_spam_notice`) and
+  stay `410` for everyone. Known limits: any other browser or script still
+  gets `410`, and `RecentEventCreation` refusing the next creation reveals a
+  spam verdict. `operator` marks (the `AddSpamAtToEvents` and
+  `MarkMoreSpamEvents` migrations) are final and lock the organizer out with
+  `410 Gone`. The `FlagUncheckedSpamEvents` migration ran the check once over
+  events created before it existed. Body rules ignore only image payloads; text in figures,
+  captions, and content attachments counts because Action Text renders it. The admin
+  dashboard lists spam only under its Spam filter (`spam=1`) with creation
+  times, badges automatic marks, and never counts spam in the stats. Each row
+  has confirmed Mark spam / Not spam buttons; admin marks are `operator` marks
+  set with `update_columns`, bypassing the save-time check. Not spam sets
+  `spam_source = "cleared"` (with no `spam_at`) so automatic checks skip the
+  event afterwards.
+- Spam images (`Event::SpamImages`): Active Storage's blob and representation
+  redirect/proxy controllers get `HidesOperatorSpamImages` prepended
+  (`config/initializers/spam_images.rb`), which narrows `blob_scope` so the
+  signed-id lookup itself excludes blobs embedded only in descriptions of
+  `operator`-marked events: those answer 404, in the same single indexed query.
+  Images of `automatic` and cleared events, blobs also attached elsewhere,
+  unattached direct uploads, legacy `ImageUpload` blobs, and admin preview
+  sessions are still served. Files on S3 are reached through 5-minute signed
+  URLs, so a mark takes effect within minutes. Legacy `ImageUpload` images
+  predate the spam wave (that uploader was removed in September 2026) and are
+  never hidden.
+- Image cleanup (`ImageCleanup`, `bin/rails images:purge`, daily Dokku cron in
+  `app.json` with `concurrency_policy: forbid`) deletes images nothing needs:
+  - `Event::SpamImages` (`Event.spam_images_expired`): embeds of `operator`
+    marks older than 30 days (`spam_decided_at`, falling back to `spam_at`),
+    and of `automatic` flags whose `spam_at` and the event's `updated_at` are
+    both older than 30 days. Every title or description edit touches `updated_at` and re-runs the
+    check, so an organizer who edits keeps the images whether the flag stays
+    or goes; Jev's flag uses `update_columns`, hence both columns. Cleared
+    events and events edited out of spam never match, and the event is
+    re-checked under its row lock before each attachment goes.
+  - `OrphanedImages`: blobs older than 2 days (`GRACE_PERIOD`; direct
+    uploads happen before the event is saved, and every embed on the
+    2026-11 copy was attached within 14 minutes) attached to nothing but
+    `ImageUpload` records, deleted with those records.
+  - A blob still attached elsewhere or referenced by any description
+    (`ImageReferences`) is kept; a spam embed of it is only detached. References are read from the stored
+    HTML of every event except spam whose images have expired: Active Storage
+    blob/representation URLs (redirect, proxy, or pre-6.1 routes, any host,
+    URL-escaped signed ids, JSON-escaped slashes), `sgid` attributes, and blob
+    keys. Signed ids are decoded without checking signatures, including the
+    Marshal-in-envelope ids of Rails 5.2/6, so a secret change can never turn
+    real references into deletions. `legacy_event_body_conflicts` bodies are
+    not scanned; on the 2026-11 copy they reference no images. All
+    descriptions are read once per run before any row lock (about 12 s);
+    expired spam is kept by event so that, if it is marked "Not spam" or
+    edited during the run, its references count again (re-checked under the
+    events' row locks).
+  - Each image goes in one transaction (the caller's attachment or
+    `ImageUpload` rows, then the blob, its variant records, and variant blobs,
+    which Active Storage would otherwise purge in a job the cron container
+    never runs); stored files are deleted after the commit. The blob row is
+    locked before the final "still attached?" check, and
+    `active_storage_attachments.blob_id` has a foreign key (added 2026-11-20,
+    after deleting 16 legacy attachments to missing blobs), so an event saved
+    concurrently either is seen or fails instead of pointing at a deleted
+    file; an `InvalidForeignKey` keeps the blob. A failed storage delete is
+    logged with its key, counted in `failed_deletes` (not as deleted), still
+    counts towards the limit, and makes the task exit non-zero. Its row is
+    already gone, so no later run finds the file; the log line is the only
+    record for removing it by hand.
+  - Blast radius: at most `MAXIMUM_BLOBS_PER_RUN` (50) blobs per run, shared
+    by both steps; one log line per deleted blob (id, key, byte size, reason:
+    `operator_spam`, `automatic_spam`, `unattached_upload`,
+    `unreferenced_legacy_upload`, or `variant`), never event content; and
+    `DRY_RUN=1` runs the same transactions, rolls each back, and deletes no
+    files. On the 2026-11-20 copy a dry run selected 1,062 orphaned blobs
+    (228 MB: 182 unattached uploads, 880 duplicate or abandoned legacy
+    uploads) and no spam images yet; an independent cross-check found none of
+    them attached to or linked from a legitimate event.
+- `Event::SpamReview` / `EventSpamReviewJob`: a second opinion from TypeSafe's
+  Jev model (`TYPESAFE_API_KEY`; off when unset) for events the Ruby rules pass
+  and no admin has decided on. The job is queued after commit on the in-process
+  async adapter (two threads inside each Puma process; no worker process, so a
+  restart can drop it), stores Jev's advertising score in
+  `Event#spam_score`, and flags the event `automatic` at `THRESHOLD` (0.9); the
+  organizer clears it the same way, by editing, which queues a new review.
+  Errors fail open, so `SpamReviewStatus` (one row, `id = 1`) records Jev's
+  health across restarts:
+  - Columns: `last_succeeded_at`, the current streak's `failing_since` and
+    `consecutive_failures`, and the latest `last_failed_at` and `last_error`.
+  - `last_error` is the exception class, plus the message only for
+    `Event::SpamReview::Error`, which states the HTTP status. For 401, 402, 403
+    and 429 it adds the standard meaning; TypeSafe documents no codes, so 402
+    reads "probably out of credits". It never holds event text or the key.
+  - A success is one `upsert`; a failure updates the row under a lock. Only the
+    API call counts: an error writing the status is reported on its own and
+    never discards a score.
+  - Honeybadger (`Rails.error`) hears only about the failure that starts a
+    streak, so an outage sends one notice.
+  - The admin dashboard shows a red alert above the stats while Jev is failing:
+    since when, the streak, the last success and error, and how many events
+    have no score, flag, or admin decision (`Event.without_spam_review`) since
+    the earlier of the last success and five minutes before the first failure.
+    That costs one query, plus the count while failing.
+  - It also shows a red alert when `config.x.spam_review_required` (production
+    only) is set without `TYPESAFE_API_KEY`.
+
+  Under a row lock, the job writes only if the masked text it sent is still the
+  event's text and no admin decided meanwhile. Jev cannot be
+  fine-tuned, so admin decisions teach it in context: each request lists the 10
+  most recent published "Not spam" events and the 10 most recent admin spam marks,
+  ordered by `spam_decided_at`, which only the admin actions set. Editing a
+  cleared event's text resets it, so organizers cannot inject text into other
+  reviews. "Not spam" clicks from before the column existed have no decision
+  time and are never examples. Masking truncates first and uses bounded
+  regexes, because it runs on untrusted text under `Regexp.timeout`. Text is masked before it leaves the app (links reduced to domains,
+  emails, phones, street addresses, UK postcodes); link targets hidden behind
+  anchor text are appended as domains. Evaluated on the 2026-11 snapshot: 0.9
+  flagged 5 of 11,368 legitimate events and caught 29 of 40 adversarial spam
+  pages the Ruby rules missed; balanced examples removed those false positives
+  without losing recall.
+- `AdminPreview`: loading the Basic-Auth dashboard opens an admin session, an
+  expiring flag (one day) in the encrypted Rails session cookie; no tokens appear
+  in URLs. In that browser, event and organizer pages show an admin banner and
+  render even when spam or unpublished, but the session never unlocks organizer
+  edits, publication, or deletion. The banner offers the same Mark spam / Not
+  spam buttons, posting to the Basic-Auth admin routes with a same-site
+  `return_to`. "Close admin session" in the dashboard footer ends it.
+- `RecentEventCreation`: at most 5 successful event creations per client per
+  30 minutes, and none for 2 hours (`SPAM_BLOCK`) after creating an event
+  that becomes spam, whatever decided it. The counter row records it
+  (`spam_at`): at creation when the Ruby rules flag the event, by `Event`
+  after save when an edit makes it spam (`became_spam?`), and by
+  `RecentEventCreation.record_spam!` from the writes that skip callbacks
+  (`EventSpamReviewJob`, admin Mark spam). It sticks: deleting the event or
+  editing the spam away does not lift the block, because the code is public
+  and either would otherwise cost a spammer one request. Only admin "Not spam"
+  (`clear_spam!`) or the 2-hour expiry lifts it. A wrongly flagged organizer
+  can still edit their event to clear its flag, but can't create another event
+  from that IP (or IPv6 /64) for up to 2 hours. Clients are keyed by an HMAC of
+  the remote IP (IPv6 reduced to its /64), never the raw address and never
+  stored on the event; each row links to the event it created (foreign key
+  nullified when the event is deleted) and is deleted, with the link, on the
+  first creation attempt after it is 2 hours old. One query on the per-client
+  index checks both rules inside a per-client Postgres advisory lock that
+  serializes parallel submissions. Failed validations and refused attempts do
+  not count. Both rules show the same `CREATION_LIMITED_MESSAGE` (429), which
+  deliberately does not say which applied.
+- Request rate limits: Rails' `rate_limit`, per client (`RateLimitedPerClient`:
+  the IP address, or its /64 for IPv6), counted in
+  `RateLimitedPerClient::STORE`, an 8 MB in-process
+  `MemoryStore` shared by Puma's threads (one Puma process; production
+  configures no `cache_store`, and the test null store would disable the
+  limits). Counters reset on every deploy or restart; specs clear the store
+  before each example. Limits, measured on the 2026-11-20 production copy:
+  public RSVP creations and deletions, 200 per 10 minutes across all events
+  (the busiest legitimate event took 182 in 10 minutes, so even a whole room
+  on one shared address passes); direct uploads, 20 per 10 minutes and 60 per
+  day, counted whether accepted or not (no legitimate event embeds more than
+  2 images). Refusals are 429 with a neutral "Please try again later."
+  message: a page (`application/rate_limited`) for RSVPs, JSON `{ error: }`
+  for uploads, which `rich_text_controller.js` recognizes by status and
+  explains under the editor. Organizer RSVP edits are token-gated and not
+  limited, so an organizer can clean up a flood. Admin sign-ins are not
+  limited: `ADMIN_PASSWORD` must be a long random secret.
 - `OrganizerEventsController`: organizer display, editing, deletion, publication.
 - `RsvpsController`: public response creation and session-owned deletion.
 - `OrganizerRsvpsController`: organizer response editing/deletion.
@@ -106,7 +316,11 @@ asset-compilation, and RSpec checks.
   and account for month/year length. Missing periods are zero-filled. Monthly
   history includes 12 completed months plus the current projection. The all-time
   total includes the oldest creation date; current-year and current-month counts
-  and projections are visible beside their charts. The event list reports and can
+  and projections are visible beside their charts. These statistics exclude spam;
+  a last row reuses a second `Admin::EventStats` over `Event.spam` for the same
+  monthly history and month-end projection of spam events (one grouped query),
+  drawn as a red (`admin-sparkline-danger`, Bootstrap `$danger`) sparkline. Jev's
+  score has its own monospaced column after the organizer link. The event list reports and can
   filter on persisted Action Text embeds using a correlated SQL query rather than
   loading attachments per event, and can filter to events with a specific time.
 Use `db/schema.rb` and `config/routes.rb` for exact constraints and paths.
@@ -116,6 +330,9 @@ rules only after their different authorization boundaries are covered by tests.
 ## Validation and operations
 
 Run `bin/ci` for all local CI checks or `bundle exec rspec` for the full suite.
+Specs refuse any database but a local `events_test` or `events_test_<suffix>`;
+parallel checkouts each set their own with
+`DATABASE_URL=postgresql:///events_test_<suffix>`.
 The full suite includes headless Firefox. Use `bundle exec rspec --tag ~js` for
 fast checks and `bundle exec rspec spec/system/javascript_smoke_spec.rb` for
 passing Firefox smoke flows. The database pull specs run without
@@ -125,7 +342,9 @@ CircleCI installs Firefox/geckodriver, creates and loads the test database, then
 runs `bin/ci`. JUnit results and failure screenshots are retained. Bundler-audit,
 Brakeman, Rails Omakase, ERB Lint, ESLint, and Stylelint run before the application
 checks. The frontend linters use their upstream recommended rules without a
-project-specific house style or generated suppression file.
+project-specific house style or generated suppression file. `npm audit` covers
+shipped dependencies only (`--omit=dev`): development-only lint tooling never
+reaches production and must not block deploys on advisories without a fix.
 
 Before merging a substantive pull request, have a context-isolated agent
 independently review the final diff against `origin/main` and these repository
@@ -194,6 +413,10 @@ user to provide it.
 
 Never commit, push, or deploy automatically. CircleCI deploys successful `main`
 builds, so a push to `main` has a production side effect.
+Deploy jobs share a CircleCI `serial-group`, so they run one at a time; when a
+newer `main` pipeline is waiting or deploying, older queued deploys are skipped
+("not run"). The deploy skips documentation-only changes by diffing against the
+revision Dokku reports (`git:report --git-sha`) and deploys if that is unknown.
 
 Trix and the matching Action Text JavaScript are locked npm dependencies and
 loaded through the jsbundling-rails entry point, following the Rails generator's

@@ -77,6 +77,19 @@ RSpec.describe Admin::EventStats do
     expect(count_queries { stats.total_events; stats.full_months_display; stats.yearly_counts }).to eq(0)
   end
 
+  it 'charts a spam relation by creation month in one grouped query' do
+    create(:event, created_at: now)
+    create_list(:event, 2, :spam, created_at: now - 1.day)
+    create(:event, :spam, created_at: now - 2.months)
+    stats = described_class.new(Event.spam, now: now, months_back: 2)
+    chart = nil
+    expect(count_queries { chart = stats.monthly_chart; stats.current_month_count; stats.extrapolated_current_month_count }).to eq(1)
+    expect(chart).to eq([
+      { label: 'July 2026', count: 1 }, { label: 'August 2026', count: 0 },
+      { label: 'September 2026', count: 2, projected_count: 6 }
+    ])
+  end
+
   context 'creation-date statistics' do
     it 'assigns an event to its creation year when the party is in another year' do
       rows = [ entry(date: Date.new(2027, 1, 5), created_at: Time.zone.local(2026, 12, 20)) ]

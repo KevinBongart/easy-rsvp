@@ -136,6 +136,21 @@ RSpec.describe 'Organizer events', type: :request do
     expect(response.body).to include('Your event needs a name!')
   end
 
+  it 'rejects an update that puts more than 10 MB of images in the description' do
+    blobs = Array.new(3) do
+      ActiveStorage::Blob.create_and_upload!(io: StringIO.new('x'), filename: 'photo.png', content_type: 'image/png')
+        .tap { |blob| blob.update_columns(byte_size: 4.megabytes) }
+    end
+    body = blobs.map { |blob| %(<action-text-attachment sgid="#{blob.attachable_sgid}"></action-text-attachment>) }.join
+
+    patch event_admin_path(event, event.admin_token), params: { event: { body: body } }
+
+    expect(response).to have_http_status(:unprocessable_content)
+    expect(Nokogiri::HTML(response.body).at_css('#event_body_error').text.squish)
+      .to eq('Images in the description can add up to 10 MB; remove some and try again.')
+    expect(event.reload.body.embeds).to be_empty
+  end
+
   it 'can access an unpublished event with its organizer token' do
     event.update!(published: false)
     get event_admin_path(event, event.admin_token)

@@ -1,0 +1,5 @@
+<% if event.errors[:body].any? %>
+  <div class="invalid-feedback d-block" id="event_body_error">
+    <%= event.errors[:body].to_sentence %>
+  </div>
+<% end %>

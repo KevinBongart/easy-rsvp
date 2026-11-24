@@ -11,7 +11,7 @@ gem "bootsnap", require: false
 gem "dartsass-rails", "~> 0.5.1"
 gem "hashid-rails"
 gem "honeybadger", "~> 6.10"
-gem "icalendar", "~> 2.12"
+gem "icalendar", "~> 2.13"
 gem "jsbundling-rails"
 gem "kaminari"
 gem "pg"
@@ -37,10 +37,10 @@ group :development, :test do
 end
 
 group :test do
-  gem "axe-core-rspec", "~> 4.13"
+  gem "axe-core-rspec", "~> 4.14"
   gem "factory_bot_rails", "~> 6.4"
-  gem "selenium-webdriver", "~> 4.51"
-  gem "webmock", "~> 3.34"
+  gem "selenium-webdriver", "~> 4.53"
+  gem "webmock", "~> 3.36"
 end
 
 group :development do

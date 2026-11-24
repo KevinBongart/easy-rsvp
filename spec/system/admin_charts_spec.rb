@@ -9,6 +9,7 @@ RSpec.describe 'Administrator charts', type: :system, js: true do
     travel_to Time.zone.local(2026, 9, 10, 12) do
       create(:event, title: 'Chart example', created_at: Time.zone.local(2025, 1, 1))
       create_list(:event, 2, created_at: Time.zone.local(2026, 9, 2))
+      create(:event, :spam, created_at: Time.zone.local(2026, 9, 3))
       visit_dashboard
       expect(page).to have_content('Total events created since January 1, 2025: 3')
       expect(page).to have_content('September 2026: 2 so far, 6 extrapolated')
@@ -38,6 +39,14 @@ RSpec.describe 'Administrator charts', type: :system, js: true do
         expect(page).to have_css('[role="tooltip"]', text: 'September 30: 6 extrapolated', visible: true)
       end
       expect(find('#monthly-chart .sparkline-projection').evaluate_script('getComputedStyle(this).strokeDasharray')).not_to eq('none')
+      expect(page).to have_content('Spam by month: 1 so far, 3 extrapolated')
+      within('#spam-monthly-chart') do
+        all('button').last.hover
+        expect(page).to have_css('[role="tooltip"]', text: 'September 2026: 1 so far; 3 extrapolated', visible: true)
+        expect(find('polyline.sparkline-actual').evaluate_script('getComputedStyle(this).stroke')).to eq('rgb(200, 35, 51)')
+        expect(find('polyline.sparkline-projection').evaluate_script('getComputedStyle(this).strokeDasharray')).not_to eq('none')
+      end
+      expect(find('#monthly-chart polyline.sparkline-actual').evaluate_script('getComputedStyle(this).stroke')).to eq('rgb(0, 99, 220)')
 
       click_link 'Sort by RSVP count'
       within('#monthly-chart') do
@@ -53,17 +62,56 @@ RSpec.describe 'Administrator charts', type: :system, js: true do
       find('#current-month-chart button', match: :first).click
       expect(page).to have_css('#current-month-chart [role="tooltip"]', text: 'September 1: 0', visible: true)
       expect(find('.admin-statistics').evaluate_script('this.scrollWidth <= this.clientWidth')).to be(true)
+      find('#spam-monthly-chart button', match: :first).click
+      expect(page).to have_css('#spam-monthly-chart [role="tooltip"]', text: 'September 2025: 0', visible: true)
+      expect(find('.admin-statistics').evaluate_script('this.scrollWidth <= this.clientWidth')).to be(true)
       find('.admin-statistics').native.save_screenshot(Rails.root.join('tmp/screenshots/admin-charts-mobile.png'))
     end
   end
 
   it 'renders empty charts without broken coordinates or hover values' do
     visit_dashboard
-    expect(page).to have_css('.admin-sparkline svg', count: 3)
+    expect(page).to have_css('.admin-sparkline svg', count: 4)
     within('#monthly-chart') do
       all('button').last.hover
       expect(page).to have_css('[role="tooltip"]', text: '0 so far; 0 extrapolated', visible: true)
     end
     expect(page).to have_no_css('polyline[points*="NaN"], polyline[points*="Infinity"]')
+  end
+
+  it 'marks an event as spam after confirmation and can restore it' do
+    event = create(:event, title: 'Suspicious bake sale')
+    # Authenticate once, then use a URL without credentials as a browser does
+    # after its login prompt; Turbo does not handle forms on credentialed URLs.
+    visit_dashboard
+    visit admin_events_path
+
+    dismiss_confirm(/Mark “Suspicious bake sale” as spam\?/) { click_button 'Mark spam' }
+    expect(event.reload).not_to be_spam
+
+    accept_confirm(/Mark “Suspicious bake sale” as spam\?/) { click_button 'Mark spam' }
+    expect(page).to have_content('“Suspicious bake sale” was marked as spam.')
+    expect(page).to have_no_link('Suspicious bake sale')
+    expect(event.reload.spam_source).to eq('operator')
+
+    click_link 'Spam'
+    accept_confirm(/Restore “Suspicious bake sale”\?/) { click_button 'Not spam' }
+    expect(page).to have_content('“Suspicious bake sale” is no longer marked as spam.')
+    expect(event.reload).not_to be_spam
+  end
+
+  it 'marks an event as spam from its page opened through the dashboard' do
+    event = create(:event, title: 'Questionable picnic')
+    visit_dashboard
+    visit admin_events_path
+
+    click_link 'Questionable picnic'
+    expect(page).to have_css('#admin-preview', text: 'Guests see this page normally.')
+    accept_confirm(/Mark “Questionable picnic” as spam\?/) { click_button 'Mark spam' }
+
+    expect(page).to have_content('“Questionable picnic” was marked as spam.')
+    expect(page).to have_css('#admin-preview', text: 'marked as spam')
+    expect(page).to have_css('h1', text: 'Questionable picnic')
+    expect(event.reload.spam_source).to eq('operator')
   end
 end

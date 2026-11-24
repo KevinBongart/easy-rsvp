@@ -4,17 +4,17 @@
   "dependencies": {
     "@hotwired/stimulus": "3.2.2",
     "@hotwired/turbo-rails": "8.0.23",
-    "@rails/actiontext": "8.1.400",
-    "bootstrap": "5.3.8",
+    "@rails/actiontext": "8.1.401",
+    "bootstrap": "5.3.9",
     "trix": "2.1.19"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "esbuild": "0.28.2",
-    "eslint": "10.13.0",
-    "globals": "17.13.0",
-    "stylelint": "17.16.0",
-    "stylelint-config-recommended-scss": "17.0.1"
+    "eslint": "10.15.0",
+    "globals": "17.14.0",
+    "stylelint": "18.1.0",
+    "stylelint-config-recommended-scss": "18.0.0"
   },
   "engines": {
     "node": "24.x"

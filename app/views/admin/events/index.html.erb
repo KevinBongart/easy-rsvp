@@ -2,6 +2,8 @@
 
 <h1>Events admin</h1>
 
+<%= render "spam_review_alert", status: @spam_review_status %>
+
 <div class="admin-statistics mb-3">
   <div class="mb-2">
     <strong>Total events created<% if (oldest_date = @event_stats.oldest_creation_date) %> since <%= oldest_date %><% end %>:</strong> <%= @event_stats.total_events %>
@@ -18,41 +20,59 @@
     <span class="admin-stat-label"><%= @event_stats.current_month_label %>: <strong><%= @event_stats.current_month_count %> so far</strong>, <%= @event_stats.extrapolated_current_month_count %> extrapolated</span>
     <%= render 'sparkline', id: 'current-month-chart', label: 'Running total of events created this month', series: @event_stats.current_month_chart %>
   </div>
+  <div class="admin-stat-row">
+    <span class="admin-stat-label">Spam by month: <strong><%= @spam_stats.current_month_count %> so far</strong>, <%= @spam_stats.extrapolated_current_month_count %> extrapolated</span>
+    <%= render 'sparkline', id: 'spam-monthly-chart', label: "Spam events created by month, last #{@spam_stats.months_back} months", series: @spam_stats.monthly_chart, variant: 'danger' %>
+  </div>
 </div>
 
 <div class="admin-sort mb-2">
+  <% filters = { sort: params[:sort], attachments: params[:attachments], timed: params[:timed], spam: params[:spam] }.compact_blank %>
   <% if params[:sort].blank? %>
     <strong>Sorted by ID</strong>
   <% else %>
-    <%= link_to "Sort by ID", admin_events_path(attachments: params[:attachments].presence, timed: params[:timed].presence) %>
+    <%= link_to "Sort by ID", admin_events_path(filters.except(:sort)) %>
   <% end %>
   <span aria-hidden="true">·</span>
   <% if params[:sort] == "rsvps" %>
     <strong>Sorted by RSVP count</strong>
   <% else %>
-    <%= link_to "Sort by RSVP count", admin_events_path(sort: "rsvps", attachments: params[:attachments].presence, timed: params[:timed].presence) %>
+    <%= link_to "Sort by RSVP count", admin_events_path(filters.merge(sort: "rsvps")) %>
   <% end %>
   <span aria-hidden="true">·</span>
   <% if params[:sort] == "attachments" %>
     <strong>Sorted by attachment size</strong>
   <% else %>
-    <%= link_to "Sort by attachment size", admin_events_path(sort: "attachments", attachments: params[:attachments].presence, timed: params[:timed].presence) %>
+    <%= link_to "Sort by attachment size", admin_events_path(filters.merge(sort: "attachments")) %>
   <% end %>
   <span aria-hidden="true">·</span>
   <% if params[:attachments] == "1" %>
-    <%= link_to "Include events without attachments", admin_events_path(sort: params[:sort].presence, timed: params[:timed].presence) %>
+    <%= link_to "Include events without attachments", admin_events_path(filters.except(:attachments)) %>
   <% else %>
-    <%= link_to "Only with attachments", admin_events_path(sort: params[:sort].presence, attachments: "1", timed: params[:timed].presence) %>
+    <%= link_to "Only with attachments", admin_events_path(filters.merge(attachments: "1")) %>
   <% end %>
   <span aria-hidden="true">·</span>
   <% if params[:timed] == "1" %>
     <strong>Showing only events with a time</strong>
     <span aria-hidden="true">·</span>
-    <%= link_to "Include date-only events", admin_events_path(sort: params[:sort].presence, attachments: params[:attachments].presence) %>
+    <%= link_to "Include date-only events", admin_events_path(filters.except(:timed)) %>
   <% else %>
-    <%= link_to "Only events with a time", admin_events_path(sort: params[:sort].presence, attachments: params[:attachments].presence, timed: "1") %>
+    <%= link_to "Only events with a time", admin_events_path(filters.merge(timed: "1")) %>
+  <% end %>
+  <span aria-hidden="true">·</span>
+  <% if params[:spam] == "1" %>
+    <strong>Showing only spam</strong>
+    <span aria-hidden="true">·</span>
+    <%= link_to "Back to events", admin_events_path(filters.except(:spam)) %>
+  <% else %>
+    <%= link_to "Spam", admin_events_path(filters.merge(spam: "1")) %>
   <% end %>
 </div>
+
+<%# One shared form for every row's spam buttons: a form per row would render
+    1,000 CSRF tokens per page. Each button posts to its own formaction and
+    carries its own data-turbo-confirm, which Turbo reads from the submitter. %>
+<%= form_tag "", method: :post, id: "spam-actions", class: "d-none" do %><% end %>
 
 <table class="table table-sm table-striped table-hover">
   <thead>
@@ -62,14 +82,21 @@
       <th scope="col">Date</th>
       <th scope="col" class="text-end">RSVPs</th>
       <th scope="col">Attachments</th>
+      <% if params[:spam] == "1" %>
+        <th scope="col">Created</th>
+      <% end %>
       <th scope="col">Admin</th>
+      <th scope="col" class="text-end" title="Jev advertising score">Jev</th>
+      <th scope="col"><span class="visually-hidden">Spam actions</span></th>
     </tr>
   </thead>
   <tbody>
     <% @events.each do |event| %>
+      <% hashid = event.hashid %>
+      <% public_path = admin_event_row_path(:public, event, hashid:) %>
       <tr>
-        <th scope="row" class="text-nowrap"><%= link_to event.id, event %></th>
-        <td><%= link_to event.title, event %></td>
+        <th scope="row" class="text-nowrap"><%= link_to event.id, public_path %></th>
+        <td><%= link_to event.title, public_path %><% if event.flagged_as_spam? %> <span class="badge text-bg-warning">auto-flagged</span><% end %></td>
         <td class="text-nowrap">
           <%= event.date %>
           <% if (time = event_time(event)) %>
@@ -83,10 +110,32 @@
             <%= number_to_human_size(event.attachments_size.to_i) %>
           <% end %>
         </td>
-        <td class="text-nowrap"><code class="small"><%= link_to event.admin_token.split('-').first, event_admin_path(event, event.admin_token), class: "text-body" %></code></td>
+        <% if params[:spam] == "1" %>
+          <td class="text-nowrap small"><%= admin_time(event.created_at) %></td>
+        <% end %>
+        <td class="text-nowrap"><code class="small"><%= link_to event.admin_token.split('-').first, admin_event_row_path(:organizer, event, hashid:), class: "text-body" %></code></td>
+        <td class="text-nowrap text-end"><% if event.spam_score %><code class="small" title="Jev advertising score"><%= number_with_precision(event.spam_score, precision: 2) %></code><% end %></td>
+        <td class="text-nowrap">
+          <% unless event.spam_locked? %>
+            <button type="submit" form="spam-actions" formaction="<%= admin_event_row_path(:mark_spam, event, hashid:) %>"
+              class="btn btn-link btn-sm p-0 align-baseline text-danger"
+              data-turbo-confirm="<%= "Mark “#{event.title}” as spam? Guests and its organizer will see it as removed." %>">Mark spam</button>
+          <% end %>
+          <% if event.spam? %>
+            <button type="submit" form="spam-actions" formaction="<%= admin_event_row_path(:unmark_spam, event, hashid:) %>"
+              class="btn btn-link btn-sm p-0 align-baseline"
+              data-turbo-confirm="<%= "Restore “#{event.title}”? Guests will be able to see it again, and automatic spam checks will skip it." %>">Not spam</button>
+          <% end %>
+        </td>
       </tr>
     <% end %>
   </tbody>
 </table>
 
 <%= paginate @events %>
+
+<p class="small text-end mt-4 mb-0">
+  <%= button_to "Close admin session", close_session_admin_events_path, method: :delete,
+    class: "btn btn-link btn-sm p-0 align-baseline text-muted",
+    form: { class: "d-inline" } %>
+</p>

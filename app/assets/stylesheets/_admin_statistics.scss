@@ -1,3 +1,5 @@
+@use "bootstrap/scss/bootstrap";
+
 $sparkline-blue: #0063dc;
 
 .admin-stat-row {
@@ -66,4 +68,15 @@ $sparkline-blue: #0063dc;
 
   .sparkline-point:hover .sparkline-tooltip,
   .sparkline-point:focus-within .sparkline-tooltip { visibility: visible; }
+}
+
+// Spam trend: Bootstrap's danger red in place of the dashboard blue.
+.admin-sparkline.admin-sparkline-danger {
+  svg { stroke: bootstrap.$danger; }
+  circle.sparkline-actual { fill: bootstrap.$danger; }
+
+  .sparkline-hit-area:hover, .sparkline-hit-area:focus {
+    outline-color: rgba(bootstrap.$danger, .45);
+    background: rgba(bootstrap.$danger, .08);
+  }
 }

@@ -25,7 +25,13 @@ Rails.application.routes.draw do
   end
 
   namespace :admin do
-    resources :events, only: [ :index ]
+    resources :events, only: [ :index ] do
+      member do
+        post :mark_spam
+        post :unmark_spam
+      end
+      delete :close_session, on: :collection
+    end
   end
 
   root to: "events#new"

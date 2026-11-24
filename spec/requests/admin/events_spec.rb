@@ -103,6 +103,86 @@ RSpec.describe 'Site administrator dashboard', type: :request do
     end
   end
 
+  it 'lists spam only under the spam filter and keeps it out of the statistics' do
+    legitimate = create(:event, title: 'Neighborhood potluck')
+    spam = create(:event, :spam, title: 'Peptides coupon code')
+
+    get admin_events_path, params: { sort: 'rsvps' }, headers: dashboard_headers
+    doc = Nokogiri::HTML(response.body)
+    expect(doc.css('tbody tr').map { |row| row.css('td')[0].text }).to eq([ legitimate.title ])
+    expect(doc.css('a').index_by(&:text).fetch('Spam')['href']).to include('spam=1', 'sort=rsvps')
+
+    get admin_events_path, params: { spam: '1', sort: 'rsvps' }, headers: dashboard_headers
+    doc = Nokogiri::HTML(response.body)
+    expect(doc.css('tbody tr').map { |row| row.css('td')[0].text }).to eq([ spam.title ])
+    expect(doc.css('.admin-sort strong').map(&:text)).to include('Showing only spam')
+    links = doc.css('a').index_by(&:text)
+    expect(links.fetch('Sort by ID')['href']).to include('spam=1')
+    expect(links.fetch('Only events with a time')['href']).to include('spam=1')
+    expect(links.fetch('Back to events')['href']).not_to include('spam=1')
+    expect(controller.view_assigns['event_stats'].total_events).to eq('1')
+  end
+
+  it 'labels events flagged automatically in the spam list' do
+    create(:event, :flagged_as_spam, title: 'Robux generator')
+    create(:event, :spam, title: 'Peptides coupon code')
+
+    get admin_events_path, params: { spam: '1' }, headers: dashboard_headers
+
+    rows = Nokogiri::HTML(response.body).css('tbody tr').index_by { |row| row.css('td')[0].css('a').text }
+    expect(rows.fetch('Robux generator').at_css('.badge').text).to eq('auto-flagged')
+    expect(rows.fetch('Peptides coupon code').at_css('.badge')).to be_nil
+  end
+
+  describe 'Jev health alert' do
+    def alert
+      Nokogiri::HTML(response.body).at_css('#spam-review-alert')
+    end
+
+    it 'shows nothing while Jev answers' do
+      SpamReviewStatus.record_success!
+      get admin_events_path, headers: dashboard_headers
+      expect(alert).to be_nil
+    end
+
+    it 'shows since when Jev fails, how many events went unreviewed, and the last error' do
+      now = Time.zone.local(2026, 11, 20, 12)
+      out_of_credits = 'Event::SpamReview::Error: TypeSafe answered HTTP 402 (payment required: probably out of credits)'
+      travel_to(now - 150.minutes) { SpamReviewStatus.record_success! }
+      travel_to(now - 2.hours) { SpamReviewStatus.record_failure!(out_of_credits) }
+      travel_to(now - 1.hour) { SpamReviewStatus.record_failure!(out_of_credits) }
+      travel_to now do
+        create(:event, created_at: 3.hours.ago)
+        create_list(:event, 2, created_at: 90.minutes.ago)
+
+        get admin_events_path, headers: dashboard_headers
+
+        expect(alert['class'].split).to include('alert', 'alert-danger')
+        text = alert.text.squish
+        expect(text).to include(
+          'Jev is failing', 'Every review since 2026-11-20 10:00 UTC (about 2 hours ago) has failed (2 failures in a row)',
+          'Last successful review: 2026-11-20 09:30 UTC (about 3 hours ago)',
+          '2 events created since 2026-11-20 09:30 UTC have no Jev review',
+          'Last error: Event::SpamReview::Error: TypeSafe answered HTTP 402 (payment required: probably out of credits), 2026-11-20 11:00 UTC'
+        )
+        expect(response.body.index('spam-review-alert')).to be < response.body.index('admin-statistics')
+      end
+    end
+
+    it 'warns when reviews are required but TYPESAFE_API_KEY is missing' do
+      Rails.configuration.x.spam_review_required = true
+      get admin_events_path, headers: dashboard_headers
+      expect(alert.text.squish).to include('Jev is off', 'TYPESAFE_API_KEY is not set')
+    ensure
+      Rails.configuration.x.spam_review_required = nil
+    end
+
+    it 'does not warn about the missing key where reviews are optional' do
+      get admin_events_path, headers: dashboard_headers
+      expect(alert).to be_nil
+    end
+  end
+
   it 'renders an empty state without broken statistics' do
     get admin_events_path, headers: dashboard_headers
     expect(response).to have_http_status(:ok)
@@ -126,10 +206,15 @@ RSpec.describe 'Site administrator dashboard', type: :request do
       request_metrics_summary(larger_database_metrics, label: 'dashboard with 2,001 events')
     ].join("\n")
     filter_summary = request_metrics_summary(attachment_filtered_metrics, label: 'attachment-filtered dashboard')
+    SpamReviewStatus.record_failure!('SocketError')
+    failing_review_metrics = measure_request { get admin_events_path, headers: dashboard_headers }
 
     expect(larger_database_metrics.queries).to eq(first_page_metrics.queries), scale_summary
-    expect(larger_database_metrics.queries).to be <= 6, scale_summary
-    expect(attachment_filtered_metrics.queries).to be <= 6, filter_summary
+    # Includes one grouped query for the monthly spam chart and one reading
+    # Jev's status, which adds a count of unreviewed events while Jev fails.
+    expect(larger_database_metrics.queries).to be <= 8, scale_summary
+    expect(failing_review_metrics.queries).to eq(larger_database_metrics.queries + 1)
+    expect(attachment_filtered_metrics.queries).to be <= 8, filter_summary
     expect(larger_database_metrics.duration).to be < DASHBOARD_REQUEST_BUDGET_MS, scale_summary
     expect(larger_database_metrics.db_runtime).to be < DASHBOARD_DATABASE_BUDGET_MS, scale_summary
     expect(larger_database_metrics.sql_runtime).to be < DASHBOARD_DATABASE_BUDGET_MS, scale_summary
@@ -148,15 +233,16 @@ RSpec.describe 'Site administrator dashboard', type: :request do
     expect(text).to include('September 2026: 2 so far; 6 extrapolated')
   end
 
-  it 'renders three compact charts with actual values and distinct forecasts' do
+  it 'renders the compact charts with actual values and distinct forecasts' do
     travel_to Time.zone.local(2026, 9, 10, 12) do
       create(:event, created_at: Time.zone.local(2025, 1, 1))
       create_list(:event, 2, created_at: Time.zone.local(2026, 9, 1))
       get admin_events_path, headers: dashboard_headers
       doc = Nokogiri::HTML(response.body)
-      expect(doc.css('.admin-sparkline svg[height="20"]').size).to eq(3)
-      expect(doc.css('.admin-sparkline .sparkline-projection').size).to eq(3)
-      expect(doc.css('.admin-sparkline polyline.sparkline-actual').size).to eq(3)
+      # Yearly, monthly, current-month, and monthly spam.
+      expect(doc.css('.admin-sparkline svg[height="20"]').size).to eq(4)
+      expect(doc.css('.admin-sparkline .sparkline-projection').size).to eq(4)
+      expect(doc.css('.admin-sparkline polyline.sparkline-actual').size).to eq(4)
       expect(doc.css('#monthly-chart button').last['aria-label']).to eq('September 2026: 2 so far; 6 extrapolated')
       expect(doc.css('#current-month-chart button').last['aria-label']).to eq('September 30: 6 extrapolated')
       expect(doc.css('#yearly-chart button').first['aria-label']).to eq('2025: 1')
@@ -170,6 +256,50 @@ RSpec.describe 'Site administrator dashboard', type: :request do
       expect(forecast_points.last).not_to eq(actual_points.last)
       expect(doc.css('.admin-statistics').text).not_to match(/NaN|Infinity/)
     end
+  end
+
+  it 'charts spam per month after the other statistics, while those still exclude spam' do
+    travel_to Time.utc(2026, 11, 10, 12) do
+      create(:event, :spam, created_at: Time.utc(2025, 10, 31, 23, 59, 59)) # before the 12-month window
+      create(:event, :spam, created_at: Time.utc(2025, 11, 1))
+      create_list(:event, 2, :spam, created_at: Time.utc(2026, 11, 2))
+      create(:event, :flagged_as_spam).update_columns(created_at: Time.utc(2026, 11, 3))
+      create(:event, created_at: Time.utc(2026, 11, 4))
+
+      get admin_events_path, headers: dashboard_headers
+
+      doc = Nokogiri::HTML(response.body)
+      expect(doc.text.squish).to include('Total events created since November 4, 2026: 1')
+      row = doc.at_css('.admin-statistics > .admin-stat-row:last-of-type')
+      expect(row.at_css('.admin-stat-label').text.squish).to eq('Spam by month: 3 so far, 9 extrapolated')
+      chart = row.at_css('#spam-monthly-chart')
+      expect(chart['class'].split).to eq(%w[admin-sparkline admin-sparkline-danger])
+      expect(chart['aria-label']).to eq('Spam events created by month, last 12 months')
+      labels = chart.css('button').map { |button| button['aria-label'] }
+      expect(labels.size).to eq(13)
+      expect(labels.first).to eq('November 2025: 1')
+      expect(labels.last).to eq('November 2026: 3 so far; 9 extrapolated')
+      expect(chart.at_css('polyline.sparkline-projection')).to be_present
+      expect(chart.text).not_to match(/NaN|Infinity/)
+    end
+  end
+
+  it 'shows the Jev score in its own column between the organizer link and the spam actions' do
+    scored = create(:event, title: 'Scored party')
+    scored.update_columns(spam_score: 0.98765)
+    create(:event, title: 'Unscored party')
+
+    get admin_events_path, headers: dashboard_headers
+
+    doc = Nokogiri::HTML(response.body)
+    headers = doc.css('thead th').map { |header| header.text.squish }
+    expect(headers.last(3)).to eq([ 'Admin', 'Jev', 'Spam actions' ])
+    rows = doc.css('tbody tr').index_by { |row| row.css('td')[0].text.squish }
+    jev_cell = rows.fetch(scored.title).css('td')[-2]
+    expect(jev_cell.at_css('code.small').text).to eq('0.99')
+    expect(jev_cell['class'].split).to include('text-end')
+    expect(rows.fetch(scored.title).css('td')[0].text).not_to include('Jev', '0.99')
+    expect(rows.fetch('Unscored party').css('td')[-2].text.squish).to be_empty
   end
 
   def insert_events(count)

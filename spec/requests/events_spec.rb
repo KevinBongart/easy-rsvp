@@ -136,6 +136,20 @@ RSpec.describe 'Public events', type: :request do
     expect(page.css('.is-valid')).to be_empty
   end
 
+  it 'shows length limit errors for the title and description' do
+    expect do
+      post events_path, params: { event: { title: 'a' * 201, date: '2026-10-10', body: "<div>#{'a' * 20_001}</div>" } }
+    end.not_to change(Event, :count)
+
+    expect(response).to have_http_status(:unprocessable_content)
+    page = Nokogiri::HTML(response.body)
+    expect(page.at_css('#event_title')['maxlength']).to eq('200')
+    expect(page.at_css('.event_title .invalid-feedback').text).to eq('Title is too long (maximum is 200 characters)')
+    expect(page.at_css('#event_body_error').text.squish)
+      .to eq('The description can be at most 20,000 characters of text; it has 20,001. Shorten it and try again.')
+    expect(page.at_css('trix-editor')['aria-describedby']).to eq('event_body_error')
+  end
+
   it 'does not accept protected creation attributes' do
     post events_path, params: { event: { title: 'Dinner', date: '2026-10-10', admin_token: 'chosen', published: false, show_rsvp_names: false } }
     event = Event.order(:id).last

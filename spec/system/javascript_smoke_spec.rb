@@ -68,10 +68,11 @@ RSpec.describe 'Firefox JavaScript smoke', type: :system, js: true do
 
     fill_in 'To', with: '10'
     click_button 'Create your event, for free!'
+    # Wait for the organizer page before reading the new event.
+    expect(page).to have_content('7:00 PM–10:00 PM (CEST)')
 
     event = Event.order(:id).last
     expect(page).to have_current_path(event_admin_path(event, event.admin_token))
-    expect(page).to have_content('7:00 PM–10:00 PM (CEST)')
   end
 
   it 'keeps entered times in the form but saves just the date when the schedule is closed' do
@@ -199,6 +200,8 @@ RSpec.describe 'Firefox JavaScript smoke', type: :system, js: true do
     expect(page).to have_css('[role="status"]', text: 'Public event link copied', visible: :all)
     expect(page.evaluate_script('window.copiedPublicURL')).to eq(public_url)
     click_link 'public-link'
+    # Let Turbo finish leaving the page (and cache it) before going back.
+    expect(page).to have_current_path(event_path(event))
     page.go_back
     expect(page).to have_button('Copy', exact: true)
     expect(find('[role="status"]', visible: :all).text(:all)).to eq('')
