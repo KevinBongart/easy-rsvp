@@ -87,8 +87,8 @@ asset-compilation, and RSpec checks.
   Storage attachments. New editor uploads use Action Text direct uploads. The
   browser and server accept declared PNG/JPEG/GIF/WebP files from 1 byte through
   5 MB before issuing a storage URL. Direct uploads cannot be byte-sniffed
-  before reaching storage. Upload ownership remains independent of event
-  creation and needs a separate lifecycle design.
+  before reaching storage. Uploads have no owner until an event uses them;
+  `OrphanedImages` deletes those no event uses (see Image cleanup below).
 - Event limits: titles of at most 200 characters (`maxlength` on the inputs),
   descriptions of at most 20,000 characters of visible text
   (`Event::SpamCheck.visible_text`: markup and image payloads do not count,
@@ -146,17 +146,58 @@ asset-compilation, and RSpec checks.
   Images of `automatic` and cleared events, blobs also attached elsewhere,
   unattached direct uploads, legacy `ImageUpload` blobs, and admin preview
   sessions are still served. Files on S3 are reached through 5-minute signed
-  URLs, so a mark takes effect within minutes. `bin/rails spam:purge_images`
-  (daily Dokku cron in `app.json`) deletes the embeds of operator marks older
-  than 30 days (`spam_decided_at`, falling back to `spam_at`). Each attachment
-  row and its blob row go in one transaction, so an interrupted run leaves the
-  image hidden and the next run finds it; the stored file is deleted after the
-  commit, and a failed storage delete is logged with its key, counted, and makes
-  the task exit non-zero. It detaches blobs still attached to another record
-  without purging them, is idempotent, and prints counts and bytes only. "Not spam"
-  before then keeps the images. Legacy `ImageUpload` images predate the spam
-  wave (that uploader was removed in September 2026) and are never hidden or
-  purged.
+  URLs, so a mark takes effect within minutes. Legacy `ImageUpload` images
+  predate the spam wave (that uploader was removed in September 2026) and are
+  never hidden.
+- Image cleanup (`ImageCleanup`, `bin/rails images:purge`, daily Dokku cron in
+  `app.json` with `concurrency_policy: forbid`) deletes images nothing needs:
+  - `Event::SpamImages` (`Event.spam_images_expired`): embeds of `operator`
+    marks older than 30 days (`spam_decided_at`, falling back to `spam_at`),
+    and of `automatic` flags whose `spam_at` and the event's `updated_at` are
+    both older than 30 days. Every title or description edit touches `updated_at` and re-runs the
+    check, so an organizer who edits keeps the images whether the flag stays
+    or goes; Jev's flag uses `update_columns`, hence both columns. Cleared
+    events and events edited out of spam never match, and the event is
+    re-checked under its row lock before each attachment goes.
+  - `OrphanedImages`: blobs older than 2 days (`GRACE_PERIOD`; direct
+    uploads happen before the event is saved, and every embed on the
+    2026-11 copy was attached within 14 minutes) attached to nothing but
+    `ImageUpload` records, deleted with those records.
+  - A blob still attached elsewhere or referenced by any description
+    (`ImageReferences`) is kept; a spam embed of it is only detached. References are read from the stored
+    HTML of every event except spam whose images have expired: Active Storage
+    blob/representation URLs (redirect, proxy, or pre-6.1 routes, any host,
+    URL-escaped signed ids, JSON-escaped slashes), `sgid` attributes, and blob
+    keys. Signed ids are decoded without checking signatures, including the
+    Marshal-in-envelope ids of Rails 5.2/6, so a secret change can never turn
+    real references into deletions. `legacy_event_body_conflicts` bodies are
+    not scanned; on the 2026-11 copy they reference no images. All
+    descriptions are read once per run before any row lock (about 12 s);
+    expired spam is kept by event so that, if it is marked "Not spam" or
+    edited during the run, its references count again (re-checked under the
+    events' row locks).
+  - Each image goes in one transaction (the caller's attachment or
+    `ImageUpload` rows, then the blob, its variant records, and variant blobs,
+    which Active Storage would otherwise purge in a job the cron container
+    never runs); stored files are deleted after the commit. The blob row is
+    locked before the final "still attached?" check, and
+    `active_storage_attachments.blob_id` has a foreign key (added 2026-11-20,
+    after deleting 16 legacy attachments to missing blobs), so an event saved
+    concurrently either is seen or fails instead of pointing at a deleted
+    file; an `InvalidForeignKey` keeps the blob. A failed storage delete is
+    logged with its key, counted in `failed_deletes` (not as deleted), still
+    counts towards the limit, and makes the task exit non-zero. Its row is
+    already gone, so no later run finds the file; the log line is the only
+    record for removing it by hand.
+  - Blast radius: at most `MAXIMUM_BLOBS_PER_RUN` (50) blobs per run, shared
+    by both steps; one log line per deleted blob (id, key, byte size, reason:
+    `operator_spam`, `automatic_spam`, `unattached_upload`,
+    `unreferenced_legacy_upload`, or `variant`), never event content; and
+    `DRY_RUN=1` runs the same transactions, rolls each back, and deletes no
+    files. On the 2026-11-20 copy a dry run selected 1,062 orphaned blobs
+    (228 MB: 182 unattached uploads, 880 duplicate or abandoned legacy
+    uploads) and no spam images yet; an independent cross-check found none of
+    them attached to or linked from a legitimate event.
 - `Event::SpamReview` / `EventSpamReviewJob`: a second opinion from TypeSafe's
   Jev model (`TYPESAFE_API_KEY`; off when unset) for events the Ruby rules pass
   and no admin has decided on. The job is queued after commit on the in-process

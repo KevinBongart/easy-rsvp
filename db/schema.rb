@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_20_160000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_20_170000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -121,6 +121,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_20_160000) do
     t.check_constraint "id = 1", name: "spam_review_statuses_single_row"
   end
 
+  add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "legacy_event_body_conflicts", "events", on_delete: :cascade
   add_foreign_key "recent_event_creations", "events", on_delete: :nullify

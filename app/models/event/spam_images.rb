@@ -1,15 +1,18 @@
-# Images embedded in the description of events an operator marked as spam.
+# Images embedded in the descriptions of spam events.
 #
-# Such images are no longer served (see HidesOperatorSpamImages) and are
-# deleted RETENTION after the mark by `bin/rails spam:purge_images`, which
-# Dokku runs daily. Undoing the mark ("Not spam") before then keeps them.
+# Images of operator marks are no longer served (see HidesOperatorSpamImages)
+# and are deleted SPAM_IMAGE_RETENTION after the mark by `bin/rails images:purge`
+# (ImageCleanup), which Dokku runs daily. Undoing the mark ("Not spam") before
+# then keeps them. Images of automatic flags stay visible, since their
+# organizers still see their pages, and are deleted once the flag is
+# SPAM_IMAGE_RETENTION old and the event has not been edited for as long
+# (Event.spam_images_expired).
 #
-# Only Action Text embeds count. Legacy editor uploads (ImageUpload) stopped in
-# September 2026, before the spam wave; their blobs belong to ImageUpload
-# records and are never hidden or purged here.
-module Event::SpamImages
-  RETENTION = 30.days
-
+# Only Action Text embeds count here. Legacy editor uploads (ImageUpload)
+# stopped in September 2026, before the spam wave; their blobs belong to
+# ImageUpload records, are never hidden, and are deleted by OrphanedImages once
+# no description references them.
+class Event::SpamImages
   # SQL condition on active_storage_blobs: the blob is embedded in an
   # operator-marked event's description, and in nothing else. A blob also
   # attached to another record (for instance a legitimate event's description)
@@ -39,69 +42,38 @@ module Event::SpamImages
     )
   SQL
 
-  Result = Data.define(:events, :purged_blobs, :purged_bytes, :kept_shared_blobs, :failed_deletes) do
-    def to_s
-      "spam:purge_images events=#{events} purged_blobs=#{purged_blobs} " \
-        "purged_bytes=#{purged_bytes} kept_shared_blobs=#{kept_shared_blobs} failed_deletes=#{failed_deletes}"
-    end
-
-    def success? = failed_deletes.zero?
+  def initialize(cleanup)
+    @cleanup = cleanup
   end
 
-  module_function
-
-  # Events whose operator mark is older than RETENTION. Retention counts from
-  # the operator's decision: an automatic flag keeps its earlier spam_at when
-  # an operator confirms it. spam_decided_at was backfilled from spam_at for
-  # older marks; spam_at covers any gap.
-  def expired_events(now: Time.current)
-    Event.where(spam_source: "operator")
-      .where("COALESCE(events.spam_decided_at, events.spam_at) < ?", now - RETENTION)
-  end
-
-  # Deletes the embeds of expired events. Each attachment row and, once nothing
-  # else is attached to it, its blob row go in one transaction, so an
-  # interrupted run never leaves a blob that is no longer hidden yet still
-  # servable. The stored file is deleted after the commit; a failed storage
-  # delete is logged with its key and counted, and the run continues. Runs in a
-  # one-off container, so nothing is deferred to jobs. Safe to run repeatedly:
-  # processed attachments are gone, so a second run finds nothing.
-  def purge_expired(now: Time.current, batch_size: 100, logger: Rails.logger)
-    rich_texts = ActionText::RichText.where(record_type: "Event", name: "body", record_id: expired_events(now:).select(:id))
+  # Deletes the embeds of expired events, one attachment at a time (see
+  # ImageCleanup#delete). A blob also attached elsewhere, or referenced from
+  # another description, is detached and kept.
+  def purge_expired(batch_size: 100)
+    cleanup.read_descriptions
+    rich_texts = ActionText::RichText.where(record_type: "Event", name: "body", record_id: expired_events.select(:id))
     attachments = ActiveStorage::Attachment
       .where(record_type: "ActionText::RichText", name: "embeds", record_id: rich_texts.select(:id))
-      .includes(:blob)
-
-    events = Set.new
-    purged_blobs = purged_bytes = kept_shared_blobs = failed_deletes = 0
+      .includes(:blob, :record)
 
     attachments.find_each(batch_size:) do |attachment|
-      events << attachment.record_id
-      blob = attachment.blob
+      break if cleanup.limit_reached?
 
-      orphaned = ActiveRecord::Base.transaction do
+      cleanup.delete(attachment.blob) do
+        # Checked again under the event's row lock: an edit or a "Not spam"
+        # click since the query started keeps the images.
+        event = expired_events.lock.find_by(id: attachment.record.record_id)
+        next unless event
+
         attachment.delete
-        next false unless blob
-        next false if blob.attachments.exists?
-
-        blob.destroy!
-        true
-      end
-
-      if !orphaned
-        kept_shared_blobs += 1 if blob
-      else
-        begin
-          blob.delete
-          purged_blobs += 1
-          purged_bytes += blob.byte_size
-        rescue StandardError => e
-          failed_deletes += 1
-          logger.error("spam:purge_images could not delete stored file #{blob.key}: #{e.class}: #{e.message}")
-        end
+        "#{event.spam_source}_spam"
       end
     end
-
-    Result.new(events: events.size, purged_blobs:, purged_bytes:, kept_shared_blobs:, failed_deletes:)
   end
+
+  private
+
+  attr_reader :cleanup
+
+  def expired_events = Event.spam_images_expired(cleanup.now)
 end

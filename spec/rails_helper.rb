@@ -18,10 +18,10 @@ require 'capybara/rspec'
 require 'factory_bot_rails'
 
 config = ActiveRecord::Base.connection_db_config
-# A suffixed name (events_test_x) lets parallel checkouts each use their own
+# A suffixed name (events_test_<name>) lets parallel checkouts each use their own
 # database through DATABASE_URL.
 unless config.database.match?(/\Aevents_test(_\w+)?\z/) && [ nil, '', 'localhost', '127.0.0.1', '::1' ].include?(config.host)
-  abort 'Specs require the local events_test database'
+  abort 'Specs require the local events_test database (or a local events_test_<name> copy)'
 end
 ActiveRecord::Migration.maintain_test_schema!
 
