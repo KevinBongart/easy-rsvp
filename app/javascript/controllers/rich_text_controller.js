@@ -8,6 +8,11 @@ const maximumImageSize = 5 * 1024 * 1024
 const maximumImagesSize = 10 * 1024 * 1024
 const uploadErrorMessage = "Image upload failed. Please try again with a PNG, JPEG, GIF, or WebP image (5 MB maximum)."
 const imagesTooLargeMessage = "Images in the description can add up to 10 MB; remove some and try again."
+// Matches RichTextDirectUploadsController::LIMITED_MESSAGE. Active Storage
+// reports a refused upload only as text ending in its HTTP status, without
+// the JSON body.
+const uploadsLimitedMessage = "To prevent abuse on Easy RSVP, we're limiting how many images you can upload in a short window. Please try again later."
+const tooManyRequestsStatus = /Status: 429\b/
 
 export default class extends Controller {
   connect() {
@@ -53,7 +58,8 @@ export default class extends Controller {
   uploadFailed(event) {
     event.preventDefault()
     event.detail.attachment.remove()
-    this.showUploadError(uploadErrorMessage)
+    const limited = tooManyRequestsStatus.test(String(event.detail.error))
+    this.showUploadError(limited ? uploadsLimitedMessage : uploadErrorMessage)
   }
 
   uploadFinished() {

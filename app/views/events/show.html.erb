@@ -13,7 +13,7 @@
 <div data-controller="reveal">
   <%= form_for [@event, @rsvp], html: { class: "d-flex flex-wrap align-items-center gap-2 #{'d-none' if @responded}", data: { reveal_target: 'content' } } do |f| %>
     <%= f.label :name, "Your name:" %>
-    <%= f.text_field :name, class: 'form-control w-auto' %>
+    <%= f.text_field :name, class: 'form-control w-auto', maxlength: Rsvp::MAXIMUM_NAME_LENGTH %>
 
     <% Rsvp::RESPONSES.each do |response| %>
       <%= f.submit value: response.to_s.titleize, class: 'btn btn-primary' %>

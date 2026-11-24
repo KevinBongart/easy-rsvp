@@ -39,6 +39,9 @@ RSpec.configure do |config|
   config.before do
     clear_enqueued_jobs
     clear_performed_jobs
+    # Rate-limit counters live in process memory, not the null test cache, so
+    # every spec exercises the real limits starting from zero.
+    RateLimitedPerClient::STORE.clear
   end
   config.after { travel_back }
 end

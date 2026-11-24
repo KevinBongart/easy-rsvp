@@ -21,6 +21,17 @@ RSpec.describe 'Public RSVPs', type: :request do
     expect(request.session[event.hashid]).to be_nil
   end
 
+  it 'explains a refused name without saying which rule it broke' do
+    expect { post event_rsvps_path(event), params: { rsvp: { name: 'Get yours at www.deals.example' }, commit: 'Yes' } }.not_to change(Rsvp, :count)
+    expect(flash[:alert]).to eq('Name should be just your name')
+    expect(request.session[event.hashid]).to be_nil
+  end
+
+  it 'explains a name that is too long' do
+    post event_rsvps_path(event), params: { rsvp: { name: 'a' * (Rsvp::MAXIMUM_NAME_LENGTH + 1) }, commit: 'Yes' }
+    expect(flash[:alert]).to eq("Name is too long (maximum is #{Rsvp::MAXIMUM_NAME_LENGTH} characters)")
+  end
+
   it 'does not let request attributes change the event or bypass the submit choice' do
     other = create(:event)
     post event_rsvps_path(event), params: { rsvp: { name: 'Alex', event_id: other.id, response: 'no' }, commit: 'Yes' }

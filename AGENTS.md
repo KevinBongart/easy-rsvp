@@ -83,11 +83,27 @@ asset-compilation, and RSpec checks.
 - `Rsvp`: belongs to an event, name/response presence validation,
   `RESPONSES = [:yes, :maybe, :no]`, with non-null database columns, a nonblank
   name check, and a supported-response check validated against existing rows.
+  The name is the only free-text field. When it changes, it may be at most 200
+  characters (only growth past the limit is refused, so older long names stay
+  editable; `maxlength` on both forms), must contain a visible character
+  (zero-width and filler characters alone count as blank), may not stack more
+  than 15 combining marks on a letter, and must not contain a link
+  (`Rsvp::LINK`: a scheme, `www.`, or a domain with any subdomains on a
+  generic TLD spammers favor or on .ru/.cn/.tk/.io/.ly; emails and other
+  country domains such as .de pass because guests sign with them) or spam
+  content (`Event::SpamCheck.spam_content?`: the title's content rules, not
+  the formatting rules people use in their own names). The link and content
+  rules read an NFKC-normalized copy without format characters, so fullwidth
+  or zero-width obfuscation does not slip past; the name is saved as typed.
+  The error, "Name should be just your name", does not say which rule
+  matched. On the 2026-11-20 production copy these rules refused 1 of
+  ~98,000 legitimate names.
 - `ImageUpload`: legacy records retain old editor uploads and their Active
   Storage attachments. New editor uploads use Action Text direct uploads. The
   browser and server accept declared PNG/JPEG/GIF/WebP files from 1 byte through
-  5 MB before issuing a storage URL. Direct uploads cannot be byte-sniffed
-  before reaching storage. Uploads have no owner until an event uses them;
+  5 MB before issuing a storage URL, at a limited rate per IP (see Request
+  rate limits below). Direct uploads cannot be byte-sniffed before reaching
+  storage. Uploads have no owner until an event uses them;
   `OrphanedImages` deletes those no event uses (see Image cleanup below).
 - Event limits: titles of at most 200 characters (`maxlength` on the inputs),
   descriptions of at most 20,000 characters of visible text
@@ -267,6 +283,23 @@ asset-compilation, and RSpec checks.
   serializes parallel submissions. Failed validations and refused attempts do
   not count. Both rules show the same `CREATION_LIMITED_MESSAGE` (429), which
   deliberately does not say which applied.
+- Request rate limits: Rails' `rate_limit`, per client (`RateLimitedPerClient`:
+  the IP address, or its /64 for IPv6), counted in
+  `RateLimitedPerClient::STORE`, an 8 MB in-process
+  `MemoryStore` shared by Puma's threads (one Puma process; production
+  configures no `cache_store`, and the test null store would disable the
+  limits). Counters reset on every deploy or restart; specs clear the store
+  before each example. Limits, measured on the 2026-11-20 production copy:
+  public RSVP creations and deletions, 200 per 10 minutes across all events
+  (the busiest legitimate event took 182 in 10 minutes, so even a whole room
+  on one shared address passes); direct uploads, 20 per 10 minutes and 60 per
+  day, counted whether accepted or not (no legitimate event embeds more than
+  2 images). Refusals are 429 with a neutral "Please try again later."
+  message: a page (`application/rate_limited`) for RSVPs, JSON `{ error: }`
+  for uploads, which `rich_text_controller.js` recognizes by status and
+  explains under the editor. Organizer RSVP edits are token-gated and not
+  limited, so an organizer can clean up a flood. Admin sign-ins are not
+  limited: `ADMIN_PASSWORD` must be a long random secret.
 - `OrganizerEventsController`: organizer display, editing, deletion, publication.
 - `RsvpsController`: public response creation and session-owned deletion.
 - `OrganizerRsvpsController`: organizer response editing/deletion.

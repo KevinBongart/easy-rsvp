@@ -151,4 +151,18 @@ RSpec.describe Event::SpamCheck do
       expect { reasons('Nested', html) }.not_to raise_error
     end
   end
+
+  describe '.spam_content?' do
+    it 'applies the title content rules to short texts' do
+      [ 'Use promo code SAVE20', 'Best online casino bonus', 'Airline customer service 1-800-555-0199', 'xnxx' ].each do |text|
+        expect(described_class.spam_content?(text)).to be(true), text
+      end
+    end
+
+    it 'leaves out the formatting rules people use in their own names' do
+      [ '𝓙𝓸𝓱𝓷', '_dj_mike_', '꧁Ana꧂', 'Sam ((maybe))' ].each do |text|
+        expect(described_class.spam_content?(text)).to be(false), text
+      end
+    end
+  end
 end
