@@ -7,7 +7,7 @@ class SpamReviewStatus < ApplicationRecord
   ROW_ID = 1
   ERROR_SUMMARY_LENGTH = 200
   # A review fails at most 35 seconds after it starts (the HTTP timeouts in
-  # Event::SpamReview.post), but a burst of events queues behind the job
+  # Event::SpamReview#post), but a burst of events queues behind the job
   # threads, so the first failed events can be minutes older than the failure.
   FIRST_FAILURE_LEEWAY = 5.minutes
 
