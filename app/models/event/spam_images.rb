@@ -1,19 +1,18 @@
 # Images embedded in the descriptions of spam events.
 #
 # Images of operator marks are no longer served (see HidesOperatorSpamImages)
-# and are deleted RETENTION after the mark by `bin/rails images:purge`
+# and are deleted SPAM_IMAGE_RETENTION after the mark by `bin/rails images:purge`
 # (ImageCleanup), which Dokku runs daily. Undoing the mark ("Not spam") before
 # then keeps them. Images of automatic flags stay visible, since their
-# organizers still see their pages, and are deleted once the flag is RETENTION
-# old and the event has not been edited for as long.
+# organizers still see their pages, and are deleted once the flag is
+# SPAM_IMAGE_RETENTION old and the event has not been edited for as long
+# (Event.spam_images_expired).
 #
 # Only Action Text embeds count here. Legacy editor uploads (ImageUpload)
 # stopped in September 2026, before the spam wave; their blobs belong to
 # ImageUpload records, are never hidden, and are deleted by OrphanedImages once
 # no description references them.
-module Event::SpamImages
-  RETENTION = 30.days
-
+class Event::SpamImages
   # SQL condition on active_storage_blobs: the blob is embedded in an
   # operator-marked event's description, and in nothing else. A blob also
   # attached to another record (for instance a legitimate event's description)
@@ -43,38 +42,16 @@ module Event::SpamImages
     )
   SQL
 
-  module_function
-
-  # Spam whose images are due for deletion.
-  def expired_events(now: Time.current)
-    cutoff = now - RETENTION
-    expired_operator_marks(cutoff).or(stale_automatic_flags(cutoff))
-  end
-
-  # Retention counts from the operator's decision: an automatic flag keeps its
-  # earlier spam_at when an operator confirms it. spam_decided_at was
-  # backfilled from spam_at for older marks; spam_at covers any gap.
-  def expired_operator_marks(cutoff)
-    Event.where(spam_source: "operator").where("COALESCE(events.spam_decided_at, events.spam_at) < ?", cutoff)
-  end
-
-  # Flagged by the Ruby rules or Jev more than RETENTION ago and not edited
-  # since. Every title or description edit touches updated_at (Action Text
-  # touches the event) and re-runs the check, which keeps or clears the flag,
-  # so an organizer still fixing a wrongly flagged event keeps its images.
-  # Jev flags with update_columns, which sets spam_at without touching
-  # updated_at, hence both. Cleared events and events edited out of spam have
-  # another spam_source and never match.
-  def stale_automatic_flags(cutoff)
-    Event.where(spam_source: "automatic", spam_at: ...cutoff, updated_at: ...cutoff)
+  def initialize(cleanup)
+    @cleanup = cleanup
   end
 
   # Deletes the embeds of expired events, one attachment at a time (see
   # ImageCleanup#delete). A blob also attached elsewhere, or referenced from
   # another description, is detached and kept.
-  def purge_expired(cleanup, batch_size: 100)
+  def purge_expired(batch_size: 100)
     cleanup.read_descriptions
-    rich_texts = ActionText::RichText.where(record_type: "Event", name: "body", record_id: expired_events(now: cleanup.now).select(:id))
+    rich_texts = ActionText::RichText.where(record_type: "Event", name: "body", record_id: expired_events.select(:id))
     attachments = ActiveStorage::Attachment
       .where(record_type: "ActionText::RichText", name: "embeds", record_id: rich_texts.select(:id))
       .includes(:blob, :record)
@@ -85,7 +62,7 @@ module Event::SpamImages
       cleanup.delete(attachment.blob) do
         # Checked again under the event's row lock: an edit or a "Not spam"
         # click since the query started keeps the images.
-        event = expired_events(now: cleanup.now).lock.find_by(id: attachment.record.record_id)
+        event = expired_events.lock.find_by(id: attachment.record.record_id)
         next unless event
 
         attachment.delete
@@ -93,4 +70,10 @@ module Event::SpamImages
       end
     end
   end
+
+  private
+
+  attr_reader :cleanup
+
+  def expired_events = Event.spam_images_expired(cleanup.now)
 end

@@ -8,17 +8,19 @@
 # (which own legacy uploads but say nothing about their use) and no
 # description references it (ImageReferences), counting spam descriptions
 # until their images expire.
-module OrphanedImages
+class OrphanedImages
   # Direct uploads reach storage before the event is saved. On the 2026-11
   # production copy every embed was attached within 14 minutes of its upload;
   # two days also covers a form left open overnight.
   GRACE_PERIOD = 2.days
 
-  module_function
+  def initialize(cleanup)
+    @cleanup = cleanup
+  end
 
-  def purge(cleanup, batch_size: 100)
+  def purge(batch_size: 100)
     cleanup.read_descriptions
-    candidates(now: cleanup.now).find_each(batch_size:) do |blob|
+    candidates.find_each(batch_size:) do |blob|
       break if cleanup.limit_reached?
       next if cleanup.references.include?(blob)
 
@@ -39,9 +41,13 @@ module OrphanedImages
   # Blobs older than the grace period attached to nothing but ImageUpload
   # records. Variants are attached to their variant record and go with their
   # original.
-  def candidates(now: Time.current)
+  def candidates
     ActiveStorage::Blob
-      .where(created_at: ...now - GRACE_PERIOD)
+      .where(created_at: ...cleanup.now - GRACE_PERIOD)
       .where.not(id: ActiveStorage::Attachment.where.not(record_type: "ImageUpload").select(:blob_id))
   end
+
+  private
+
+  attr_reader :cleanup
 end

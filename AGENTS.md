@@ -151,10 +151,10 @@ asset-compilation, and RSpec checks.
   never hidden.
 - Image cleanup (`ImageCleanup`, `bin/rails images:purge`, daily Dokku cron in
   `app.json` with `concurrency_policy: forbid`) deletes images nothing needs:
-  - `Event::SpamImages.expired_events`: embeds of `operator` marks older than
-    30 days (`spam_decided_at`, falling back to `spam_at`), and of `automatic`
-    flags whose `spam_at` and the event's `updated_at` are both older than 30
-    days. Every title or description edit touches `updated_at` and re-runs the
+  - `Event::SpamImages` (`Event.spam_images_expired`): embeds of `operator`
+    marks older than 30 days (`spam_decided_at`, falling back to `spam_at`),
+    and of `automatic` flags whose `spam_at` and the event's `updated_at` are
+    both older than 30 days. Every title or description edit touches `updated_at` and re-runs the
     check, so an organizer who edits keeps the images whether the flag stays
     or goes; Jev's flag uses `update_columns`, hence both columns. Cleared
     events and events edited out of spam never match, and the event is

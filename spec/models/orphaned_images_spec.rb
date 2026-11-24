@@ -13,7 +13,7 @@ RSpec.describe OrphanedImages, type: :model do
   end
 
   def purge(cleanup = ImageCleanup.new)
-    described_class.purge(cleanup)
+    described_class.new(cleanup).purge
     cleanup.result
   end
 
@@ -84,7 +84,7 @@ RSpec.describe OrphanedImages, type: :model do
     event = create(:event)
     event.update!(body: %(<action-text-attachment sgid="#{blob.attachable_sgid}"></action-text-attachment>))
 
-    expect(described_class.candidates).not_to include(blob)
+    expect(described_class.new(ImageCleanup.new).candidates).not_to include(blob)
     expect(purge.deleted_blobs).to be_empty
   end
 

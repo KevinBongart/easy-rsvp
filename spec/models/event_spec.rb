@@ -257,6 +257,21 @@ RSpec.describe Event, type: :model do
       expect(Event.spam).to contain_exactly(spam)
       expect(Event.not_spam).to contain_exactly(legitimate)
     end
+
+    it 'finds spam whose images have expired' do
+      now = Time.current
+      old, recent = now - 30.days - 1.minute, now - 30.days + 1.minute
+      create(:event)
+      operator = create(:event).tap { |event| event.update_columns(spam_at: now - 60.days, spam_source: 'operator', spam_decided_at: old) }
+      undecided = create(:event).tap { |event| event.update_columns(spam_at: old, spam_source: 'operator', spam_decided_at: nil) }
+      create(:event).update_columns(spam_at: now - 60.days, spam_source: 'operator', spam_decided_at: recent)
+      automatic = create(:event).tap { |event| event.update_columns(spam_at: old, spam_source: 'automatic', updated_at: old) }
+      create(:event).update_columns(spam_at: old, spam_source: 'automatic', updated_at: recent)
+      create(:event).update_columns(spam_at: recent, spam_source: 'automatic', updated_at: old)
+      create(:event).update_columns(spam_at: nil, spam_source: 'cleared', spam_decided_at: old, updated_at: old)
+
+      expect(Event.spam_images_expired(now)).to contain_exactly(operator, undecided, automatic)
+    end
   end
 
   describe '#confidently_spam?' do

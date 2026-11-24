@@ -45,8 +45,8 @@ class ImageCleanup
   end
 
   def run
-    Event::SpamImages.purge_expired(self)
-    OrphanedImages.purge(self)
+    Event::SpamImages.new(self).purge_expired
+    OrphanedImages.new(self).purge
     result
   end
 
@@ -108,7 +108,7 @@ class ImageCleanup
   private
 
   def expired_spam_ids
-    @expired_spam_ids ||= Event::SpamImages.expired_events(now:).ids
+    @expired_spam_ids ||= Event.spam_images_expired(now).ids
   end
 
   def in_use?(blob)
@@ -120,7 +120,7 @@ class ImageCleanup
   # Checked under the events' row locks, taken before the blob's.
   def referenced_by_revived_spam?(blob)
     event_ids = expired_spam_references.filter_map { |event_id, references| event_id if references.include?(blob) }
-    event_ids.any? && Event::SpamImages.expired_events(now:).where(id: event_ids).lock.ids.size < event_ids.size
+    event_ids.any? && Event.spam_images_expired(now).where(id: event_ids).lock.ids.size < event_ids.size
   end
 
   # Under the blob's row lock. Saving an attachment locks the blob row too,

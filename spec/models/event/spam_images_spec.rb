@@ -22,7 +22,7 @@ RSpec.describe Event::SpamImages, type: :model do
   end
 
   def purge(cleanup = ImageCleanup.new)
-    described_class.purge_expired(cleanup)
+    described_class.new(cleanup).purge_expired
     cleanup.result
   end
 
@@ -194,7 +194,7 @@ RSpec.describe Event::SpamImages, type: :model do
     blobs = Array.new(3) { upload }
     blobs.each { |blob| mark(event_with(blob)) }
 
-    described_class.purge_expired(cleanup = ImageCleanup.new, batch_size: 1)
+    described_class.new(cleanup = ImageCleanup.new).purge_expired(batch_size: 1)
 
     expect(cleanup.result.deleted_blobs).to eq('operator_spam' => 3)
   end
