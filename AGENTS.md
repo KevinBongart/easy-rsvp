@@ -50,7 +50,7 @@ Verified against the repository on 2026-09-18; the version files remain authorit
 
 | Concern | Current implementation |
 | --- | --- |
-| Runtime | Ruby 4.0.9; Rails 8.1.4.1 in `Gemfile.lock` |
+| Runtime | Ruby as pinned in `.ruby-version`; Rails as resolved in `Gemfile.lock` |
 | Framework defaults | `config.load_defaults 8.1`, with a SHA-1 key-generator compatibility hold |
 | Database | PostgreSQL; `events_development`, `events_test`, `events_production` |
 | UI | ERB, Simple Form, Bootstrap 5.3.8 |
