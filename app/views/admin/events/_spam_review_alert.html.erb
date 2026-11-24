@@ -1,0 +1,23 @@
+<%# Jev reviews fail open, so without this an outage only shows as events
+    published without a score. %>
+<% if Event::SpamReview.missing_required_key? %>
+  <div class="alert alert-danger" role="alert" id="spam-review-alert">
+    <h2 class="h4 alert-heading">Jev is off</h2>
+    <p class="mb-0"><code>TYPESAFE_API_KEY</code> is not set, so new events are published without Jev’s spam review.</p>
+  </div>
+<% elsif status.failing? %>
+  <% unreviewed_count = status.unreviewed_events_count %>
+  <div class="alert alert-danger" role="alert" id="spam-review-alert">
+    <h2 class="h4 alert-heading">Jev is failing</h2>
+    <p>
+      Every review since <strong><%= admin_time_with_age(status.failing_since) %></strong> has failed
+      (<%= pluralize(status.consecutive_failures, "failure") %> in a row), so new events are published without Jev’s spam review.
+      Last successful review: <%= status.last_succeeded_at ? admin_time_with_age(status.last_succeeded_at) : "never" %>.
+    </p>
+    <p class="mb-0">
+      <strong><%= pluralize(unreviewed_count, "event") %></strong> created since <%= admin_time(status.unreviewed_since) %>
+      <%= unreviewed_count == 1 ? "has" : "have" %> no Jev review.
+      Last error: <code><%= status.last_error %></code>, <%= admin_time_with_age(status.last_failed_at) %>.
+    </p>
+  </div>
+<% end %>

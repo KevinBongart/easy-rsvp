@@ -28,6 +28,8 @@ class Event < ApplicationRecord
 
   scope :spam, -> { where.not(spam_at: nil) }
   scope :not_spam, -> { where(spam_at: nil) }
+  # Not flagged, not decided by an admin, and never scored by Jev.
+  scope :without_spam_review, -> { where(spam_source: nil, spam_score: nil) }
 
   normalizes :time_zone, with: ->(time_zone) { time_zone.presence }
 
