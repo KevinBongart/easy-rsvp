@@ -1,6 +1,6 @@
 GIT
   remote: https://github.com/KevinBongart/idiomatic-rails.git
-  revision: 2c81da47f4a3015656c2582eabd71aaf8c7b0d5f
+  revision: 559b4c97a61ef035af1ca057e647cc7fefd04b32
   specs:
     idiomatic-rails (0.1.0)
       actionview (>= 7.1)
