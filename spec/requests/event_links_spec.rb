@@ -1,21 +1,22 @@
 require 'rails_helper'
 
-# Public links use a random public id. Hashids, derived from sequential ids,
-# keep working only for events created before public ids existed.
+# Public links use a link id, which encodes a random public number. Hashids,
+# derived from sequential ids, keep working only for events created before
+# link ids existed.
 RSpec.describe 'Event links', type: :request do
-  let(:legacy_event) { create(:event, title: 'Old garden party').tap { |event| event.update_column(:legacy_hashid_link, true) } }
+  let(:legacy_event) { create(:event, title: 'Old garden party').tap { |event| event.update_column(:legacy_hashid, event.hashid) } }
   let(:new_event) { create(:event, title: 'New garden party') }
 
-  context 'with an event created before public ids' do
-    it 'redirects its hashid link permanently to the public id link' do
+  context 'with an event created before link ids' do
+    it 'redirects its hashid link permanently to its link id link' do
       get "/#{legacy_event.hashid}-old-garden-party"
 
       expect(response).to have_http_status(:moved_permanently)
       expect(response).to redirect_to(event_path(legacy_event))
-      expect(event_path(legacy_event)).to eq("/#{legacy_event.public_id}-old-garden-party")
+      expect(event_path(legacy_event)).to eq("/#{legacy_event.link_id}-old-garden-party")
     end
 
-    it 'redirects its hashid calendar link to the public id calendar link' do
+    it 'redirects its hashid calendar link to its link id calendar link' do
       get "/#{legacy_event.hashid}/calendar.ics"
 
       expect(response).to have_http_status(:moved_permanently)
@@ -27,6 +28,13 @@ RSpec.describe 'Event links', type: :request do
 
       get "/#{legacy_event.hashid}"
       expect(response).to have_http_status(:gone)
+    end
+
+    it 'sends an unpublished event home without redirecting to its link id first' do
+      legacy_event.update!(published: false)
+
+      get "/#{legacy_event.hashid}-old-garden-party"
+      expect(response).to redirect_to(root_path)
     end
 
     it 'still redirects for an admin previewing a removed spam event' do
@@ -56,8 +64,24 @@ RSpec.describe 'Event links', type: :request do
     end
   end
 
+  context 'with an event the previous release created during the deploy' do
+    let(:mid_deploy_event) do
+      Event.insert({ title: 'Mid-deploy party', date: Date.current, admin_token: SecureRandom.uuid, created_at: Time.current, updated_at: Time.current })
+      Event.find_by!(title: 'Mid-deploy party')
+    end
+
+    it 'redirects the hashid link its organizer was given, and keeps the organizer link working' do
+      get "/#{mid_deploy_event.hashid}-mid-deploy-party"
+      expect(response).to have_http_status(:moved_permanently)
+      expect(response).to redirect_to(event_path(mid_deploy_event))
+
+      get "/#{mid_deploy_event.hashid}-mid-deploy-party/admin/#{mid_deploy_event.admin_token}"
+      expect(response).to have_http_status(:ok)
+    end
+  end
+
   context 'with an event created since' do
-    it 'serves the public id link' do
+    it 'serves its link id link' do
       get event_path(new_event)
 
       expect(response).to have_http_status(:ok)
@@ -82,7 +106,7 @@ RSpec.describe 'Event links', type: :request do
       expect(response).to have_http_status(:not_found)
     end
 
-    it 'needs the matching organizer token with its public id' do
+    it 'needs the matching organizer token with its link id' do
       get event_admin_path(new_event, legacy_event.admin_token)
 
       expect(response).to have_http_status(:not_found)

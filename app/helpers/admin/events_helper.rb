@@ -46,7 +46,7 @@ module Admin::EventsHelper
   # Per-row URLs for the event list, built from templates generated once per
   # request. Route helpers plus Event#to_param (which slugifies the title) cost
   # about 0.1 ms per call, which adds up across 1,000 rows. The routes accept
-  # the bare public id, so these admin links skip the title slug.
+  # the bare link id, so these admin links skip the title slug.
   def admin_event_row_path(kind, event)
     templates = @admin_event_row_path_templates ||= {
       public: event_path(ROW_PATH_ID),
@@ -54,7 +54,7 @@ module Admin::EventsHelper
       mark_spam: mark_spam_admin_event_path(ROW_PATH_ID),
       unmark_spam: unmark_spam_admin_event_path(ROW_PATH_ID)
     }
-    path = templates.fetch(kind).sub(ROW_PATH_ID, event.public_id)
+    path = templates.fetch(kind).sub(ROW_PATH_ID, event.link_id)
     kind == :organizer ? path.sub(ROW_PATH_TOKEN, event.admin_token) : path
   end
 end

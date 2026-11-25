@@ -70,10 +70,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_25_120000) do
     t.float "spam_score"
     t.datetime "spam_decided_at"
     t.boolean "spam_verdict_hidden", default: false, null: false
-    t.string "public_id", default: -> { "encode(gen_random_bytes(12), 'hex'::text)" }, null: false
-    t.boolean "legacy_hashid_link", default: true, null: false
+    t.bigint "public_number", default: -> { "((('x'::text || encode(gen_random_bytes(6), 'hex'::text)))::bit(48))::bigint" }, null: false
+    t.string "legacy_hashid", default: ""
     t.index ["created_at"], name: "index_events_on_created_at"
-    t.index ["public_id"], name: "index_events_on_public_id", unique: true
+    t.index ["legacy_hashid"], name: "index_events_on_legacy_hashid", unique: true, where: "((legacy_hashid)::text <> ''::text)"
+    t.index ["public_number"], name: "index_events_on_public_number", unique: true
     t.check_constraint "ends_at IS NULL OR starts_at IS NULL OR ends_at > starts_at", name: "events_schedule_ordered"
     t.check_constraint "spam_at IS NULL AND (spam_source IS NULL OR spam_source::text = 'cleared'::text) OR spam_at IS NOT NULL AND (spam_source::text = ANY (ARRAY['operator'::character varying, 'automatic'::character varying]::text[]))", name: "events_spam_source_matches_spam_at"
     t.check_constraint "starts_at IS NULL AND ends_at IS NULL AND time_zone IS NULL OR starts_at IS NOT NULL AND ends_at IS NOT NULL AND time_zone IS NOT NULL AND btrim(time_zone::text) <> ''::text", name: "events_schedule_complete"

@@ -64,9 +64,9 @@ class EventsController < ApplicationController
       return redirect_to root_path, alert: "This event is no longer viewable." unless @event.published?
     end
 
-    # An older event's hashid link moves to its public id link. Removed
+    # An older event's hashid link moves to its current link. Removed
     # events answer 410 directly, so indexed spam is not redirected first.
-    redirect_to({ id: @event }, status: :moved_permanently) if link_id != @event.public_id
+    redirect_to({ id: @event }, status: :moved_permanently) if link_id != @event.link_id
   end
 
   def render_rate_limited
