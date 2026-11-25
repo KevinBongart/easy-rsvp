@@ -4,11 +4,7 @@ require 'rails_helper'
 # flows run the real pages in Firefox and fail on any violation reported,
 # even one that breaks nothing the other specs look at.
 RSpec.describe 'Content Security Policy in the browser', type: :system, js: true do
-  before do
-    driven_by(:headless_firefox_bidi)
-    page.current_window.resize_to(1400, 1000)
-    record_csp_violations
-  end
+  before { record_csp_violations }
 
   def dashboard_url
     "http://spec-admin:spec-password@#{Capybara.current_session.server.host}:#{Capybara.current_session.server.port}/admin/events"

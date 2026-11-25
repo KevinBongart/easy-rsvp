@@ -4,17 +4,12 @@ Capybara.server = :puma, { Silent: true }
 Capybara.default_max_wait_time = 5
 Capybara.save_path = Rails.root.join('tmp/screenshots')
 
+# WebDriver BiDi (web_socket_url) lets the CSP violation specs install a
+# listener before any page script runs. With BiDi on, Firefox would otherwise
+# close confirm dialogs itself, so leave them for accept_confirm and
+# dismiss_confirm to handle.
 Capybara.register_driver :headless_firefox do |app|
-  options = Selenium::WebDriver::Firefox::Options.new
-  options.add_argument('-headless')
-  options.binary = ENV['FIREFOX_BINARY'] if ENV['FIREFOX_BINARY'].present?
-  Capybara::Selenium::Driver.new(app, browser: :firefox, options: options)
-end
-
-# Same browser with WebDriver BiDi enabled, which lets the CSP violation specs
-# install a listener before any page script runs.
-Capybara.register_driver :headless_firefox_bidi do |app|
-  options = Selenium::WebDriver::Firefox::Options.new(web_socket_url: true)
+  options = Selenium::WebDriver::Firefox::Options.new(web_socket_url: true, unhandled_prompt_behavior: 'ignore')
   options.add_argument('-headless')
   options.binary = ENV['FIREFOX_BINARY'] if ENV['FIREFOX_BINARY'].present?
   Capybara::Selenium::Driver.new(app, browser: :firefox, options: options)
