@@ -20,7 +20,7 @@ RSpec.describe 'images:purge' do
     blob = upload
     event = create(:event, title: 'Private party at 12 Example Street')
     event.update!(body: %(<action-text-attachment sgid="#{blob.attachable_sgid}"></action-text-attachment>))
-    event.update_columns(spam_at: 31.days.ago, spam_source: 'operator', spam_decided_at: 31.days.ago)
+    event.update_columns(spam_at: 31.days.ago, spam_source: :operator, spam_decided_at: 31.days.ago)
 
     expect { task.invoke }.to output(
       "images:purge deleted blob_id=#{blob.id} key=#{blob.key} byte_size=42 reason=operator_spam\n" \

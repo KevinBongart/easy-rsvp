@@ -69,21 +69,15 @@ module Admin
       @events = listed_events.page(params[:page]).per(EVENTS_PER_PAGE)
     end
 
-    # Operator marks are final: guests and the organizer see the event as
-    # removed, and later edits never clear them. update_columns skips the
-    # save-time spam check on purpose. spam_decided_at makes the latest
-    # decisions Event::SpamReview's examples.
     def mark_spam
       event = Event.find_by_hashid!(event_hashid_from_param(params[:id]))
-      event.update_columns(spam_at: event.spam_at || Time.current, spam_source: "operator", spam_decided_at: Time.current)
-      RecentEventCreation.record_spam!(event)
+      event.mark_as_spam!
       redirect_after_spam_change admin_events_path, notice: "“#{event.title}” was marked as spam."
     end
 
-    def unmark_spam
+    def mark_not_spam
       event = Event.find_by_hashid!(event_hashid_from_param(params[:id]))
-      event.update_columns(spam_at: nil, spam_source: "cleared", spam_decided_at: Time.current)
-      RecentEventCreation.clear_spam!(event)
+      event.mark_as_not_spam!
       redirect_after_spam_change admin_events_path(spam: "1"), notice: "“#{event.title}” is no longer marked as spam."
     end
 

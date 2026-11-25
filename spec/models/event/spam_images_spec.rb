@@ -11,14 +11,14 @@ RSpec.describe Event::SpamImages, type: :model do
     end
   end
 
-  def mark(event, source: 'operator', decided: 31.days.ago)
-    spam_at = source == 'cleared' ? nil : decided
+  def mark(event, source: :operator, decided: 31.days.ago)
+    spam_at = source == :cleared ? nil : decided
     event.update_columns(spam_at:, spam_source: source, spam_decided_at: decided)
   end
 
   # Flagged by the save-time check or Jev at `flagged`, last edited at `edited`.
   def flag(event, flagged: 31.days.ago, edited: flagged)
-    event.update_columns(spam_at: flagged, spam_source: 'automatic', updated_at: edited)
+    event.update_columns(spam_at: flagged, spam_source: :automatic, updated_at: edited)
   end
 
   def purge(cleanup = ImageCleanup.new)
@@ -58,7 +58,7 @@ RSpec.describe Event::SpamImages, type: :model do
   it 'falls back to spam_at for marks without a decision time' do
     blob = upload
     event = event_with(blob)
-    event.update_columns(spam_at: 40.days.ago, spam_source: 'operator', spam_decided_at: nil)
+    event.update_columns(spam_at: 40.days.ago, spam_source: :operator, spam_decided_at: nil)
 
     purge
 
@@ -68,7 +68,7 @@ RSpec.describe Event::SpamImages, type: :model do
   it 'keeps images of recent operator marks, cleared and legitimate events' do
     recent, cleared, legitimate = Array.new(3) { upload }
     mark(event_with(recent), decided: 29.days.ago)
-    mark(event_with(cleared), source: 'cleared')
+    mark(event_with(cleared), source: :cleared)
     event_with(legitimate)
 
     expect(purge.deleted_blobs).to be_empty
@@ -79,7 +79,7 @@ RSpec.describe Event::SpamImages, type: :model do
     blob = upload
     event = event_with(blob)
     mark(event, decided: 10.days.ago)
-    mark(event, source: 'cleared', decided: 5.days.ago)
+    mark(event, source: :cleared, decided: 5.days.ago)
 
     travel 60.days do
       purge
@@ -134,7 +134,7 @@ RSpec.describe Event::SpamImages, type: :model do
       blob = upload
       event = event_with(blob)
       flag(event)
-      mark(event, source: 'cleared', decided: 40.days.ago)
+      mark(event, source: :cleared, decided: 40.days.ago)
 
       expect(purge.deleted_blobs).to be_empty
       expect(kept?(blob)).to be(true)
@@ -147,7 +147,7 @@ RSpec.describe Event::SpamImages, type: :model do
       cleanup = ImageCleanup.new
       # Clears the flag after the attachments were loaded, before their transaction.
       allow(cleanup).to receive(:limit_reached?) do
-        event.update_columns(spam_at: nil, spam_source: 'cleared', spam_decided_at: Time.current)
+        event.mark_as_not_spam!
         false
       end
 
@@ -209,7 +209,7 @@ RSpec.describe Event::SpamImages, type: :model do
 
   it 'counts retention from the operator decision, not an earlier automatic flag' do
     blob = upload
-    event_with(blob).update_columns(spam_at: 60.days.ago, spam_source: 'operator', spam_decided_at: 5.days.ago)
+    event_with(blob).update_columns(spam_at: 60.days.ago, spam_source: :operator, spam_decided_at: 5.days.ago)
 
     expect(purge.deleted_blobs).to be_empty
     expect(kept?(blob)).to be(true)
@@ -219,7 +219,7 @@ RSpec.describe Event::SpamImages, type: :model do
     blob = upload
     event = event_with(blob)
     mark(event)
-    mark(event, source: 'cleared', decided: 10.days.ago)
+    mark(event, source: :cleared, decided: 10.days.ago)
     mark(event, decided: 2.days.ago)
 
     expect(purge.deleted_blobs).to be_empty

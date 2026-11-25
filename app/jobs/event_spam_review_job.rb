@@ -20,16 +20,18 @@ class EventSpamReviewJob < ApplicationJob
     score = review.score(page:)
     return if score.nil?
 
-    changes = { spam_score: score }
-    changes.merge!(spam_at: Time.current, spam_source: "automatic") if score >= Event::SpamReview::THRESHOLD
     # Write only if Jev judged the text the event still has, and neither an
     # admin nor another job has decided meanwhile. A text edit queued its own review; other edits (date,
-    # publication) do not change the answer.
+    # publication) do not change the answer. Like Event#flag_as_spam!, a score
+    # alone is written with update_columns: a review is not an edit.
     event.with_lock do
       next unless event.spam_review_needed? && review.page == page
 
-      event.update_columns(changes)
-      RecentEventCreation.record_spam!(event) if event.spam?
+      if score >= Event::SpamReview::THRESHOLD
+        event.flag_as_spam!(score:)
+      else
+        event.update_columns(spam_score: score)
+      end
     end
   end
 end

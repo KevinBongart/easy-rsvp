@@ -29,6 +29,12 @@ class Event < ApplicationRecord
   has_many :rsvps, dependent: :destroy
   has_rich_text :body
 
+  # Who decided the event is spam, or not: Event::SpamCheck or Jev flag it
+  # (automatic), an operator marks it (operator), or an operator says it is
+  # not spam (cleared). A database check ties operator and automatic to
+  # spam_at, and cleared to its absence.
+  enum :spam_source, { operator: "operator", automatic: "automatic", cleared: "cleared" }, prefix: true
+
   scope :spam, -> { where.not(spam_at: nil) }
   scope :not_spam, -> { where(spam_at: nil) }
   # Not flagged, not decided by an admin, and never scored by Jev.
@@ -42,7 +48,7 @@ class Event < ApplicationRecord
   # earlier spam_at when an operator confirms it. spam_decided_at was
   # backfilled from spam_at for older marks; spam_at covers any gap.
   scope :operator_spam_marked_before, ->(cutoff) do
-    where(spam_source: "operator").where("COALESCE(events.spam_decided_at, events.spam_at) < ?", cutoff)
+    spam_source_operator.where("COALESCE(events.spam_decided_at, events.spam_at) < ?", cutoff)
   end
   # Flagged by the Ruby rules or Jev before the cutoff and not edited since.
   # Every title or description edit touches updated_at (Action Text touches
@@ -52,7 +58,7 @@ class Event < ApplicationRecord
   # both. Cleared events and events edited out of spam have another
   # spam_source and never match.
   scope :automatic_spam_unedited_since, ->(cutoff) do
-    where(spam_source: "automatic", spam_at: ...cutoff, updated_at: ...cutoff)
+    spam_source_automatic.where(spam_at: ...cutoff, updated_at: ...cutoff)
   end
 
   normalizes :time_zone, with: ->(time_zone) { time_zone.presence }
@@ -87,12 +93,13 @@ class Event < ApplicationRecord
 
   # Marked by an operator; final, and the organizer loses access.
   def spam_locked?
-    spam_source == "operator"
+    spam_source_operator?
   end
 
-  # Marked by Event::SpamCheck; the organizer can edit the event to clear it.
+  # Flagged by Event::SpamCheck or Jev; the organizer can edit the event to
+  # clear it.
   def flagged_as_spam?
-    spam_source == "automatic"
+    spam_source_automatic?
   end
 
   # Flagged automatically with enough certainty (see CONFIDENT_SPAM_REASONS)
@@ -105,7 +112,7 @@ class Event < ApplicationRecord
 
   # An operator decided this is not spam; automatic checks leave it alone.
   def cleared_of_spam?
-    spam_source == "cleared"
+    spam_source_cleared?
   end
 
   # Events the Ruby rules let through and no operator has decided on get a
@@ -115,6 +122,35 @@ class Event < ApplicationRecord
   # queued behind one already done; the organizer rate limit bounds the rest.
   def spam_review_needed?
     spam_source.nil? && spam_score.nil? && Event::SpamReview.enabled?
+  end
+
+  # The spam commands below write with update_columns: a decision on the
+  # event is not an edit, so it must not run the save-time spam check or
+  # validations (older events may not pass today's), nor touch updated_at,
+  # which automatic_spam_unedited_since reads as the last edit. They record
+  # the outcome in RecentEventCreation themselves, since skipping callbacks
+  # also skips became_spam?.
+
+  # An operator's mark: final, and the organizer loses access. An earlier
+  # automatic flag keeps its spam_at; spam_decided_at makes the latest
+  # decisions Event::SpamReview's examples and starts image retention.
+  def mark_as_spam!
+    update_columns(spam_at: spam_at || Time.current, spam_source: :operator, spam_decided_at: Time.current)
+    RecentEventCreation.record_spam!(self)
+  end
+
+  # An operator's "Not spam": guests see the event again, automatic checks
+  # skip it, and its creator may create events again.
+  def mark_as_not_spam!
+    update_columns(spam_at: nil, spam_source: :cleared, spam_decided_at: Time.current)
+    RecentEventCreation.clear_spam!(self)
+  end
+
+  # Jev's automatic flag (EventSpamReviewJob), with the score that set it. Like
+  # a flag from the Ruby rules, the organizer can edit it away.
+  def flag_as_spam!(score:)
+    update_columns(spam_at: Time.current, spam_source: :automatic, spam_score: score)
+    RecentEventCreation.record_spam!(self)
   end
 
   def timed?
@@ -175,7 +211,7 @@ class Event < ApplicationRecord
     spam_score_will_change!
     if Event::SpamCheck.spam?(title: title.to_s, html: spam_check_html)
       self.spam_at ||= Time.current
-      self.spam_source = "automatic"
+      self.spam_source = :automatic
     elsif flagged_as_spam?
       self.spam_at = nil
       self.spam_source = nil
@@ -197,7 +233,7 @@ class Event < ApplicationRecord
   # the edit that drops below the bar would tell the spammer they were caught,
   # and which change mattered.
   def confidently_spam_before_edit?
-    return false if new_record? || spam_source_was != "automatic" || spam_verdict_hidden?
+    return false if new_record? || spam_source_in_database != "automatic" || spam_verdict_hidden?
 
     confident_spam_signals?(spam_score_was, title_was, rich_text_body&.body_was&.to_html.to_s)
   end

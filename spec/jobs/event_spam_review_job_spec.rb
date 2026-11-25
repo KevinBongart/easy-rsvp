@@ -35,7 +35,7 @@ RSpec.describe EventSpamReviewJob do
   it 'is not queued for events the Ruby rules flag, or that an admin decided on' do
     expect { create(:event, title: 'Best IPTV provider 2026') }.not_to have_enqueued_job(described_class)
 
-    cleared = create(:event, spam_source: 'cleared')
+    cleared = create(:event, spam_source: :cleared)
     expect { cleared.update!(title: 'Changed') }.not_to have_enqueued_job(described_class)
   end
 
@@ -120,7 +120,7 @@ RSpec.describe EventSpamReviewJob do
   it 'discards its answer when the admin decided while Jev was answering' do
     event = create(:event)
     stub_request(:post, 'https://api.typesafe.ai/v1/systemone').to_return do
-      event.update_columns(spam_source: 'cleared', spam_decided_at: Time.current)
+      event.mark_as_not_spam!
       { status: 200, body: { answers: { advertising: { noul: 0.99 } } }.to_json }
     end
 

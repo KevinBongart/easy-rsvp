@@ -42,7 +42,7 @@ RSpec.describe 'Admin spam tools', type: :request do
     it 'restores an event marked by mistake' do
       event = create(:event, :spam)
 
-      post unmark_spam_admin_event_path(event), headers: dashboard_headers
+      post mark_not_spam_admin_event_path(event), headers: dashboard_headers
 
       expect(event.reload).to have_attributes(spam_source: 'cleared', spam_at: nil, spam_decided_at: be_present)
       get event_path(event)
@@ -52,7 +52,7 @@ RSpec.describe 'Admin spam tools', type: :request do
     it 'remembers that a restored event is not spam when its organizer edits it' do
       event = create(:event, :flagged_as_spam, title: 'Casino night - buy tickets online')
 
-      post unmark_spam_admin_event_path(event), headers: dashboard_headers
+      post mark_not_spam_admin_event_path(event), headers: dashboard_headers
       patch event_admin_path(event, event.admin_token), params: { event: { title: 'Casino night - buy tickets online today' } }
 
       expect(event.reload).to have_attributes(spam_source: 'cleared', spam_at: nil)
@@ -66,7 +66,7 @@ RSpec.describe 'Admin spam tools', type: :request do
       get admin_events_path, params: { spam: '1' }, headers: dashboard_headers
 
       actions = row_for('Possible bake sale spam').css('td')[-1].css('button').map { |button| button['formaction'].split('/').last }
-      expect(actions).to eq(%w[mark_spam unmark_spam])
+      expect(actions).to eq(%w[mark_spam mark_not_spam])
     end
 
     it 'offers a confirmed link-style button after the admin link and Jev score' do
@@ -91,7 +91,7 @@ RSpec.describe 'Admin spam tools', type: :request do
       get admin_events_path, params: { spam: '1' }, headers: dashboard_headers
 
       button = row_for('Peptides coupon code').css('td')[-1].at_css('button')
-      expect(button['formaction']).to end_with('/unmark_spam')
+      expect(button['formaction']).to end_with('/mark_not_spam')
       expect(button['data-turbo-confirm']).to include('Restore')
     end
   end
@@ -222,7 +222,7 @@ RSpec.describe 'Admin spam tools', type: :request do
         expect(response).to have_http_status(:ok)
         expect(page.at_css('#admin-preview').text).to include('marked as spam')
         expect(page.at_css('#flash_notice').text).to include('was marked as spam')
-        expect(page.css('#admin-preview form').map { |f| f['action'] }).to eq([ unmark_spam_admin_event_path(published) ])
+        expect(page.css('#admin-preview form').map { |f| f['action'] }).to eq([ mark_not_spam_admin_event_path(published) ])
       end
 
       it 'offers the buttons on organizer pages too' do

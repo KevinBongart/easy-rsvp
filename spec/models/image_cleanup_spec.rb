@@ -10,7 +10,7 @@ RSpec.describe ImageCleanup do
   def spam_event_with(blob)
     create(:event, title: 'Private party at 12 Example Street').tap do |event|
       event.update!(body: %(<action-text-attachment sgid="#{blob.attachable_sgid}"></action-text-attachment>))
-      event.update_columns(spam_at: 31.days.ago, spam_source: 'operator', spam_decided_at: 31.days.ago)
+      event.update_columns(spam_at: 31.days.ago, spam_source: :operator, spam_decided_at: 31.days.ago)
     end
   end
 

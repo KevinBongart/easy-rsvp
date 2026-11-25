@@ -663,6 +663,17 @@ provided; Bon App's accepted risks do not transfer.
   edit page. Preserve token-scoped authorization, keyboard/focus behavior, update
   and deletion coverage, and the compact RSVP overview.
 
+- [x] **4.6 P3 — Name the spam-state writes.** Spam state was written by hand
+  in a save callback, `EventSpamReviewJob` and two admin actions, with about 14
+  bare `operator` / `automatic` / `cleared` strings, and each `update_columns`
+  writer had to remember `RecentEventCreation.record_spam!` or `clear_spam!`.
+  `Event#spam_source` is now a string enum (`spam_source_operator?`, ...), and
+  `Event#mark_as_spam!`, `#mark_as_not_spam!` and `#flag_as_spam!(score:)` own
+  their column writes and the `RecentEventCreation` bookkeeping. The admin
+  action and route `unmark_spam` is now `mark_not_spam`. The raw SQL in
+  `Event::SpamImages::HIDDEN_BLOB` and the database check constraint keep the
+  string values.
+
 ## Phase 5 — Frontend and accessibility
 
 - [x] **5.1 P2 — Fix concrete markup issues before a redesign.**

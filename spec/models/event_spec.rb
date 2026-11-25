@@ -262,15 +262,84 @@ RSpec.describe Event, type: :model do
       now = Time.current
       old, recent = now - 30.days - 1.minute, now - 30.days + 1.minute
       create(:event)
-      operator = create(:event).tap { |event| event.update_columns(spam_at: now - 60.days, spam_source: 'operator', spam_decided_at: old) }
-      undecided = create(:event).tap { |event| event.update_columns(spam_at: old, spam_source: 'operator', spam_decided_at: nil) }
-      create(:event).update_columns(spam_at: now - 60.days, spam_source: 'operator', spam_decided_at: recent)
-      automatic = create(:event).tap { |event| event.update_columns(spam_at: old, spam_source: 'automatic', updated_at: old) }
-      create(:event).update_columns(spam_at: old, spam_source: 'automatic', updated_at: recent)
-      create(:event).update_columns(spam_at: recent, spam_source: 'automatic', updated_at: old)
-      create(:event).update_columns(spam_at: nil, spam_source: 'cleared', spam_decided_at: old, updated_at: old)
+      operator = create(:event).tap { |event| event.update_columns(spam_at: now - 60.days, spam_source: :operator, spam_decided_at: old) }
+      undecided = create(:event).tap { |event| event.update_columns(spam_at: old, spam_source: :operator, spam_decided_at: nil) }
+      create(:event).update_columns(spam_at: now - 60.days, spam_source: :operator, spam_decided_at: recent)
+      automatic = create(:event).tap { |event| event.update_columns(spam_at: old, spam_source: :automatic, updated_at: old) }
+      create(:event).update_columns(spam_at: old, spam_source: :automatic, updated_at: recent)
+      create(:event).update_columns(spam_at: recent, spam_source: :automatic, updated_at: old)
+      create(:event).update_columns(spam_at: nil, spam_source: :cleared, spam_decided_at: old, updated_at: old)
 
       expect(Event.spam_images_expired(now)).to contain_exactly(operator, undecided, automatic)
+    end
+  end
+
+  describe 'spam commands' do
+    def creation_of(event, spam_at: nil)
+      RecentEventCreation.create!(client_digest: 'client', event:, spam_at:)
+    end
+
+    it 'marks an event as spam for the operator, without counting as an edit' do
+      event = create(:event).tap { |created| created.update_columns(updated_at: 1.day.ago) }
+      creation = creation_of(event)
+
+      event.mark_as_spam!
+
+      expect(event.reload).to have_attributes(spam_source: 'operator', spam_at: be_present, spam_decided_at: be_present,
+                                              updated_at: be_within(1.second).of(1.day.ago))
+      expect(event).to be_spam_locked
+      expect(creation.reload.spam_at).to be_present
+    end
+
+    it 'keeps the time of an earlier automatic flag when the operator confirms it' do
+      event = create(:event, :flagged_as_spam)
+      flagged_at = event.reload.spam_at
+
+      travel(1.hour) { event.mark_as_spam! }
+
+      expect(event.reload).to have_attributes(spam_source: 'operator', spam_at: flagged_at,
+                                              spam_decided_at: be_within(1.second).of(1.hour.from_now))
+    end
+
+    it 'marks spam even when the event no longer passes validation' do
+      event = create(:event)
+      event.update_columns(title: '')
+
+      event.mark_as_spam!
+
+      expect(event.reload).to be_spam_locked
+    end
+
+    it 'marks an event as not spam and lifts its creator block' do
+      event = create(:event, :spam)
+      creation = creation_of(event, spam_at: Time.current)
+
+      event.mark_as_not_spam!
+
+      expect(event.reload).to have_attributes(spam_source: 'cleared', spam_at: nil, spam_decided_at: be_present)
+      expect(event).to be_cleared_of_spam
+      expect(creation.reload.spam_at).to be_nil
+    end
+
+    it 'flags an event as spam with the score that set it, without counting as an edit' do
+      event = create(:event).tap { |created| created.update_columns(updated_at: 1.day.ago) }
+      creation = creation_of(event)
+
+      event.flag_as_spam!(score: 0.93)
+
+      expect(event.reload).to have_attributes(spam_source: 'automatic', spam_at: be_present, spam_score: 0.93,
+                                              spam_decided_at: nil, updated_at: be_within(1.second).of(1.day.ago))
+      expect(event).to be_flagged_as_spam
+      expect(creation.reload.spam_at).to be_present
+    end
+
+    it 'keeps the first spam time a creation recorded' do
+      event = create(:event)
+      creation = creation_of(event, spam_at: 1.hour.ago)
+
+      event.mark_as_spam!
+
+      expect(creation.reload.spam_at).to be_within(1.second).of(1.hour.ago)
     end
   end
 
