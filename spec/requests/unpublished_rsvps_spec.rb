@@ -8,7 +8,7 @@ RSpec.describe 'RSVP access while an event is unpublished', type: :request do
       post event_rsvps_path(event), params: { rsvp: { name: 'Guest' }, commit: 'Yes' }
     end.not_to change(Rsvp, :count)
     expect(response).to have_http_status(:not_found)
-    expect(request.session[event.hashid]).to be_nil
+    expect(owned_rsvp_hashids).to be_empty
   end
 
   it 'blocks deletion even when the guest owns a response from before unpublishing' do
@@ -19,7 +19,7 @@ RSpec.describe 'RSVP access while an event is unpublished', type: :request do
 
     expect { delete event_rsvp_path(event, rsvp) }.not_to change(Rsvp, :count)
     expect(response).to have_http_status(:not_found)
-    expect(request.session[event.hashid]).to include(rsvp.hashid)
+    expect(owned_rsvp_hashids).to include(rsvp.hashid)
   end
 
   it 'allows the organizer to edit the event while it is unpublished' do
@@ -52,6 +52,6 @@ RSpec.describe 'RSVP access while an event is unpublished', type: :request do
       post event_rsvps_path(event), params: { rsvp: { name: 'Returning guest' }, commit: 'Yes' }
     end.to change(Rsvp, :count).by(1)
     expect(response).to redirect_to(event)
-    expect(request.session[event.hashid]).to include(event.rsvps.last.hashid)
+    expect(owned_rsvp_hashids).to include(event.rsvps.last.hashid)
   end
 end

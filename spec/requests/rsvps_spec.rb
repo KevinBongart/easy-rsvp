@@ -10,7 +10,7 @@ RSpec.describe 'Public RSVPs', type: :request do
       end.to change { event.rsvps.count }.by(1)
       rsvp = event.rsvps.last
       expect(rsvp.response).to eq(answer.downcase)
-      expect(request.session[event.hashid]).to include(rsvp.hashid)
+      expect(owned_rsvp_hashids).to include(rsvp.hashid)
       expect(response).to redirect_to(event)
     end
   end
@@ -18,13 +18,13 @@ RSpec.describe 'Public RSVPs', type: :request do
   it 'rejects a blank name without saving or claiming ownership' do
     expect { post event_rsvps_path(event), params: { rsvp: { name: '' }, commit: 'Yes' } }.not_to change(Rsvp, :count)
     expect(flash[:alert]).to include('Please add your name')
-    expect(request.session[event.hashid]).to be_nil
+    expect(owned_rsvp_hashids).to be_empty
   end
 
   it 'explains a refused name without saying which rule it broke' do
     expect { post event_rsvps_path(event), params: { rsvp: { name: 'Get yours at www.deals.example' }, commit: 'Yes' } }.not_to change(Rsvp, :count)
     expect(flash[:alert]).to eq('Name should be just your name')
-    expect(request.session[event.hashid]).to be_nil
+    expect(owned_rsvp_hashids).to be_empty
   end
 
   it 'explains a name that is too long' do
@@ -73,7 +73,7 @@ RSpec.describe 'Public RSVPs', type: :request do
     post event_rsvps_path(event), params: { rsvp: { name: 'Mine' }, commit: 'Yes' }
     own = event.rsvps.last
     delete event_rsvp_path(event, own)
-    expect(request.session[event.hashid]).to be_nil
+    expect(owned_rsvp_hashids).to be_empty
   end
 
   it 'rejects a response ID belonging to another event' do
@@ -101,10 +101,8 @@ RSpec.describe 'Public RSVPs', type: :request do
     second = event.rsvps.last
 
     delete event_rsvp_path(event, first)
-    expect(request.session[event.hashid]).to eq([ second.hashid ])
-    expect(request.session[other_event.hashid]).to eq([ elsewhere.hashid ])
+    expect(owned_rsvp_hashids).to eq([ elsewhere.hashid, second.hashid ])
     delete event_rsvp_path(event, second)
-    expect(request.session[event.hashid]).to be_nil
-    expect(request.session[other_event.hashid]).to eq([ elsewhere.hashid ])
+    expect(owned_rsvp_hashids).to eq([ elsewhere.hashid ])
   end
 end

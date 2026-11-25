@@ -30,13 +30,13 @@ separate organizer URL containing a secret token. Anyone with the organizer URL
 can edit or publish the event and manage all its RSVPs; that token does not grant
 access to the site-wide dashboard.
 
-Guests can delete only RSVPs created in their current browser session. When an
-event is unpublished, its public page is unavailable and guests cannot add or
-delete RSVPs, including ones their session previously created. Existing RSVPs
-are preserved. The organizer can still edit the event and its RSVPs, and
-republishing restores public access. Deleting an event through its
-token-authorized endpoint also deletes its RSVPs, although the current interface
-does not expose an event-deletion control.
+Guests can delete only RSVPs created in their current browser session (its 100
+most recent). When an event is unpublished, its public page is unavailable and
+guests cannot add or delete RSVPs, including ones their session previously
+created. Existing RSVPs are preserved. The organizer can still edit the event
+and its RSVPs, and republishing restores public access. Deleting an event
+through its token-authorized endpoint also deletes its RSVPs, although the
+current interface does not expose an event-deletion control.
 
 Events are date-only by default. A disclosure reveals optional start, end, and
 browser-detected IANA time-zone fields. Entering either time requires both; a bare

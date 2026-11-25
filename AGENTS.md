@@ -28,8 +28,11 @@ model when applying the playbook's authentication and ownership guidance.
 - Public event URLs use a hashid plus a title slug.
 - Organizer URLs additionally carry `Event#admin_token`, generated as a UUID.
   Organizer actions must match both the event and its token.
-- Public RSVP deletion uses event-scoped session hashids. Organizer RSVP
-  mutations find the response through the token-authorized event's association.
+- Public RSVP deletion checks `OwnedRsvps`: the 100 most recent RSVP hashids
+  this browser created, under one session key so the 4 KB cookie cannot
+  overflow. Older per-event session keys are folded into it on first read.
+  Organizer RSVP mutations find the response through the token-authorized
+  event's association.
 - The cross-event `/admin/events` dashboard uses HTTP Basic authentication from
   `ADMIN_USER` and `ADMIN_PASSWORD`, applied directly by
   `Admin::EventsController`. The separately named `Organizer*Controller` classes
