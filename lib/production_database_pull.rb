@@ -5,9 +5,11 @@ require "open3"
 require "pathname"
 require "securerandom"
 require "shellwords"
+require "tmpdir"
 
-# Copies a Dokku PostgreSQL export to this machine and replaces only Easy RSVP's
-# local development database. The production database is never written to.
+# Copies a Dokku PostgreSQL export to this machine, either to replace only Easy
+# RSVP's local development database or to keep as a GPG-encrypted backup. The
+# production database is never written to.
 class ProductionDatabasePull
   DEVELOPMENT_DATABASE = "events_development"
   LOCAL_DATABASE_HOSTS = [ nil, "", "localhost", "127.0.0.1", "::1" ].freeze
@@ -15,14 +17,17 @@ class ProductionDatabasePull
   POSTGRES_EXECUTABLES = %w[pg_dump pg_restore dropdb createdb].freeze
   # Basic ISO 8601 (no separators), so backup file names sort by time.
   TIMESTAMP_FORMAT = "%Y%m%dT%H%M%SZ"
+  PLAINTEXT_DIRECTORY_PREFIX = "easy-rsvp-plaintext-"
 
   Result = Data.define(:production_dump, :development_backup)
 
   class Error < StandardError; end
 
   class CommandError < Error
+    attr_reader :detail
+
     def initialize(command, stderr)
-      detail = stderr.to_s.strip
+      @detail = stderr.to_s.strip
       message = "Command failed: #{Shellwords.join(command)}"
       message = "#{message}\n#{detail}" unless detail.empty?
       super(message)
@@ -74,9 +79,7 @@ class ProductionDatabasePull
 
   def call
     validate_local_target!
-    service = required_setting("DOKKU_PG_SERVICE")
-    host = required_setting("DOKKU_HOST")
-    validate_remote_setting!(host, service)
+    host, service = dokku_settings
     postgres_bin = resolve_postgres_bin
     confirm!
 
@@ -88,47 +91,68 @@ class ProductionDatabasePull
     remote_dump = "/tmp/#{stem}.pgdump"
 
     copy_production_dump(host:, service:, remote_dump:, production_dump:)
-    validate_archive!(production_dump, postgres_bin:)
-    backup_development_database(development_backup, postgres_bin:)
-    validate_archive!(development_backup, postgres_bin:)
-
-    disconnect.call
-    replace_started = true
-    replace_database(production_dump, postgres_bin:)
-    set_development_environment!
+    replace_development_database(production_dump, development_backup, postgres_bin:)
 
     output.puts "Development database refreshed successfully."
     output.puts "Production dump: #{production_dump}"
     output.puts "Previous development data: #{development_backup}"
     Result.new(production_dump:, development_backup:)
-  rescue StandardError => error
-    restore_development_backup(development_backup, postgres_bin:) if replace_started
-    raise error
   end
 
+  # Only the GPG-encrypted archive is published. The plaintext export exists
+  # just long enough to be validated, in an owner-only directory removed even
+  # when a step fails or the task is interrupted.
   def backup
     validate_local_target!
-    service = required_setting("DOKKU_PG_SERVICE")
-    host = required_setting("DOKKU_HOST")
-    validate_remote_setting!(host, service)
+    host, service = dokku_settings
+    recipient = backup_recipient
     postgres_bin = resolve_postgres_bin(required_executables: %w[pg_restore])
 
     prepare_backup_directory
     timestamp = clock.now.utc.strftime(TIMESTAMP_FORMAT)
-    filename = "easy-rsvp-production-#{timestamp}.pgdump"
-    production_dump = backup_dir.join(filename)
-    partial_dump = backup_dir.join(".#{filename}.partial")
-    reserve_archive!(partial_dump, production_dump)
+    filename = "easy-rsvp-production-#{timestamp}.pgdump.gpg"
+    encrypted_backup = backup_dir.join(filename)
+    partial_backup = backup_dir.join(".#{filename}.partial")
+    reserve_archive!(partial_backup, encrypted_backup)
     reserved_partial = true
     remote_dump = "/tmp/easy-rsvp-production-#{timestamp}-#{process_id}-#{nonce_generator.hex(4)}.pgdump"
-    copy_production_dump(host:, service:, remote_dump:, production_dump: partial_dump)
-    validate_archive!(partial_dump, postgres_bin:)
-    publish_archive!(partial_dump, production_dump)
 
-    output.puts "Production backup downloaded and read successfully: #{production_dump}"
-    production_dump
+    Dir.mktmpdir(PLAINTEXT_DIRECTORY_PREFIX, backup_dir) do |plaintext_directory|
+      production_dump = Pathname(plaintext_directory).join("production.pgdump")
+      copy_production_dump(host:, service:, remote_dump:, production_dump:)
+      validate_archive!(production_dump, postgres_bin:)
+      encrypt!(production_dump, partial_backup, recipient:)
+    end
+    publish_archive!(partial_backup, encrypted_backup)
+
+    output.puts "Encrypted production backup downloaded and read successfully: #{encrypted_backup}"
+    encrypted_backup
   ensure
-    FileUtils.rm_f(partial_dump) if reserved_partial
+    FileUtils.rm_f(partial_backup) if reserved_partial
+  end
+
+  def restore_backup(encrypted_backup)
+    validate_local_target!
+    encrypted_backup = Pathname(encrypted_backup)
+    raise Error, "No backup found at #{encrypted_backup}." unless encrypted_backup.file?
+
+    postgres_bin = resolve_postgres_bin
+    confirm!
+
+    prepare_backup_directory
+    timestamp = clock.now.utc.strftime(TIMESTAMP_FORMAT)
+    development_backup = backup_dir.join("easy-rsvp-development-before-#{timestamp}-#{process_id}.pgdump")
+
+    Dir.mktmpdir(PLAINTEXT_DIRECTORY_PREFIX, backup_dir) do |plaintext_directory|
+      production_dump = Pathname(plaintext_directory).join("production.pgdump")
+      output.puts "Decrypting #{encrypted_backup}..."
+      runner.run!("gpg", "--decrypt", "--output", production_dump, "--", encrypted_backup)
+      replace_development_database(production_dump, development_backup, postgres_bin:)
+    end
+
+    output.puts "Development database restored from #{encrypted_backup}."
+    output.puts "Previous development data: #{development_backup}"
+    development_backup
   end
 
   private
@@ -157,6 +181,29 @@ class ProductionDatabasePull
     raise Error, "Set #{name} before accessing the production database." if value.empty?
 
     value
+  end
+
+  def dokku_settings
+    service = required_setting("DOKKU_PG_SERVICE")
+    host = required_setting("DOKKU_HOST")
+    validate_remote_setting!(host, service)
+    [ host, service ]
+  end
+
+  # A test encryption, run before the server is contacted, so a typo or an
+  # expired, revoked or untrusted key cannot leave a production export that has
+  # nowhere safe to go. `--list-keys` would accept all of those.
+  def backup_recipient
+    recipient = required_setting("BACKUP_GPG_RECIPIENT")
+    unless runner.run(
+      "gpg", "--batch", "--yes", "--auto-key-locate", "local", "--encrypt", "--recipient", recipient,
+      "--output", File::NULL, "--", File::NULL
+    )
+      raise Error, "BACKUP_GPG_RECIPIENT is not a usable encryption key in your GPG keyring " \
+        "(missing, expired, revoked or untrusted)."
+    end
+
+    recipient
   end
 
   def validate_remote_setting!(host, service)
@@ -219,6 +266,33 @@ class ProductionDatabasePull
     File.open(partial_dump, File::WRONLY | File::CREAT | File::EXCL, 0o600) { }
   rescue Errno::EEXIST
     raise Error, "Another backup is already using #{partial_dump}"
+  end
+
+  def encrypt!(production_dump, encrypted_backup, recipient:)
+    output.puts "Encrypting the export to #{encrypted_backup}..."
+    # --yes overwrites the empty partial file reserve_archive! created.
+    runner.run!(
+      "gpg", "--batch", "--yes", "--encrypt", "--recipient", recipient,
+      "--output", encrypted_backup, "--", production_dump
+    )
+    FileUtils.chmod(0o600, encrypted_backup)
+  rescue CommandError => error
+    # Re-raised without the command line, which names the recipient.
+    raise Error, "GPG could not encrypt the export.\n#{error.detail}".strip
+  end
+
+  def replace_development_database(production_dump, development_backup, postgres_bin:)
+    validate_archive!(production_dump, postgres_bin:)
+    backup_development_database(development_backup, postgres_bin:)
+    validate_archive!(development_backup, postgres_bin:)
+
+    disconnect.call
+    replace_started = true
+    replace_database(production_dump, postgres_bin:)
+    set_development_environment!
+  rescue StandardError
+    restore_development_backup(development_backup, postgres_bin:) if replace_started
+    raise
   end
 
   def backup_development_database(file, postgres_bin:)
