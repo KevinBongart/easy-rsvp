@@ -7,7 +7,8 @@ Read more: https://www.kevinbongart.net/projects/easy-rsvp.html
 ## Development
 
 Use Ruby from `.ruby-version`, Node from `.node-version`, and a running local
-PostgreSQL server:
+PostgreSQL server. CI tests against PostgreSQL 18 (`cimg/postgres:18.7`); use
+PostgreSQL 18 locally too (`brew install postgresql@18`):
 
 ```sh
 test -e .env || cp .env.sample .env
@@ -214,12 +215,21 @@ These checks catch truncation and archive read errors, but only a successful
 restore proves that a backup is usable. Before an irreversible migration,
 restore the new archive into a disposable local database and inspect the data.
 
+## Upgrade production PostgreSQL
+
+Follow [the PostgreSQL upgrade runbook](docs/POSTGRESQL_UPGRADE.md) to move the
+Dokku PostgreSQL service to a new major version. It starts with
+`bin/rails db:backup_production` and keeps the old service for rollback.
+
 ## Refresh development data from Dokku
 
 Stop local Rails servers/consoles holding database connections, and ensure
 `events_development` exists (`bin/rails db:create` on first setup). You need SSH
 and SCP access to the Dokku server, plus `pg_dump`, `pg_restore`, `dropdb`, and
-`createdb` compatible with the production PostgreSQL version.
+`createdb` from the production PostgreSQL major version or newer: `pg_restore`
+cannot read an archive made by a newer `pg_dump` ("unsupported version in file
+header"). Both tasks use the newest installed Homebrew `postgresql@N` or
+`/usr/lib/postgresql/N` tools before falling back to `PATH`.
 
 Set `DOKKU_HOST` to the SSH destination and `DOKKU_PG_SERVICE` to the linked
 Dokku **PostgreSQL service** (which can differ from the app name). Both are
@@ -240,7 +250,7 @@ restore the previous local database automatically if replacement fails.
 | --- | --- |
 | `DOKKU_PG_SERVICE` | Required linked PostgreSQL service name; no guessed default |
 | `DOKKU_HOST` | Required SSH destination, e.g. `root@your-dokku-host`; no default |
-| `PG_BIN` | Directory containing PostgreSQL tools, if automatic discovery selects the wrong version or finds none |
+| `PG_BIN` | Directory containing PostgreSQL tools, overriding the newest-version discovery |
 | `CONFIRM_PULL_PRODUCTION` | Set to exactly `events_development` for an intentional noninteractive replacement |
 
 Also set `DOKKU_HOST` in CircleCI project environment variables before deploying.

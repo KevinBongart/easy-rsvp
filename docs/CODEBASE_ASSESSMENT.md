@@ -759,6 +759,14 @@ provided; Bon App's accepted risks do not transfer.
   not tested in this assessment. Run such checks only against deliberately
   disposable local databases and authorized production exports. Do not weaken
   the target guards to make a local rehearsal convenient.
+  2026-11-25 progress: the 2026-09-22 production archive (dumped by
+  PostgreSQL 15.1) restored without errors into a disposable PostgreSQL 18
+  cluster, with matching row counts for all 29 tables; current migrations and
+  the full suite ran against it. Client compatibility is now handled: the
+  database tasks prefer the newest installed client tools, since `pg_restore`
+  14 cannot read an 18 archive. CI moved to PostgreSQL 18, and
+  `docs/POSTGRESQL_UPGRADE.md` is the owner's production upgrade runbook.
+  Concurrent local connection handling remains untested.
 
 - [x] **7.4 P3 — Add a focused formatting and lint baseline.** Rails Omakase,
   ERB Lint's default rules, ESLint's recommended browser rules, and Stylelint's

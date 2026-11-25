@@ -52,7 +52,7 @@ Verified against the repository on 2026-09-18; the version files remain authorit
 | --- | --- |
 | Runtime | Ruby as pinned in `.ruby-version`; Rails as resolved in `Gemfile.lock` |
 | Framework defaults | `config.load_defaults 8.1`, with a SHA-1 key-generator compatibility hold |
-| Database | PostgreSQL; `events_development`, `events_test`, `events_production` |
+| Database | PostgreSQL 18 in CI (`cimg/postgres:18.7`); production moves from 15.1 per `docs/POSTGRESQL_UPGRADE.md`; `events_development`, `events_test`, `events_production` |
 | UI | ERB, Simple Form, Bootstrap 5.3.8 |
 | Assets | Propshaft, dartsass-rails, jsbundling-rails/esbuild, Turbo, Stimulus, Action Text/Trix 2.1.19; browser packages locked with npm |
 | Storage | Active Storage; disk in development/test, S3 in production |
@@ -414,6 +414,11 @@ code is separate from running an actual production import.
 archive under ignored `db/backups/` without changing either database. It checks
 the archive catalog and reads the complete archive, but only a disposable restore
 drill proves usability; require that drill before destructive use.
+Both tasks use the newest installed PostgreSQL client tools (`PG_BIN`
+overrides), because `pg_restore` cannot read archives from a newer `pg_dump`.
+The production major-version upgrade is an owner-run procedure in
+[docs/POSTGRESQL_UPGRADE.md](docs/POSTGRESQL_UPGRADE.md); agents never run its
+Dokku commands.
 
 Production and staging database access has a stricter boundary. An agent may
 pull either database only by invoking a dedicated, repository-owned, guarded

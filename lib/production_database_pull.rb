@@ -13,6 +13,11 @@ class ProductionDatabasePull
   LOCAL_DATABASE_HOSTS = [ nil, "", "localhost", "127.0.0.1", "::1" ].freeze
   MINIMUM_ARCHIVE_SIZE = 1_024
   POSTGRES_EXECUTABLES = %w[pg_dump pg_restore dropdb createdb].freeze
+  VERSIONED_POSTGRES_BINS = [
+    "/opt/homebrew/opt/postgresql@*/bin",
+    "/usr/local/opt/postgresql@*/bin",
+    "/usr/lib/postgresql/*/bin"
+  ].freeze
   # Basic ISO 8601 (no separators), so backup file names sort by time.
   TIMESTAMP_FORMAT = "%Y%m%dT%H%M%SZ"
 
@@ -329,14 +334,16 @@ class ProductionDatabasePull
     database_config.configuration_hash[name]
   end
 
+  # pg_restore cannot read an archive from a newer pg_dump, and pg_dump refuses
+  # a newer server, so prefer the newest installed major over the PATH default.
   def resolve_postgres_bin(required_executables: POSTGRES_EXECUTABLES)
     candidates = []
     candidates << env["PG_BIN"] unless env["PG_BIN"].to_s.empty?
+    candidates.concat(Dir[*VERSIONED_POSTGRES_BINS].sort_by { |directory| -major_version(directory) })
     candidates.concat([
       "/opt/homebrew/opt/postgresql/bin",
       "/usr/local/opt/postgresql/bin"
     ])
-    candidates.concat(Dir["/usr/lib/postgresql/*/bin"].sort.reverse)
     candidates.concat(env.fetch("PATH", "").split(File::PATH_SEPARATOR))
 
     directory = candidates.compact.map { |candidate| Pathname(candidate) }.find do |candidate|
@@ -345,5 +352,9 @@ class ProductionDatabasePull
     return directory if directory
 
     raise Error, "Could not find #{required_executables.join(', ')} in one directory. Set PG_BIN."
+  end
+
+  def major_version(directory)
+    directory[%r{(\d+)[^/]*/bin\z}, 1].to_i
   end
 end

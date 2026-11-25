@@ -309,6 +309,27 @@ RSpec.describe ProductionDatabasePull do
     end
   end
 
+  it "uses the newest installed PostgreSQL tools when PG_BIN is not set" do
+    installs = %w[postgresql@9.6 postgresql@14 postgresql@18].to_h do |name|
+      directory = temporary_directory.join(name, "bin")
+      FileUtils.mkdir_p(directory)
+      described_class::POSTGRES_EXECUTABLES.each do |executable|
+        FileUtils.touch(directory.join(executable))
+        FileUtils.chmod(0o700, directory.join(executable))
+      end
+      [ name, directory.to_s ]
+    end
+    allow(Dir).to receive(:[]).and_call_original
+    allow(Dir).to receive(:[]).with(*described_class::VERSIONED_POSTGRES_BINS).and_return(installs.values)
+    environment.delete("PG_BIN")
+    environment["PATH"] = installs.fetch("postgresql@14")
+
+    backup
+
+    pg_restore_calls = runner.calls.map { |call| call.fetch(:command).first }.grep(/pg_restore\z/)
+    expect(pg_restore_calls).to all(eq(File.join(installs.fetch("postgresql@18"), "pg_restore")))
+  end
+
   it "rejects SSH options in place of a hostname" do
     environment["DOKKU_HOST"] = "-V"
 
