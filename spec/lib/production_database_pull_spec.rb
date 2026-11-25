@@ -57,7 +57,7 @@ RSpec.describe ProductionDatabasePull do
     private
 
     def run_gpg(command)
-      if command.include?("--list-keys")
+      if command.include?("--encrypt") && command.last == File::NULL
         raise ProductionDatabasePull::CommandError.new(command, "no public key") if missing_gpg_key
       elsif command.include?("--encrypt")
         raise ProductionDatabasePull::CommandError.new(command, "encryption broke") if fail_encryption
@@ -168,7 +168,10 @@ RSpec.describe ProductionDatabasePull do
     expect(plaintext.dirname.dirname).to eq(backup_dir)
 
     commands = runner.calls.map { |call| call.fetch(:command) }
-    expect(commands[0]).to eq([ "gpg", "--batch", "--list-keys", "--", "backups@example.test" ])
+    expect(commands[0]).to eq([
+      "gpg", "--batch", "--yes", "--auto-key-locate", "local", "--encrypt", "--recipient", "backups@example.test",
+      "--output", File::NULL, "--", File::NULL
+    ])
     expect(commands[1]).to eq([
       "ssh", "root@example.test",
       "umask 077 && dokku postgres:export easy-rsvp-db > /tmp/#{remote_filename}"
@@ -215,7 +218,7 @@ RSpec.describe ProductionDatabasePull do
     runner.missing_gpg_key = true
 
     expect { backup }.to raise_error(described_class::Error) { |error|
-      expect(error.message).to include("BACKUP_GPG_RECIPIENT does not match a public key")
+      expect(error.message).to include("BACKUP_GPG_RECIPIENT is not a usable encryption key")
       expect(error.message).not_to include("backups@example.test")
     }
     expect(runner.calls.map { |call| call.fetch(:command).first }).to eq([ "gpg" ])
@@ -225,7 +228,11 @@ RSpec.describe ProductionDatabasePull do
   it "leaves no plaintext or partial file when encryption fails" do
     runner.fail_encryption = true
 
-    expect { backup }.to raise_error(described_class::CommandError, /encryption broke/)
+    expect { backup }.to raise_error(described_class::Error) { |error|
+      expect(error).not_to be_a(described_class::CommandError)
+      expect(error.message).to include("GPG could not encrypt the export.", "encryption broke")
+      expect(error.message).not_to include("backups@example.test")
+    }
     expect(backup_dir.children).to be_empty
     expect(runner.calls.map { |call| call.fetch(:command) }).to include([
       "ssh", "root@example.test",
@@ -235,7 +242,7 @@ RSpec.describe ProductionDatabasePull do
 
   it "leaves no plaintext or partial file when interrupted" do
     allow(runner).to receive(:run!).and_wrap_original do |original, *command, **options|
-      raise Interrupt if command.first == "gpg" && command.include?("--encrypt")
+      raise Interrupt if command.first == "gpg" && command.include?("--encrypt") && command.last != File::NULL
 
       original.call(*command, **options)
     end

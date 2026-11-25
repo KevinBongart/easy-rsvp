@@ -24,8 +24,10 @@ class ProductionDatabasePull
   class Error < StandardError; end
 
   class CommandError < Error
+    attr_reader :detail
+
     def initialize(command, stderr)
-      detail = stderr.to_s.strip
+      @detail = stderr.to_s.strip
       message = "Command failed: #{Shellwords.join(command)}"
       message = "#{message}\n#{detail}" unless detail.empty?
       super(message)
@@ -188,12 +190,17 @@ class ProductionDatabasePull
     [ host, service ]
   end
 
-  # Checked before the server is contacted so a typo cannot leave a
-  # production export that has nowhere safe to go.
+  # A test encryption, run before the server is contacted, so a typo or an
+  # expired, revoked or untrusted key cannot leave a production export that has
+  # nowhere safe to go. `--list-keys` would accept all of those.
   def backup_recipient
     recipient = required_setting("BACKUP_GPG_RECIPIENT")
-    unless runner.run("gpg", "--batch", "--list-keys", "--", recipient)
-      raise Error, "BACKUP_GPG_RECIPIENT does not match a public key in your GPG keyring."
+    unless runner.run(
+      "gpg", "--batch", "--yes", "--auto-key-locate", "local", "--encrypt", "--recipient", recipient,
+      "--output", File::NULL, "--", File::NULL
+    )
+      raise Error, "BACKUP_GPG_RECIPIENT is not a usable encryption key in your GPG keyring " \
+        "(missing, expired, revoked or untrusted)."
     end
 
     recipient
@@ -269,6 +276,9 @@ class ProductionDatabasePull
       "--output", encrypted_backup, "--", production_dump
     )
     FileUtils.chmod(0o600, encrypted_backup)
+  rescue CommandError => error
+    # Re-raised without the command line, which names the recipient.
+    raise Error, "GPG could not encrypt the export.\n#{error.detail}".strip
   end
 
   def replace_development_database(production_dump, development_backup, postgres_bin:)

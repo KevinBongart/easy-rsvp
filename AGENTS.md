@@ -413,8 +413,8 @@ code is separate from running an actual production import.
 `db:backup_production` uses the same guarded export path to create a timestamped
 archive under ignored `db/backups/` without changing either database. It checks
 the archive catalog and reads the complete archive, then encrypts it to
-`BACKUP_GPG_RECIPIENT` (checked with `gpg --list-keys` before the server is
-contacted). Only `easy-rsvp-production-<timestamp>.pgdump.gpg` is kept; the
+`BACKUP_GPG_RECIPIENT` (checked with a test encryption to `/dev/null` before
+the server is contacted). Only `easy-rsvp-production-<timestamp>.pgdump.gpg` is kept; the
 plaintext lives in an owner-only `easy-rsvp-plaintext-*` directory removed in a
 block-form `Dir.mktmpdir`. `db:restore_production_backup` (`BACKUP=path`,
 default newest) decrypts one the same way and reuses the pull's guarded

@@ -206,7 +206,8 @@ The task requires `DOKKU_HOST` and `DOKKU_PG_SERVICE`, using the same settings
 as the development database import below, plus `BACKUP_GPG_RECIPIENT`: the
 fingerprint (preferred) or email of a public key in your GPG keyring, such as
 your own. Encrypting needs only the public key, so making a backup never asks
-for a passphrase. The task checks the key exists before contacting the server.
+for a passphrase. Before contacting the server, the task makes a test
+encryption, so a missing, expired, revoked or untrusted key stops it early.
 Set all three in your untracked `.env`, or inline:
 
 ```sh
