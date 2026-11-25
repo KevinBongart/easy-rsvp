@@ -31,7 +31,10 @@ common: &defaults
   # - Default: none
   # - Valid Options: true, false
   monitor: true
-  errors_enabled: true
+
+  # Honeybadger reports errors. Scout's error reports would carry raw
+  # organizer URLs, referers and unfiltered admin_token parameters.
+  errors_enabled: false
 
 production:
   <<: *defaults

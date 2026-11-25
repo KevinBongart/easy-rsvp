@@ -16,18 +16,22 @@ RSpec.describe OrganizerTokenRedactor do
   end
 
   it 'scrubs Honeybadger notice URLs and diagnostic data without sending it' do
-    notice_class = Struct.new(*described_class::HONEYBADGER_NOTICE_FIELDS, keyword_init: true)
+    notice_class = Struct.new(*described_class::HONEYBADGER_NOTICE_FIELDS, :breadcrumbs, keyword_init: true)
     notice = notice_class.new(
       url: "https://example.com/party/admin/#{token}",
       error_message: "Failed #{token}",
       context: { event: token },
       params: { admin_token: token },
-      details: { safe: 'kept' }
+      details: { safe: 'kept' },
+      breadcrumbs: [ Honeybadger::Breadcrumbs::Breadcrumb.new(message: "Started GET /party/admin/#{token}",
+                                                              metadata: { path: "/party/admin/#{token}" }) ]
     )
 
     Honeybadger.config.before_notify_hooks.each { |hook| hook.call(notice) }
 
     expect(notice.to_h.to_s).not_to include(token)
+    expect(notice.breadcrumbs.first.to_h).to include(message: 'Started GET /party/admin/[FILTERED]',
+                                                     metadata: { path: '/party/admin/[FILTERED]' })
     expect(notice.url).to eq('https://example.com/party/admin/[FILTERED]')
     expect(notice.details).to eq({ safe: 'kept' })
   end

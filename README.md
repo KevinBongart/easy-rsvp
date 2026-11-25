@@ -252,7 +252,9 @@ deployment that includes monitoring. A key in the local `.env` configures only
 local processes and is not copied to Dokku. Honeybadger error reporting is
 disabled in development and test; production reports exceptions without session
 data or Insights telemetry. Organizer-token URL segments and UUID-shaped values
-are scrubbed from both application logs and Honeybadger notices.
+are scrubbed from application logs, Honeybadger notices and breadcrumbs, and
+Scout trace URIs. Event descriptions and guest names are filtered parameters.
+Scout's own error reports are off, so Honeybadger is the only error tracker.
 
 Rails enables YJIT in production. If its memory overhead is unsuitable for the
 Dokku host, set `RAILS_YJIT=false` on the app and restart it; the application
