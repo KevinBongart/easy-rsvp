@@ -11,6 +11,15 @@ Capybara.register_driver :headless_firefox do |app|
   Capybara::Selenium::Driver.new(app, browser: :firefox, options: options)
 end
 
+# Same browser with WebDriver BiDi enabled, which lets the CSP violation specs
+# install a listener before any page script runs.
+Capybara.register_driver :headless_firefox_bidi do |app|
+  options = Selenium::WebDriver::Firefox::Options.new(web_socket_url: true)
+  options.add_argument('-headless')
+  options.binary = ENV['FIREFOX_BINARY'] if ENV['FIREFOX_BINARY'].present?
+  Capybara::Selenium::Driver.new(app, browser: :firefox, options: options)
+end
+
 RSpec.configure do |config|
   config.around(type: :system, js: true) do |example|
     previous = ActionController::Base.allow_forgery_protection

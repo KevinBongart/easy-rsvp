@@ -300,6 +300,18 @@ asset-compilation, and RSpec checks.
   explains under the editor. Organizer RSVP edits are token-gated and not
   limited, so an organizer can clean up a flood. Admin sign-ins are not
   limited: `ADMIN_PASSWORD` must be a long random secret.
+- Browser policies: an enforced Content Security Policy
+  (`config/initializers/content_security_policy.rb`) and a `Permissions-Policy`
+  header (`config/initializers/permissions_policy.rb`; Rails' DSL still sends
+  the obsolete `Feature-Policy`). Scripts load only from our bundle: no inline
+  scripts or `on*` attributes, no eval. Style elements need the per-response
+  nonce from `csp_meta_tag` (Trix and Turbo insert one at load); style
+  attributes stay allowed because Trix reads them to keep pasted formatting.
+  Images allow `https:` because descriptions hotlink remote images (19
+  legitimate events on the 2026-11 copy) and Trix keeps pasted ones; direct
+  uploads may connect only to the production bucket's path-style URL.
+  `spec/system/content_security_policy_spec.rb` records every violation in
+  Firefox through a WebDriver BiDi preload script and fails on any.
 - `OrganizerEventsController`: organizer display, editing, deletion, publication.
 - `RsvpsController`: public response creation and session-owned deletion.
 - `OrganizerRsvpsController`: organizer response editing/deletion.
