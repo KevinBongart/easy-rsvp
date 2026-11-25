@@ -62,7 +62,7 @@ RSpec.describe EventSpamReviewJob do
     expect(event.reload).to have_attributes(spam_source: nil, spam_at: nil, spam_score: 0.42)
   end
 
-  it 'asks Jev once for a burst of edits, and again once the text changes' do
+  it 'asks Jev once for reviews queued behind several edits, and again once the text changes' do
     event = create(:event)
     stub_jev(0.1)
     3.times { |n| event.update!(title: "Garden party #{n}") }

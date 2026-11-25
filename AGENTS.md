@@ -225,8 +225,10 @@ asset-compilation, and RSpec checks.
   open for every event. So a text edit always resets `spam_score` (written
   even when the loaded copy already reads nil, since a review may have landed
   meanwhile), and a job skips an event that already has a score
-  (`spam_review_needed?`): a burst of saves queues many jobs but costs about
-  one call for the final text. Organizer saves are also rate limited (below).
+  (`spam_review_needed?`), so a backlog of queued reviews collapses to one
+  call. Each text version that gets reviewed still costs a call (jobs usually
+  start right after their save commits), so what bounds spending is the
+  organizer rate limit (below).
   Errors fail open, so `SpamReviewStatus` (one row, `id = 1`) records Jev's
   health across restarts:
   - Columns: `last_succeeded_at`, the current streak's `failing_since` and

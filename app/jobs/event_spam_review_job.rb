@@ -2,8 +2,9 @@
 # creating an event never waits on TypeSafe, and fails open: any API error
 # leaves the event up. Each TypeSafe call costs credits, and every text edit
 # queues a job, so a job finding the event already scored for its current text
-# (spam_review_needed?) skips it: a burst of edits costs about one call for
-# the text the event ends up with, not one per edit.
+# (spam_review_needed?) skips it: a backlog of queued reviews collapses to one
+# call. Each text version that gets reviewed still costs a call; the organizer
+# rate limit is what bounds the total.
 class EventSpamReviewJob < ApplicationJob
   def perform(event_id)
     event = Event.find_by(id: event_id)

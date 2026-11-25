@@ -555,8 +555,7 @@ provided; Bon App's accepted risks do not transfer.
   that the main pages load without violations. Public RSVPs, rich-text uploads
   (#1004) and organizer saves and publish toggles are rate limited per client;
   the organizer limit caps the paid Jev reviews one address can trigger, and
-  Jev is asked once per text version rather than once per queued review (see
-  AGENTS.md). Event creation is limited by `RecentEventCreation`. Admin Basic
+  queued reviews skip text Jev has already scored (see AGENTS.md). Event creation is limited by `RecentEventCreation`. Admin Basic
   Auth still has no app-level throttling.
   Original finding:
   No app-level throttling exists for event creation, public RSVPs, Basic Auth,

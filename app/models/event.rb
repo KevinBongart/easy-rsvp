@@ -111,7 +111,8 @@ class Event < ApplicationRecord
   # Events the Ruby rules let through and no operator has decided on get a
   # second opinion from Event::SpamReview, once per text: every title or
   # description edit resets spam_score (apply_spam_check), so a score means
-  # Jev already judged the current text.
+  # Jev already judged the current text. This only spares calls for reviews
+  # queued behind one already done; the organizer rate limit bounds the rest.
   def spam_review_needed?
     spam_source.nil? && spam_score.nil? && Event::SpamReview.enabled?
   end
