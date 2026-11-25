@@ -55,8 +55,10 @@ class Event::SpamCheck
     adult_drugs: /\b(xvideos|xnxx|xhamster|pornhub|porn|nsfw|hentai|onlyfans|adderall|lorazepam|tramadol|xanax|viagra|cialis|oxycodone)\b/i,
     clickbait_video: /\b(leak\w*|sex|xxx|xem|18\+)\b.{0,25}\b(clips?|videos?)\b|\bclip\W{1,3}video\b|\b(clips?|videos?)\b.{0,25}\b(leak\w*|xxx)\b|\bfull (hd )?clip\b|clip n[oó]ng/i,
     airline_support: /missed (your )?\w+ flight|miss a \w+ flight|name correction|contatti telefonici|flight (change|cancell?ation) (policy|number)/i,
-    # Prefix match: spammers glue words on ("iPTVServices").
-    iptv: /\biptv/i,
+    # Substring match: spammers glue words on either side ("iPTVServices",
+    # "britishiptv", "TryBestIPTV"). No real title in the November 2026
+    # snapshot contains "iptv" at all.
+    iptv: /iptv/i,
     free_game_currency: /\bfree (robux|v-?bucks|gift ?cards?|eshop|psn|diamonds|gems)\b/i
   }.freeze
 
