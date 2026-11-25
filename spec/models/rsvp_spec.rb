@@ -123,7 +123,7 @@ RSpec.describe Rsvp, type: :model do
       'shop.example.com', 'Win big at go.casino.xyz', 'Ivan (shop.ru)',
       "\uFF43\uFF41\uFF53\uFF49\uFF4E\uFF4F\uFF0E\uFF43\uFF4F\uFF4D", "casino.c\u200Bom", "\uFF50\uFF52\uFF4F\uFF4D\uFF4F \uFF43\uFF4F\uFF44\uFF45 SAVE20",
       "a#{"\u0301" * 16}",
-      'Use promo code SAVE20', 'Best online casino bonus', 'Free robux generator', 'Flight booking 1-800-555-0199'
+      'Use promo code SAVE20', 'Best online casino bonus', 'Free robux generator', 'Flight booking 1-800-555-0199', 'britishiptv'
     ].each do |name|
       it "refuses #{name.inspect} without saying why" do
         rsvp = build(:rsvp, name:)
@@ -133,7 +133,7 @@ RSpec.describe Rsvp, type: :model do
     end
 
     [
-      'Alex', 'Mary-Jane O’Brien', 'Dr. Who + 2 kids', 'J.R.R. Tolkien', 'Ann & Bob (bringing salad)',
+      'Alex', 'Philip Tvedt', 'Mary-Jane O’Brien', 'Dr. Who + 2 kids', 'J.R.R. Tolkien', 'Ann & Bob (bringing salad)',
       'alex@example.com', 'a@mail.example.com', 'anna@mail.ru', 'Sam from acme.de', 'Casino night crew', 'Customer service team', '_dj_mike_', '𝓙𝓸𝓱𝓷',
       '山田太郎', 'Иван Петров', 'محمد علي', 'יוסי כהן', 'नेहा शर्मा', 'Nguyễn Văn An', '김민준 +1', 'Ζωή Παπαδοπούλου', 'สมชาย ใจดี',
       "Mehdi \u0645\u06CC\u200C\u062E\u0648\u0627\u0647\u0645", "Family \u{1F468}\u200D\u{1F469}\u200D\u{1F467}", "Z#{"\u0301" * 15}"
