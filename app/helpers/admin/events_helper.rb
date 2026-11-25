@@ -52,7 +52,7 @@ module Admin::EventsHelper
       public: event_path(ROW_PATH_ID),
       organizer: event_admin_path(ROW_PATH_ID, ROW_PATH_TOKEN),
       mark_spam: mark_spam_admin_event_path(ROW_PATH_ID),
-      unmark_spam: unmark_spam_admin_event_path(ROW_PATH_ID)
+      mark_not_spam: mark_not_spam_admin_event_path(ROW_PATH_ID)
     }
     path = templates.fetch(kind).sub(ROW_PATH_ID, hashid)
     kind == :organizer ? path.sub(ROW_PATH_TOKEN, event.admin_token) : path

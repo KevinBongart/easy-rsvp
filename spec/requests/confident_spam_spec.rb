@@ -133,7 +133,7 @@ RSpec.describe 'Confidently flagged spam', type: :request do
 
   it 'keeps operator marks removed for the browser that created the event' do
     event = create_event(title: 'Garden party')
-    event.update_columns(spam_at: Time.current, spam_source: 'operator', spam_score: 0.99)
+    event.update_columns(spam_at: Time.current, spam_source: :operator, spam_score: 0.99)
 
     get event_path(event)
     expect(response).to have_http_status(:gone)

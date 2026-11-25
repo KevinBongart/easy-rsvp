@@ -28,7 +28,7 @@ Rails.application.routes.draw do
     resources :events, only: [ :index ] do
       member do
         post :mark_spam
-        post :unmark_spam
+        post :mark_not_spam
       end
       delete :close_session, on: :collection
     end

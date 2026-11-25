@@ -127,7 +127,9 @@ asset-compilation, and RSpec checks.
   and adds `rel="nofollow ugc noopener noreferrer"` to every rendered link; Action
   Text ignores its tag/attribute lists when a scrubber is set, so the scrubber
   carries them itself. `Event#spam_at` marks spam (`Event.spam` / `Event.not_spam` scopes) and
-  `Event#spam_source` records who marked it. `Event::SpamCheck` runs on every
+  `Event#spam_source`, a string enum, records who decided: `automatic` (flagged
+  by the Ruby rules or Jev), `operator` (marked by an admin), or `cleared` (an
+  admin said not spam). `Event::SpamCheck` runs on every
   save that changes the title or body and marks matches as `automatic`; it has
   named title and body rules tuned on the 2026-11 production snapshot (see the
   class comment). Its `non_editor_html` rule assumes the Trix editor. Public and
@@ -150,10 +152,13 @@ asset-compilation, and RSpec checks.
   captions, and content attachments counts because Action Text renders it. The admin
   dashboard lists spam only under its Spam filter (`spam=1`) with creation
   times, badges automatic marks, and never counts spam in the stats. Each row
-  has confirmed Mark spam / Not spam buttons; admin marks are `operator` marks
-  set with `update_columns`, bypassing the save-time check. Not spam sets
-  `spam_source = "cleared"` (with no `spam_at`) so automatic checks skip the
-  event afterwards.
+  has confirmed Mark spam / Not spam buttons (`mark_spam` / `mark_not_spam`),
+  which call `Event#mark_as_spam!` (an `operator` mark) and
+  `Event#mark_as_not_spam!`; Jev's flag is `Event#flag_as_spam!`. These spam
+  commands write with `update_columns`, bypassing the save-time check,
+  validations and `updated_at`, and update `RecentEventCreation` themselves.
+  Not spam sets `spam_source` to `cleared` (with no `spam_at`) so automatic
+  checks skip the event afterwards.
 - Spam images (`Event::SpamImages`): Active Storage's blob and representation
   redirect/proxy controllers get `HidesOperatorSpamImages` prepended
   (`config/initializers/spam_images.rb`), which narrows `blob_scope` so the
@@ -172,7 +177,7 @@ asset-compilation, and RSpec checks.
     and of `automatic` flags whose `spam_at` and the event's `updated_at` are
     both older than 30 days. Every title or description edit touches `updated_at` and re-runs the
     check, so an organizer who edits keeps the images whether the flag stays
-    or goes; Jev's flag uses `update_columns`, hence both columns. Cleared
+    or goes; Jev's flag (`flag_as_spam!`) leaves `updated_at` alone, hence both columns. Cleared
     events and events edited out of spam never match, and the event is
     re-checked under its row lock before each attachment goes.
   - `OrphanedImages`: blobs older than 2 days (`GRACE_PERIOD`; direct
@@ -219,7 +224,8 @@ asset-compilation, and RSpec checks.
   and no admin has decided on. The job is queued after commit on the in-process
   async adapter (two threads inside each Puma process; no worker process, so a
   restart can drop it), stores Jev's advertising score in
-  `Event#spam_score`, and flags the event `automatic` at `THRESHOLD` (0.9); the
+  `Event#spam_score`, and flags the event `automatic` at `THRESHOLD` (0.9) with
+  `Event#flag_as_spam!`; the
   organizer clears it the same way, by editing, which queues a new review.
   Each call costs TypeSafe credits, and once they run out (HTTP 402) Jev fails
   open for every event. So a text edit always resets `spam_score` (written
@@ -279,11 +285,11 @@ asset-compilation, and RSpec checks.
   that becomes spam, whatever decided it. The counter row records it
   (`spam_at`): at creation when the Ruby rules flag the event, by `Event`
   after save when an edit makes it spam (`became_spam?`), and by
-  `RecentEventCreation.record_spam!` from the writes that skip callbacks
-  (`EventSpamReviewJob`, admin Mark spam). It sticks: deleting the event or
+  `RecentEventCreation.record_spam!` from the spam commands that skip callbacks
+  (`Event#flag_as_spam!` for Jev, `Event#mark_as_spam!` for admin Mark spam). It sticks: deleting the event or
   editing the spam away does not lift the block, because the code is public
   and either would otherwise cost a spammer one request. Only admin "Not spam"
-  (`clear_spam!`) or the 2-hour expiry lifts it. A wrongly flagged organizer
+  (`Event#mark_as_not_spam!`, which calls `clear_spam!`) or the 2-hour expiry lifts it. A wrongly flagged organizer
   can still edit their event to clear its flag, but can't create another event
   from that IP (or IPv6 /64) for up to 2 hours. Clients are keyed by an HMAC of
   the remote IP (IPv6 reduced to its /64), never the raw address and never

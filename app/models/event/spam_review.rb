@@ -126,8 +126,8 @@ class Event::SpamReview
   end
 
   def instructions
-    cleared = examples(Event.where(spam_source: "cleared", published: true))
-    marked = examples(Event.where(spam_source: "operator"))
+    cleared = examples(Event.spam_source_cleared.where(published: true))
+    marked = examples(Event.spam_source_operator)
     text = +QUESTION
     if cleared.any?
       text << "\n\nThe site's administrator reviewed these pages and confirmed they are genuine event pages, not advertising:\n"

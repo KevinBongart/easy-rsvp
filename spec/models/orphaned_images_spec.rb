@@ -59,10 +59,10 @@ RSpec.describe OrphanedImages, type: :model do
   it 'keeps a legacy upload linked from expired spam that is marked "Not spam" during the run' do
     image_upload = legacy_upload
     event = create(:event, body: %(<img src="#{url(image_upload.image.blob)}">))
-    event.update_columns(spam_at: 31.days.ago, spam_source: 'operator', spam_decided_at: 31.days.ago)
+    event.update_columns(spam_at: 31.days.ago, spam_source: :operator, spam_decided_at: 31.days.ago)
     cleanup = ImageCleanup.new
     cleanup.read_descriptions
-    event.update_columns(spam_at: nil, spam_source: 'cleared')
+    event.update_columns(spam_at: nil, spam_source: :cleared)
 
     blob = image_upload.image.blob
 
@@ -73,7 +73,7 @@ RSpec.describe OrphanedImages, type: :model do
   it 'deletes a legacy upload linked only from spam still expired' do
     image_upload = legacy_upload
     create(:event, body: %(<img src="#{url(image_upload.image.blob)}">))
-      .update_columns(spam_at: 31.days.ago, spam_source: 'operator', spam_decided_at: 31.days.ago)
+      .update_columns(spam_at: 31.days.ago, spam_source: :operator, spam_decided_at: 31.days.ago)
 
     expect(purge.deleted_blobs).to eq('unreferenced_legacy_upload' => 1)
     expect(gone?(image_upload.image.blob)).to be(true)
@@ -90,8 +90,8 @@ RSpec.describe OrphanedImages, type: :model do
 
   it 'keeps images referenced from spam until its images expire' do
     recent, expired = upload, upload
-    create(:event, body: %(<img src="#{url(recent)}">)).update_columns(spam_at: 29.days.ago, spam_source: 'operator')
-    create(:event, body: %(<img src="#{url(expired)}">)).update_columns(spam_at: 31.days.ago, spam_source: 'operator')
+    create(:event, body: %(<img src="#{url(recent)}">)).update_columns(spam_at: 29.days.ago, spam_source: :operator)
+    create(:event, body: %(<img src="#{url(expired)}">)).update_columns(spam_at: 31.days.ago, spam_source: :operator)
 
     expect(purge.deleted_blobs).to eq('unattached_upload' => 1)
     expect(kept?(recent)).to be(true)

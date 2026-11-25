@@ -122,7 +122,7 @@
               data-turbo-confirm="<%= "Mark “#{event.title}” as spam? Guests and its organizer will see it as removed." %>">Mark spam</button>
           <% end %>
           <% if event.spam? %>
-            <button type="submit" form="spam-actions" formaction="<%= admin_event_row_path(:unmark_spam, event, hashid:) %>"
+            <button type="submit" form="spam-actions" formaction="<%= admin_event_row_path(:mark_not_spam, event, hashid:) %>"
               class="btn btn-link btn-sm p-0 align-baseline"
               data-turbo-confirm="<%= "Restore “#{event.title}”? Guests will be able to see it again, and automatic spam checks will skip it." %>">Not spam</button>
           <% end %>

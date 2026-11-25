@@ -47,13 +47,13 @@ class RecentEventCreation < ApplicationRecord
     end
   end
 
-  # Called wherever an event becomes spam, including writes that skip
-  # callbacks (the background review and admin marks use update_columns).
+  # Called wherever an event becomes spam: Event's after_save callback, and
+  # Event#flag_as_spam! and #mark_as_spam!, which skip callbacks.
   def self.record_spam!(event)
     where(event_id: event.id, spam_at: nil).update_all(spam_at: Time.current)
   end
 
-  # An operator decided the event is not spam.
+  # An operator decided the event is not spam (Event#mark_as_not_spam!).
   def self.clear_spam!(event)
     where(event_id: event.id).update_all(spam_at: nil)
   end

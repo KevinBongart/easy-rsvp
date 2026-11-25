@@ -37,7 +37,7 @@ RSpec.describe 'Images of events marked as spam', type: :request do
   end
 
   it 'answers 404 for every blob route once an operator marks the event' do
-    mark(event, 'operator')
+    mark(event, :operator)
 
     blob_paths(blob).each do |path|
       get path
@@ -46,7 +46,7 @@ RSpec.describe 'Images of events marked as spam', type: :request do
   end
 
   it 'answers 404 for representations of an operator-marked event before processing them' do
-    mark(event, 'operator')
+    mark(event, :operator)
     variation_key = ActiveStorage::Variation.encode(resize_to_limit: [ 100, 100 ])
 
     [
@@ -60,7 +60,7 @@ RSpec.describe 'Images of events marked as spam', type: :request do
   end
 
   it 'keeps serving images of automatically flagged events, whose organizers still see them' do
-    mark(event, 'automatic')
+    mark(event, :automatic)
 
     get rails_service_blob_path(blob.signed_id, blob.filename)
 
@@ -68,8 +68,8 @@ RSpec.describe 'Images of events marked as spam', type: :request do
   end
 
   it 'serves them again after the admin clears the mark' do
-    mark(event, 'operator')
-    event.update_columns(spam_at: nil, spam_source: 'cleared', spam_decided_at: Time.current)
+    mark(event, :operator)
+    event.mark_as_not_spam!
 
     get rails_service_blob_path(blob.signed_id, blob.filename)
 
@@ -77,7 +77,7 @@ RSpec.describe 'Images of events marked as spam', type: :request do
   end
 
   it 'keeps serving an image also embedded in a legitimate event' do
-    mark(event, 'operator')
+    mark(event, :operator)
     embed(create(:event), blob)
 
     get rails_service_blob_path(blob.signed_id, blob.filename)
@@ -88,7 +88,7 @@ RSpec.describe 'Images of events marked as spam', type: :request do
   it 'keeps serving legacy editor uploads and unattached direct uploads' do
     legacy = ImageUpload.create!(image: { io: File.open(Rails.root.join('spec/fixtures/files/party.png')), filename: 'party.png', content_type: 'image/png' })
     pending_upload = upload_blob
-    mark(event, 'operator')
+    mark(event, :operator)
 
     [ legacy.image.blob, pending_upload ].each do |served|
       get rails_service_blob_path(served.signed_id, served.filename)
@@ -97,7 +97,7 @@ RSpec.describe 'Images of events marked as spam', type: :request do
   end
 
   it 'still shows them in an admin preview session' do
-    mark(event, 'operator')
+    mark(event, :operator)
     get admin_events_path, headers: dashboard_headers
 
     get rails_service_blob_path(blob.signed_id, blob.filename)

@@ -213,7 +213,7 @@ RSpec.describe 'Event creation limit', type: :request do
 
     it 'lifts the block when an operator clears the event' do
       create_event(title: spam_title)
-      post unmark_spam_admin_event_path(Event.sole), headers: dashboard_headers
+      post mark_not_spam_admin_event_path(Event.sole), headers: dashboard_headers
 
       expect { create_event }.to change(Event, :count).by(1)
     end

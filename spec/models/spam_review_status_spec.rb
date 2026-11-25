@@ -40,7 +40,7 @@ RSpec.describe SpamReviewStatus do
       create(:event, created_at: 2.hours.ago)
       create_list(:event, 2, created_at: 80.minutes.ago)
       create(:event).update_columns(spam_score: 0.2)
-      create(:event, spam_source: 'cleared')
+      create(:event, spam_source: :cleared)
       create(:event, title: 'Best IPTV provider 2026')
 
       expect(described_class.current.unreviewed_events_count).to eq(2)
