@@ -14,7 +14,10 @@ Honeybadger.configure do |config|
 end
 
 # Scout labels its traces with the request path, which it reads before this
-# event fires. Replace it so organizer links never reach Scout.
+# event fires. Replace it so organizer links never reach Scout. This relies on
+# Scout instrumenting ActionController::Base (scout_apm's
+# ActionControllerBaseInstruments) ahead of ActionController::Instrumentation;
+# recheck that ordering when upgrading Scout.
 ActiveSupport::Notifications.subscribe("start_processing.action_controller") do |event|
   ScoutApm::RequestManager.find&.annotate_request(uri: OrganizerTokenRedactor.redact(event.payload[:path]))
 end

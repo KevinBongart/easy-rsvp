@@ -11,7 +11,8 @@ routes, authorization and shareable organizer links are unchanged.
 
 Event descriptions (`body`) and guest names (`name`) are filtered parameters, so
 Rails request logs, SQL bind logs and Honeybadger notices show `[FILTERED]`.
-`config/honeybadger.yml` repeats both keys for notices raised outside a request.
+They match whole keys only, so keys such as `SERVER_NAME` stay readable.
+Honeybadger applies these Rails filters to notices raised during a request.
 Event titles stay readable because every public event URL already contains one.
 
 Scout APM, when `SCOUT_APM_API_KEY` is set, labels slow-request traces with the

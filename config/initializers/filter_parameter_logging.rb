@@ -6,6 +6,7 @@
 Rails.application.config.filter_parameters += [
   :passw, :email, :secret, :token, :_key, :crypt, :salt, :certificate, :otp, :ssn, :cvv, :cvc,
   # Event descriptions and guest names are personal. Titles stay readable:
-  # every event URL already carries one.
-  :body, :name
+  # every event URL already carries one. Whole-key matches, so keys such as
+  # SERVER_NAME or filename stay visible.
+  /\Abody\z/, /\Aname\z/
 ]

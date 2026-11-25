@@ -70,6 +70,7 @@ RSpec.describe 'Error report privacy', type: :request do
     notice = reported_notice
     expect(notice[:breadcrumbs][:trail]).not_to be_empty
     expect(notice[:request][:params]).to include('rsvp' => { 'name' => '[FILTERED]' })
+    expect(notice[:request][:cgi_data]['SERVER_NAME']).to eq('www.example.com')
     expect(log).to include('INSERT INTO "rsvps"')
     [ JSON.generate(notice), log ].each do |output|
       expect(output.include?(guest_name)).to be(false)
