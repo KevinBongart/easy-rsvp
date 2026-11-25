@@ -19,4 +19,22 @@ RSpec.describe 'Organizer log privacy', type: :request do
     expect(event.reload.published?).to be(false)
     expect(output.string.include?(event.admin_token)).to be(false)
   end
+
+  it 'labels Scout traces without the organizer token' do
+    event = create(:event)
+    scout_request = ScoutApm::TrackedRequest.new(ScoutApm::Agent.instance.context, ScoutApm::FakeStore.new)
+    scout_request.annotate_request(uri: event_admin_path(event, event.admin_token))
+    Thread.current[:scout_request] = scout_request
+
+    get event_admin_path(event, event.admin_token)
+
+    expect(response).to have_http_status(:ok)
+    expect(scout_request.annotations[:uri]).to eq("/#{event.to_param}/admin/[FILTERED]")
+  ensure
+    Thread.current[:scout_request] = nil
+  end
+
+  it 'leaves error reports to Honeybadger instead of Scout' do
+    expect(ScoutApm::Agent.instance.context.config.value('errors_enabled')).to be(false)
+  end
 end

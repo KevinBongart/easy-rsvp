@@ -516,8 +516,10 @@ provided; Bon App's accepted risks do not transfer.
   dependencies mean npm/Dependabot cannot track these checked-in JS copies.
 
 - [ ] **2.3 P1 — Keep organizer credentials out of URL logs.** Application
-  logger and Honeybadger notice redaction are implemented and covered by the
-  suite. Proxy
+  logger and Honeybadger notice redaction, including breadcrumbs, are
+  implemented and covered by the suite. Event descriptions (`body`) and guest
+  names (`name`) are filtered parameters. Scout trace URIs are redacted and
+  Scout error reports are off, leaving errors to Honeybadger. Proxy
   rollout and external collector verification remain; see
   [Organizer link privacy](ORGANIZER_LOG_PRIVACY.md). Original finding:
   Routes embed the credential in the path (`config/routes.rb:4`), and Rails'

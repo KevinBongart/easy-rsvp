@@ -18,6 +18,8 @@ request:
     - secret
     - authorization
     - cookie
+    - body
+    - name
 
 insights:
   enabled: false

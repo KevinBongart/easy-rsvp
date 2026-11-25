@@ -34,6 +34,10 @@ module OrganizerTokenRedactor
     HONEYBADGER_NOTICE_FIELDS.each do |field|
       notice.public_send("#{field}=", scrub(notice.public_send(field)))
     end
+    notice.breadcrumbs.each do |breadcrumb|
+      breadcrumb.message = scrub(breadcrumb.message)
+      breadcrumb.metadata = scrub(breadcrumb.metadata)
+    end
   end
 
   class Formatter < SimpleDelegator
