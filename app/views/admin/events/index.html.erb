@@ -92,8 +92,7 @@
   </thead>
   <tbody>
     <% @events.each do |event| %>
-      <% hashid = event.hashid %>
-      <% public_path = admin_event_row_path(:public, event, hashid:) %>
+      <% public_path = admin_event_row_path(:public, event) %>
       <tr>
         <th scope="row" class="text-nowrap"><%= link_to event.id, public_path %></th>
         <td><%= link_to event.title, public_path %><% if event.flagged_as_spam? %> <span class="badge text-bg-warning">auto-flagged</span><% end %></td>
@@ -113,16 +112,16 @@
         <% if params[:spam] == "1" %>
           <td class="text-nowrap small"><%= admin_time(event.created_at) %></td>
         <% end %>
-        <td class="text-nowrap"><code class="small"><%= link_to event.admin_token.split('-').first, admin_event_row_path(:organizer, event, hashid:), class: "text-body" %></code></td>
+        <td class="text-nowrap"><code class="small"><%= link_to event.admin_token.split('-').first, admin_event_row_path(:organizer, event), class: "text-body" %></code></td>
         <td class="text-nowrap text-end"><% if event.spam_score %><code class="small" title="Jev advertising score"><%= number_with_precision(event.spam_score, precision: 2) %></code><% end %></td>
         <td class="text-nowrap">
           <% unless event.spam_locked? %>
-            <button type="submit" form="spam-actions" formaction="<%= admin_event_row_path(:mark_spam, event, hashid:) %>"
+            <button type="submit" form="spam-actions" formaction="<%= admin_event_row_path(:mark_spam, event) %>"
               class="btn btn-link btn-sm p-0 align-baseline text-danger"
               data-turbo-confirm="<%= "Mark “#{event.title}” as spam? Guests and its organizer will see it as removed." %>">Mark spam</button>
           <% end %>
           <% if event.spam? %>
-            <button type="submit" form="spam-actions" formaction="<%= admin_event_row_path(:unmark_spam, event, hashid:) %>"
+            <button type="submit" form="spam-actions" formaction="<%= admin_event_row_path(:unmark_spam, event) %>"
               class="btn btn-link btn-sm p-0 align-baseline"
               data-turbo-confirm="<%= "Restore “#{event.title}”? Guests will be able to see it again, and automatic spam checks will skip it." %>">Not spam</button>
           <% end %>

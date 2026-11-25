@@ -29,6 +29,25 @@ class Event < ApplicationRecord
   has_many :rsvps, dependent: :destroy
   has_rich_text :body
 
+  # Public links name an event by its link id: its random public_number,
+  # encoded with Sqids into mixed-case letters and digits, usually 9
+  # characters and never fewer than 8. A link id never contains the hyphen
+  # that starts the title slug.
+  LINK_IDS = Sqids.new(min_length: 8)
+  # The database draws 48 random bits for each public number. With 18,000
+  # events, a new one draws a taken number about once in 15 billion: its
+  # insert then fails on the unique index and the organizer submits again,
+  # which is simpler than retrying here.
+  PUBLIC_NUMBERS = 0...2**48
+  # Events created before link ids existed keep answering to their old hashid
+  # (6 characters, so never a link id). legacy_hashid stores it; new events
+  # have none, because hashids derive from the sequential id. The column
+  # defaults to PENDING_LEGACY_HASHID only for events the previous release
+  # created during the deploy that added it (see
+  # AddPublicNumberAndLegacyHashidToEvents).
+  PENDING_LEGACY_HASHID = "".freeze
+  attribute :legacy_hashid, default: nil
+
   scope :spam, -> { where.not(spam_at: nil) }
   scope :not_spam, -> { where(spam_at: nil) }
   # Not flagged, not decided by an admin, and never scored by Jev.
@@ -74,6 +93,41 @@ class Event < ApplicationRecord
   validate :time_zone_is_known
   validate :schedule_ends_after_it_starts
   validate :schedule_uses_event_date
+
+  # The event a public link names: its link id or, for an event created
+  # before link ids existed, its old hashid. Only the canonical encoding of a
+  # public number counts, so each event has exactly one link id.
+  def self.find_by_link_id!(link_id)
+    link_id = link_id.to_s
+    public_number = public_number_from(link_id)
+    event = find_by(public_number:) if public_number
+    event ||= find_by_old_hashid(link_id)
+    event || raise(ActiveRecord::RecordNotFound.new("Couldn't find Event with link id #{link_id.inspect}", name))
+  end
+
+  def self.public_number_from(link_id)
+    numbers = LINK_IDS.decode(link_id)
+    numbers.first if numbers.one? && PUBLIC_NUMBERS.cover?(numbers.first) && LINK_IDS.encode(numbers) == link_id
+  end
+  private_class_method :public_number_from
+
+  def self.find_by_old_hashid(hashid)
+    return if hashid == PENDING_LEGACY_HASHID
+
+    find_by(legacy_hashid: hashid) || store_pending_legacy_hashid(hashid)
+  end
+  private_class_method :find_by_old_hashid
+
+  # An event the previous release created mid-deploy, whose creator got a
+  # hashid link, stores its hashid the first time the link is followed.
+  # hashid-rails decodes only canonical hashids.
+  def self.store_pending_legacy_hashid(hashid)
+    id = decode_id(hashid) or return
+    event = find_by(id:, legacy_hashid: PENDING_LEGACY_HASHID)
+    event&.update_column(:legacy_hashid, hashid)
+    event
+  end
+  private_class_method :store_pending_legacy_hashid
 
   def spam?
     spam_at.present?
@@ -151,8 +205,12 @@ class Event < ApplicationRecord
     local_schedule_time(ends_at)
   end
 
+  def link_id
+    @link_id ||= LINK_IDS.encode([ public_number ]) if public_number
+  end
+
   def to_param
-    "#{hashid}-#{title.parameterize}"
+    "#{link_id}-#{title.parameterize}"
   end
 
   private

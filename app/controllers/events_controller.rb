@@ -1,6 +1,19 @@
 class EventsController < ApplicationController
-  CREATION_LIMITED_MESSAGE = "To prevent abuse on Easy RSVP, we're limiting how many events you can create in a short window. Please try again later.".freeze
+  include RateLimitedPerClient
 
+  CREATION_LIMITED_MESSAGE = "To prevent abuse on Easy RSVP, we're limiting how many events you can create in a short window. Please try again later.".freeze
+  VIEWS_LIMITED_MESSAGE = "To prevent abuse on Easy RSVP, we're limiting how many event pages you can open in a short window. Please try again later.".freeze
+  # Page views and calendar downloads per client, across all events, to slow
+  # anyone trying the guessable hashids older events still answer to. A
+  # guest opens the page before responding and again after, so a room
+  # answering together on one address (the RSVP limit allows 200 responses in
+  # 10 minutes; the busiest legitimate event took 182 on the 2026-11-20
+  # production copy) needs about 400.
+  VIEWS_LIMIT = 600
+  VIEWS_WINDOW = 10.minutes
+
+  rate_limit to: VIEWS_LIMIT, within: VIEWS_WINDOW, store: RateLimitedPerClient::STORE, by: :rate_limit_client, with: :render_rate_limited,
+    only: [ :show, :calendar ]
   before_action :prevent_search_indexing, only: [ :show, :calendar ]
   before_action :set_event, only: [ :show, :calendar ]
   before_action :set_placeholders, only: [ :new ]
@@ -44,14 +57,21 @@ class EventsController < ApplicationController
   private
 
   def set_event
-    hashid = event_hashid_from_param(params[:id])
-    @event = Event.find_by_hashid!(hashid)
-    return if admin_preview?
-    return render_removed_event if removed_for_this_browser?(@event)
-
-    unless @event.published?
-      redirect_to root_path, alert: "This event is no longer viewable."
+    link_id = event_link_id_from_param(params[:id])
+    @event = Event.find_by_link_id!(link_id)
+    unless admin_preview?
+      return render_removed_event if removed_for_this_browser?(@event)
+      return redirect_to root_path, alert: "This event is no longer viewable." unless @event.published?
     end
+
+    # An older event's hashid link moves to its current link. Removed
+    # events answer 410 directly, so indexed spam is not redirected first.
+    redirect_to({ id: @event }, status: :moved_permanently) if link_id != @event.link_id
+  end
+
+  def render_rate_limited
+    render "application/rate_limited", locals: { message: VIEWS_LIMITED_MESSAGE }, status: :too_many_requests,
+      formats: :html, content_type: "text/html"
   end
 
   def set_placeholders

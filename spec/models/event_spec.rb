@@ -218,17 +218,79 @@ RSpec.describe Event, type: :model do
     expect { event.update!(title: 'Updated party') }.not_to change { event.reload.admin_token }
   end
 
-  it 'uses a readable slug with a decodable public hashid' do
+  it 'uses a readable slug after its short link id, which encodes a random public number' do
     event = create(:event, title: "Alice's garden party!")
-    expect(event.to_param).to eq("#{event.hashid}-alice-s-garden-party")
-    expect(Event.find_by_hashid!(event.hashid)).to eq(event)
+
+    expect(Event::PUBLIC_NUMBERS).to cover(event.public_number)
+    expect(event.link_id).to match(/\A[a-zA-Z0-9]{8,10}\z/)
+    expect(Event::LINK_IDS.decode(event.link_id)).to eq([ event.public_number ])
+    expect(event.to_param).to eq("#{event.link_id}-alice-s-garden-party")
+    expect(Event.find_by_link_id!(event.link_id)).to eq(event)
+  end
+
+  it 'gives consecutive events unrelated link ids that their ids do not reveal' do
+    first, second = create_list(:event, 2)
+
+    expect(second.id).to eq(first.id + 1)
+    expect((second.public_number - first.public_number).abs).to be > 1
+    expect(first.link_id).not_to eq(second.link_id)
+    [ first, second ].each do |event|
+      expect(event.link_id).not_to include(event.hashid, event.id.to_s)
+    end
+  end
+
+  it 'answers only to the canonical encoding of its public number' do
+    event = create(:event)
+    characters = [ *'a'..'z', *'A'..'Z', *'0'..'9' ]
+    alias_id = characters.map { |character| "#{event.link_id}#{character}" }
+      .find { |candidate| Event::LINK_IDS.decode(candidate) == [ event.public_number ] }
+
+    expect(alias_id).to be_present
+    expect { Event.find_by_link_id!(alias_id) }.to raise_error(ActiveRecord::RecordNotFound)
+    expect { Event.find_by_link_id!(event.link_id.swapcase) }.to raise_error(ActiveRecord::RecordNotFound)
+    expect { Event.find_by_link_id!(event.public_number.to_s) }.to raise_error(ActiveRecord::RecordNotFound)
   end
 
   it 'changes only the title portion of the public URL after renaming' do
     event = create(:event)
-    old_hashid = event.hashid
+    old_link_id = event.link_id
     event.update!(title: 'A new title')
-    expect(event.to_param).to eq("#{old_hashid}-a-new-title")
+    expect(event.reload.to_param).to eq("#{old_link_id}-a-new-title")
+  end
+
+  it 'answers to its old hashid only when created before link ids' do
+    legacy = create(:event)
+    legacy.update_column(:legacy_hashid, legacy.hashid)
+    current = create(:event)
+
+    expect(current.reload.legacy_hashid).to be_nil
+    expect(Event.find_by_link_id!(legacy.hashid)).to eq(legacy)
+    expect { Event.find_by_link_id!(current.hashid) }.to raise_error(ActiveRecord::RecordNotFound)
+    expect { Event.find_by_link_id!(current.id.to_s) }.to raise_error(ActiveRecord::RecordNotFound)
+    expect { Event.where(admin_token: current.admin_token).find_by_link_id!(legacy.link_id) }.to raise_error(ActiveRecord::RecordNotFound)
+  end
+
+  context 'when the previous release creates it during the deploy' do
+    def insert_as_previous_release(title)
+      Event.insert({ title:, date: Date.current, admin_token: SecureRandom.uuid, created_at: Time.current, updated_at: Time.current })
+      Event.find_by!(title:)
+    end
+
+    it 'gets a public number and stores its hashid the first time its hashid link is followed' do
+      event = insert_as_previous_release('Created mid-deploy')
+
+      expect(event.link_id).to match(/\A[a-zA-Z0-9]{8,10}\z/)
+      expect(event.legacy_hashid).to eq(Event::PENDING_LEGACY_HASHID)
+      expect(Event.find_by_link_id!(event.hashid)).to eq(event)
+      expect(event.reload.legacy_hashid).to eq(event.hashid)
+      expect(Event.find_by_link_id!(event.hashid)).to eq(event)
+    end
+
+    it 'does not answer to an empty link id' do
+      insert_as_previous_release('Created mid-deploy')
+
+      expect { Event.find_by_link_id!('') }.to raise_error(ActiveRecord::RecordNotFound)
+    end
   end
 
   it 'scopes responses to their event' do

@@ -19,6 +19,7 @@ gem "propshaft"
 gem "puma"
 gem "scout_apm"
 gem "simple_form"
+gem "sqids", "~> 0.2.2"
 gem "stimulus-rails"
 gem "turbo-rails"
 
