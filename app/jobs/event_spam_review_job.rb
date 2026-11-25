@@ -1,6 +1,9 @@
 # Second opinion for events the Ruby rules let through. Runs after the save so
 # creating an event never waits on TypeSafe, and fails open: any API error
-# leaves the event up.
+# leaves the event up. Each TypeSafe call costs credits, and every text edit
+# queues a job, so a job finding the event already scored for its current text
+# (spam_review_needed?) skips it: a burst of edits costs about one call for
+# the text the event ends up with, not one per edit.
 class EventSpamReviewJob < ApplicationJob
   def perform(event_id)
     event = Event.find_by(id: event_id)
@@ -18,8 +21,8 @@ class EventSpamReviewJob < ApplicationJob
 
     changes = { spam_score: score }
     changes.merge!(spam_at: Time.current, spam_source: "automatic") if score >= Event::SpamReview::THRESHOLD
-    # Write only if Jev judged the text the event still has and no admin has
-    # decided meanwhile. A text edit queued its own review; other edits (date,
+    # Write only if Jev judged the text the event still has, and neither an
+    # admin nor another job has decided meanwhile. A text edit queued its own review; other edits (date,
     # publication) do not change the answer.
     event.with_lock do
       next unless event.spam_review_needed? && review.page == page

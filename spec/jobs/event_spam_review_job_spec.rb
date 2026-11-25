@@ -62,6 +62,37 @@ RSpec.describe EventSpamReviewJob do
     expect(event.reload).to have_attributes(spam_source: nil, spam_at: nil, spam_score: 0.42)
   end
 
+  it 'asks Jev once for a burst of edits, and again once the text changes' do
+    event = create(:event)
+    stub_jev(0.1)
+    3.times { |n| event.update!(title: "Garden party #{n}") }
+
+    3.times { described_class.perform_now(event.id) }
+    expect(a_request(:post, 'https://api.typesafe.ai/v1/systemone')).to have_been_made.once
+
+    event.update!(date: event.date + 1)
+    described_class.perform_now(event.id)
+    expect(a_request(:post, 'https://api.typesafe.ai/v1/systemone')).to have_been_made.once
+
+    event.reload.update!(body: '<div>Bring a chair</div>')
+    described_class.perform_now(event.id)
+    expect(a_request(:post, 'https://api.typesafe.ai/v1/systemone')).to have_been_made.twice
+  end
+
+  it 'reviews new text even when a review of the old text finished after the edit form loaded' do
+    event = create(:event)
+    loaded_by_edit_request = Event.find(event.id)
+    stub_jev(0.1)
+    described_class.perform_now(event.id)
+
+    expect { loaded_by_edit_request.update!(title: 'Best deals online') }.to have_enqueued_job(described_class)
+    expect(event.reload.spam_score).to be_nil
+
+    stub_jev(0.95)
+    described_class.perform_now(event.id)
+    expect(event.reload).to have_attributes(spam_source: 'automatic', spam_score: 0.95)
+  end
+
   it 'leaves the event up when TypeSafe fails' do
     event = create(:event)
     allow(Rails.error).to receive(:report)

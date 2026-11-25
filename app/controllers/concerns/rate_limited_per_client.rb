@@ -17,4 +17,11 @@ module RateLimitedPerClient
   rescue IPAddr::Error
     request.remote_ip.to_s
   end
+
+  # The neutral 429 page, saying what is limited with the controller's
+  # LIMITED_MESSAGE.
+  def render_rate_limited
+    render "application/rate_limited", locals: { message: self.class::LIMITED_MESSAGE }, status: :too_many_requests,
+      formats: :html, content_type: "text/html"
+  end
 end

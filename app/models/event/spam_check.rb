@@ -95,6 +95,12 @@ class Event::SpamCheck
     new("", html).visible_text
   end
 
+  # The description's HTML as guests read it (see #readable_html), for
+  # Event::SpamReview, which needs the links as well as the text.
+  def self.readable_html(html)
+    new("", html).readable_html
+  end
+
   def initialize(title, html)
     @title = title.to_s[0, MAX_TITLE_LENGTH].gsub(/[[:space:]]+/, " ")
     @html = html.to_s
@@ -123,6 +129,18 @@ class Event::SpamCheck
       reasons << :weak_topic_corroborated
     end
     reasons
+  end
+
+  # The body as guests read it, minus image payloads. Images and data: URIs
+  # are dropped so photo-heavy invitations do not count as long. Everything
+  # Action Text renders stays in: text inside <figure>, captions, and the HTML
+  # of content attachments (stored escaped in their content= attribute), so
+  # spam cannot hide inside them. HTML4 parsing has no tree-depth limit, unlike
+  # HTML5, so deeply nested input cannot raise.
+  def readable_html
+    @readable_html ||= html.gsub(/data:[^"'\s)]+/, "")
+      .gsub(/<img\b[^>]*>/i, " ")
+      .gsub(/<action-text-attachment\b([^>]*)>/i) { " #{attachment_markup(Regexp.last_match(1))} " }
   end
 
   private
@@ -157,19 +175,7 @@ class Event::SpamCheck
   end
 
   def raw_text
-    @raw_text ||= Nokogiri::HTML4.fragment(readable_html.gsub(%r{<(br|/div|/li|/h1|/blockquote|/pre|/figcaption)\b[^>]*>}i, "\n\\0")).text
-  end
-
-  # The body as guests read it, minus image payloads. Images and data: URIs
-  # are dropped so photo-heavy invitations do not count as long. Everything
-  # Action Text renders stays in: text inside <figure>, captions, and the HTML
-  # of content attachments (stored escaped in their content= attribute), so
-  # spam cannot hide inside them. HTML4 parsing has no tree-depth limit, unlike
-  # HTML5, so deeply nested input cannot raise.
-  def readable_html
-    @readable_html ||= html.gsub(/data:[^"'\s)]+/, "")
-      .gsub(/<img\b[^>]*>/i, " ")
-      .gsub(/<action-text-attachment\b([^>]*)>/i) { " #{attachment_markup(Regexp.last_match(1))} " }
+    @raw_text ||= Nokogiri::HTML4.fragment(readable_html.gsub(%r{<(br|/div|/p|/li|/h\d|/blockquote|/pre|/figcaption)\b[^>]*>}i, "\n\\0")).text
   end
 
   def attachment_markup(attributes)

@@ -221,6 +221,12 @@ asset-compilation, and RSpec checks.
   restart can drop it), stores Jev's advertising score in
   `Event#spam_score`, and flags the event `automatic` at `THRESHOLD` (0.9); the
   organizer clears it the same way, by editing, which queues a new review.
+  Each call costs TypeSafe credits, and once they run out (HTTP 402) Jev fails
+  open for every event. So a text edit always resets `spam_score` (written
+  even when the loaded copy already reads nil, since a review may have landed
+  meanwhile), and a job skips an event that already has a score
+  (`spam_review_needed?`): a burst of saves queues many jobs but costs about
+  one call for the final text. Organizer saves are also rate limited (below).
   Errors fail open, so `SpamReviewStatus` (one row, `id = 1`) records Jev's
   health across restarts:
   - Columns: `last_succeeded_at`, the current streak's `failing_since` and
@@ -252,7 +258,10 @@ asset-compilation, and RSpec checks.
   time and are never examples. Masking truncates first and uses bounded
   regexes, because it runs on untrusted text under `Regexp.timeout`. Text is masked before it leaves the app (links reduced to domains,
   emails, phones, street addresses, UK postcodes); link targets hidden behind
-  anchor text are appended as domains. Evaluated on the 2026-11 snapshot: 0.9
+  anchor text are appended as domains. Jev sees the same text guests do, as
+  `Event::SpamCheck` defines it (`readable_html` / `visible_text`): captions
+  and the HTML stored in content attachments included, whitespace collapsed.
+  Evaluated on the 2026-11 snapshot: 0.9
   flagged 5 of 11,368 legitimate events and caught 29 of 40 adversarial spam
   pages the Ruby rules missed; balanced examples removed those false positives
   without losing recall.
@@ -294,11 +303,17 @@ asset-compilation, and RSpec checks.
   (the busiest legitimate event took 182 in 10 minutes, so even a whole room
   on one shared address passes); direct uploads, 20 per 10 minutes and 60 per
   day, counted whether accepted or not (no legitimate event embeds more than
-  2 images). Refusals are 429 with a neutral "Please try again later."
-  message: a page (`application/rate_limited`) for RSVPs, JSON `{ error: }`
+  2 images); organizer event saves and publish toggles, 30 per 10 minutes and
+  100 per day across all events, counted before the token is checked (each
+  text edit queues a paid Jev review; the burst limit is a save every 20
+  seconds, far above an organizer fixing typos, and the daily cap bounds one
+  address to 100 reviews a day). Refusals are 429 with a neutral "Please try
+  again later." message: a page (`application/rate_limited`, rendered by
+  `RateLimitedPerClient#render_rate_limited` with the controller's
+  `LIMITED_MESSAGE`) for RSVPs and organizer saves, JSON `{ error: }`
   for uploads, which `rich_text_controller.js` recognizes by status and
-  explains under the editor. Organizer RSVP edits are token-gated and not
-  limited, so an organizer can clean up a flood. Admin sign-ins are not
+  explains under the editor. Organizer RSVP edits, viewing, and deletion are
+  token-gated and not limited, so an organizer can clean up a flood. Admin sign-ins are not
   limited: `ADMIN_PASSWORD` must be a long random secret.
 - Browser policies: an enforced Content Security Policy
   (`config/initializers/content_security_policy.rb`) and a `Permissions-Policy`

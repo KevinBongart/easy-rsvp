@@ -85,6 +85,17 @@ RSpec.describe Event::SpamReview do
     expect(sent_body.dig('state', 'description')).to eq('Details here (link to casino.example)')
   end
 
+  it 'shows Jev the text guests see inside content attachments and captions' do
+    stub_jev
+    hidden = CGI.escapeHTML('<div>BUY CHEAP PILLS at <a href="https://pills.example/buy">our shop</a></div>')
+    event = create(:event, body: %(<div>hi</div><action-text-attachment content-type="text/html" content="#{hidden}"></action-text-attachment>) +
+                                 %(<action-text-attachment content-type="image/png" url="https://img.example/a.png" caption="Order today"></action-text-attachment>))
+
+    described_class.new(event).score
+
+    expect(sent_body.dig('state', 'description')).to eq('hi BUY CHEAP PILLS at our shop (link to pills.example) Order today')
+  end
+
   it 'masks addresses and phone numbers but keeps dates and times' do
     masked_title = ->(title) { described_class.new(build(:event, title:)).page[:title] }
 

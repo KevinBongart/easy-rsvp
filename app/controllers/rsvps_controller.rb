@@ -51,11 +51,6 @@ class RsvpsController < ApplicationController
 
   private
 
-  def render_rate_limited
-    render "application/rate_limited", locals: { message: LIMITED_MESSAGE }, status: :too_many_requests,
-      formats: :html, content_type: "text/html"
-  end
-
   def set_event
     hashid = event_hashid_from_param(params[:event_id])
     @event = Event.find_by_hashid!(hashid)

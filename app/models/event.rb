@@ -109,9 +109,11 @@ class Event < ApplicationRecord
   end
 
   # Events the Ruby rules let through and no operator has decided on get a
-  # second opinion from Event::SpamReview.
+  # second opinion from Event::SpamReview, once per text: every title or
+  # description edit resets spam_score (apply_spam_check), so a score means
+  # Jev already judged the current text.
   def spam_review_needed?
-    spam_source.nil? && Event::SpamReview.enabled?
+    spam_source.nil? && spam_score.nil? && Event::SpamReview.enabled?
   end
 
   def timed?
@@ -166,6 +168,10 @@ class Event < ApplicationRecord
   def apply_spam_check
     self.spam_verdict_hidden = true if confidently_spam_before_edit?
     self.spam_score = nil
+    # Written even when this copy already reads nil: EventSpamReviewJob may
+    # have scored the previous text since the event was loaded, and that score
+    # would otherwise stand for the new text, which would then go unreviewed.
+    spam_score_will_change!
     if Event::SpamCheck.spam?(title: title.to_s, html: spam_check_html)
       self.spam_at ||= Time.current
       self.spam_source = "automatic"

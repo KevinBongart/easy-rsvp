@@ -1,4 +1,22 @@
 class OrganizerEventsController < ApplicationController
+  include RateLimitedPerClient
+
+  LIMITED_MESSAGE = "To prevent abuse on Easy RSVP, we're limiting how often an event can be changed in a short window. Please try again later.".freeze
+  # Saves and publish toggles per client, across all events. Every text edit
+  # queues a paid Jev review (EventSpamReviewJob), so this caps what one
+  # address can spend. The burst limit is one save every 20 seconds for 10
+  # minutes, well above an organizer fixing typos, even several organizers on
+  # one shared address; the daily cap bounds a slow script to 100 reviews a
+  # day instead of 4,320.
+  BURST_LIMIT = 30
+  BURST_WINDOW = 10.minutes
+  DAILY_LIMIT = 100
+  DAILY_WINDOW = 1.day
+
+  rate_limit to: BURST_LIMIT, within: BURST_WINDOW, name: "burst", only: %i[update toggle_publish],
+    store: RateLimitedPerClient::STORE, by: :rate_limit_client, with: :render_rate_limited
+  rate_limit to: DAILY_LIMIT, within: DAILY_WINDOW, name: "daily", only: %i[update toggle_publish],
+    store: RateLimitedPerClient::STORE, by: :rate_limit_client, with: :render_rate_limited
   before_action :prevent_search_indexing
   before_action :set_event
   before_action :set_spam_verdict, only: %i[show edit update]

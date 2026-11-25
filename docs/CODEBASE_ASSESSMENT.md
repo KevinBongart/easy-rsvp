@@ -552,9 +552,12 @@ provided; Bon App's accepted risks do not transfer.
   Browser policies are done: `config/initializers/content_security_policy.rb` and
   `config/initializers/permissions_policy.rb` enforce a Content Security Policy and
   a Permissions Policy, and `spec/system/content_security_policy_spec.rb` checks
-  that the main pages load without violations. Public RSVPs and rich-text uploads
-  are rate limited per client (#1004; see AGENTS.md). Event creation and admin
-  Basic Auth still have no app-level throttling.
+  that the main pages load without violations. Public RSVPs, rich-text uploads
+  (#1004) and organizer saves and publish toggles are rate limited per client;
+  the organizer limit caps the paid Jev reviews one address can trigger, and
+  Jev is asked once per text version rather than once per queued review (see
+  AGENTS.md). Event creation is limited by `RecentEventCreation`. Admin Basic
+  Auth still has no app-level throttling.
   Original finding:
   No app-level throttling exists for event creation, public RSVPs, Basic Auth,
   uploads, or organizer-link mail. CSP and permissions-policy files are commented

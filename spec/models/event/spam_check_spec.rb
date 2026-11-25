@@ -157,6 +157,12 @@ RSpec.describe Event::SpamCheck do
     end
   end
 
+  describe '.visible_text' do
+    it 'separates blocks, including paragraphs and headings pasted as HTML' do
+      expect(described_class.visible_text('<h2>Menu</h2><p>Soup</p><div>Bread<br>Cheese</div>')).to eq('Menu Soup Bread Cheese')
+    end
+  end
+
   describe '.spam_content?' do
     it 'applies the title content rules to short texts' do
       [ 'Use promo code SAVE20', 'Best online casino bonus', 'Airline customer service 1-800-555-0199', 'xnxx' ].each do |text|

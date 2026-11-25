@@ -149,15 +149,16 @@ class Event::SpamReview
     end
   end
 
-  # The text guests see, plus where each link points: the target domain is a
-  # strong spam signal that anchor text like "click here" hides.
+  # The text guests see (Event::SpamCheck decides what that is, including the
+  # HTML of content attachments), plus where each link points: the target
+  # domain is a strong spam signal that anchor text like "click here" hides.
   def visible_text(html)
-    fragment = Nokogiri::HTML4.fragment(html.gsub(/data:[^"'\s)]+/, "").gsub(%r{<(br|/div|/li|/h\d|/p)\b[^>]*>}i, "\n\\0"))
+    fragment = Nokogiri::HTML4.fragment(Event::SpamCheck.readable_html(html))
     fragment.css("a[href]").each do |link|
       host = link["href"].to_s[URL_WITH_SCHEME, 1]
       link.add_next_sibling(Nokogiri::XML::Text.new(" (link to #{host.downcase.delete_prefix('www.')})", fragment.document)) if host && !link.text.include?(host)
     end
-    fragment.text.gsub(/[ \t]+/, " ").gsub(/\n{3,}/, "\n\n").strip
+    Event::SpamCheck.visible_text(fragment.to_html)
   end
 
   def mask(text)
