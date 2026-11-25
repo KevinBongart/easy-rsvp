@@ -22,14 +22,19 @@ RSpec.describe 'Event links', type: :request do
       expect(response).to redirect_to(calendar_event_path(legacy_event, format: :ics))
     end
 
-    it 'redirects before deciding whether the event is shown' do
+    it 'answers 410 for a removed spam event without redirecting first' do
       legacy_event.update_columns(spam_at: Time.current, spam_source: 'operator')
 
       get "/#{legacy_event.hashid}"
-      expect(response).to redirect_to(event_path(legacy_event))
-
-      follow_redirect!
       expect(response).to have_http_status(:gone)
+    end
+
+    it 'still redirects for an admin previewing a removed spam event' do
+      legacy_event.update_columns(spam_at: Time.current, spam_source: 'operator')
+      get admin_events_path, headers: dashboard_headers
+
+      get "/#{legacy_event.hashid}"
+      expect(response).to redirect_to(event_path(legacy_event))
     end
 
     it 'accepts a response posted from a page loaded before the deploy, and keeps it deletable' do

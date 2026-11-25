@@ -59,14 +59,14 @@ class EventsController < ApplicationController
   def set_event
     link_id = event_link_id_from_param(params[:id])
     @event = Event.find_by_link_id!(link_id)
-    # An older event's hashid link moves to its public id link.
-    return redirect_to({ id: @event }, status: :moved_permanently) if link_id != @event.public_id
-    return if admin_preview?
-    return render_removed_event if removed_for_this_browser?(@event)
-
-    unless @event.published?
-      redirect_to root_path, alert: "This event is no longer viewable."
+    unless admin_preview?
+      return render_removed_event if removed_for_this_browser?(@event)
+      return redirect_to root_path, alert: "This event is no longer viewable." unless @event.published?
     end
+
+    # An older event's hashid link moves to its public id link. Removed
+    # events answer 410 directly, so indexed spam is not redirected first.
+    redirect_to({ id: @event }, status: :moved_permanently) if link_id != @event.public_id
   end
 
   def render_rate_limited
