@@ -3,7 +3,6 @@
 # Event#confidently_spam?). Lives in the encrypted Rails session cookie, like
 # AdminPreview.
 module ManagedEvents
-  # The underscore keeps OwnedRsvps from taking it for an old per-event key.
   SESSION_KEY = "managed_event_hashids".freeze
   LIMIT = 20
 

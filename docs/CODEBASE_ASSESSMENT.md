@@ -483,7 +483,8 @@ provided; Bon App's accepted risks do not transfer.
 - [x] **1.9 P2 — Keep RSVP ownership from overflowing the session cookie.**
   `OwnedRsvps` now keeps the 100 most recent RSVP hashids under one session key,
   next to `ManagedEvents`; the worst case with both lists full measures about
-  2.5 KB of the 4 KB cookie. Old per-event keys are folded into it on first
+  2.75 KB of the 4 KB cookie at today's 7-character production hashids, and
+  3 KB at 8 characters. Old per-event keys are folded into it on first
   read, so returning guests keep their delete links.
   Original finding (2026-11 review): every RSVP added a top-level session key
   named after its event and nothing pruned them, so a browser that had answered

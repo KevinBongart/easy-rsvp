@@ -47,15 +47,31 @@ RSpec.describe 'RSVP ownership in the session cookie', type: :request do
     expect(owned_rsvp_hashids).to eq([ second.hashid ])
   end
 
-  it 'stays well under the 4 KB cookie limit for an organizer who is also a frequent guest' do
-    create_list(:event, ManagedEvents::LIMIT).each { |event| get event_admin_path(event, event.admin_token) }
-    create_list(:event, OwnedRsvps::LIMIT).each { |event| rsvp_to(event) }
-    expect(session[ManagedEvents::SESSION_KEY].size).to eq(ManagedEvents::LIMIT)
-    expect(owned_rsvp_hashids.size).to eq(OwnedRsvps::LIMIT)
+  context 'with ids long enough for 8-character hashids (production RSVP ids give 7 today)' do
+    # setval is not rolled back with the test transaction, so restore it.
+    around do |example|
+      connection = ActiveRecord::Base.connection
+      saved = %w[events_id_seq rsvps_id_seq].index_with do |sequence|
+        connection.select_one("SELECT last_value, is_called FROM #{sequence}").values
+      end
+      saved.each_key { |sequence| connection.select_value("SELECT setval('#{sequence}', 10000000)") }
+      example.run
+    ensure
+      saved&.each { |sequence, (value, called)| connection.select_value("SELECT setval('#{sequence}', #{value}, #{called})") }
+    end
 
-    # The last response also carries the flash and the CSRF token.
-    get event_path(Event.last)
-    rsvp_to(Event.last, name: 'One more guest')
-    expect(session_cookie_size).to be < 3_000
+    it 'stays well under the 4 KB cookie limit for an organizer who is also a frequent guest' do
+      create_list(:event, ManagedEvents::LIMIT).each { |event| get event_admin_path(event, event.admin_token) }
+      create_list(:event, OwnedRsvps::LIMIT).each { |event| rsvp_to(event) }
+      expect(session[ManagedEvents::SESSION_KEY].size).to eq(ManagedEvents::LIMIT)
+      expect(owned_rsvp_hashids.size).to eq(OwnedRsvps::LIMIT)
+
+      expect(owned_rsvp_hashids).to all(have_attributes(size: 8))
+
+      # The last response also carries the flash and the CSRF token.
+      get event_path(Event.last)
+      rsvp_to(Event.last, name: 'One more guest')
+      expect(session_cookie_size).to be < 3_500
+    end
   end
 end
