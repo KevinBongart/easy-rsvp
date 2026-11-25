@@ -231,11 +231,9 @@ class Event < ApplicationRecord
 
   # Once confident, the verdict stays hidden through later edits: otherwise
   # the edit that drops below the bar would tell the spammer they were caught,
-  # and which change mattered. Runs before apply_spam_check assigns
-  # spam_source, which nothing else assigns on a save, so flagged_as_spam?
-  # still describes the saved event.
+  # and which change mattered.
   def confidently_spam_before_edit?
-    return false if new_record? || !flagged_as_spam? || spam_verdict_hidden?
+    return false if new_record? || spam_source_in_database != "automatic" || spam_verdict_hidden?
 
     confident_spam_signals?(spam_score_was, title_was, rich_text_body&.body_was&.to_html.to_s)
   end
