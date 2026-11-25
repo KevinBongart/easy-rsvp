@@ -57,8 +57,7 @@ class RsvpsController < ApplicationController
   end
 
   def set_event
-    hashid = event_hashid_from_param(params[:event_id])
-    @event = Event.find_by_hashid!(hashid)
+    @event = Event.find_by_link_id!(event_link_id_from_param(params[:event_id]))
     return render_removed_event if removed_for_this_browser?(@event)
 
     raise ActiveRecord::RecordNotFound unless @event.published?

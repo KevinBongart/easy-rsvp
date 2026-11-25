@@ -134,7 +134,7 @@ RSpec.describe 'Admin spam tools', type: :request do
 
       get admin_events_path, params: { spam: '1' }, headers: dashboard_headers
       links = row_for('Peptides coupon code').css('a').map { |link| link['href'] }
-      expect(links).to include("/#{event.hashid}", "/#{event.hashid}/admin/#{event.admin_token}")
+      expect(links).to include("/#{event.public_id}", "/#{event.public_id}/admin/#{event.admin_token}")
       expect(links.join).not_to include('token=')
     end
 

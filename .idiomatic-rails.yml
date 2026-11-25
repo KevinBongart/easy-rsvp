@@ -12,11 +12,11 @@ dead_code:
       - name: cleared_text_changed?
         reason: "Event's before_save callback, if: :cleared_text_changed?."
       - name: rate_limit_client
-        reason: "rate_limit by: :rate_limit_client in RsvpsController and RichTextDirectUploadsController."
+        reason: "rate_limit by: :rate_limit_client in EventsController, RsvpsController and RichTextDirectUploadsController."
       - name: refuse_upload
         reason: "rate_limit with: :refuse_upload in RichTextDirectUploadsController."
       - name: render_rate_limited
-        reason: "rate_limit with: :render_rate_limited in RsvpsController."
+        reason: "rate_limit with: :render_rate_limited in EventsController and RsvpsController."
       - name: blob_scope
         reason: "Overrides Active Storage's blob_scope, which ActiveStorage::SetBlob#set_blob calls."
       - name: perform

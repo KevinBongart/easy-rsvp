@@ -33,10 +33,8 @@ class OrganizerEventsController < ApplicationController
   private
 
   def set_event
-    hashid = event_hashid_from_param(params[:event_id])
-    id = Event.decode_id(hashid)
-
-    @event = Event.find_by!(id: id, admin_token: params[:admin_token])
+    link_id = event_link_id_from_param(params[:event_id])
+    @event = Event.where(admin_token: params[:admin_token]).find_by_link_id!(link_id)
     # Admin previews are read-only: they never unlock edits or deletion.
     preview = request.get? && admin_preview?
     render_removed_event if @event.spam_locked? && !preview

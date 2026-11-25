@@ -29,6 +29,11 @@ class Event < ApplicationRecord
   has_many :rsvps, dependent: :destroy
   has_rich_text :body
 
+  # Only events whose hashid links were handed out still answer to them. The
+  # column defaults to true for the release running during the deploy that
+  # added it (see AddPublicIdToEvents).
+  attribute :legacy_hashid_link, default: false
+
   scope :spam, -> { where.not(spam_at: nil) }
   scope :not_spam, -> { where(spam_at: nil) }
   # Not flagged, not decided by an admin, and never scored by Jev.
@@ -74,6 +79,13 @@ class Event < ApplicationRecord
   validate :time_zone_is_known
   validate :schedule_ends_after_it_starts
   validate :schedule_uses_event_date
+
+  # The event a public link names: its random public id or, for an event
+  # created before those existed, its old hashid, which derives from the
+  # sequential id and is therefore guessable.
+  def self.find_by_link_id!(link_id)
+    find_by(public_id: link_id) || where(legacy_hashid_link: true).find_by_hashid!(link_id)
+  end
 
   def spam?
     spam_at.present?
@@ -152,7 +164,7 @@ class Event < ApplicationRecord
   end
 
   def to_param
-    "#{hashid}-#{title.parameterize}"
+    "#{public_id}-#{title.parameterize}"
   end
 
   private

@@ -14,7 +14,9 @@ class ApplicationController < ActionController::Base
     ManagedEvents.include?(session, event) && event.confidently_spam?
   end
 
-  def event_hashid_from_param(parameterized_id)
+  # The title slug follows the first hyphen; neither public ids nor legacy
+  # hashids contain one.
+  def event_link_id_from_param(parameterized_id)
     parameterized_id.to_s.split("-", 2).first
   end
 

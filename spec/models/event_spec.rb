@@ -218,17 +218,48 @@ RSpec.describe Event, type: :model do
     expect { event.update!(title: 'Updated party') }.not_to change { event.reload.admin_token }
   end
 
-  it 'uses a readable slug with a decodable public hashid' do
+  it 'uses a readable slug after its random public id' do
     event = create(:event, title: "Alice's garden party!")
-    expect(event.to_param).to eq("#{event.hashid}-alice-s-garden-party")
-    expect(Event.find_by_hashid!(event.hashid)).to eq(event)
+    expect(event.public_id).to match(/\A\h{24}\z/)
+    expect(event.to_param).to eq("#{event.public_id}-alice-s-garden-party")
+    expect(Event.find_by_link_id!(event.public_id)).to eq(event)
+  end
+
+  it 'gives consecutive events unrelated public ids that their ids do not reveal' do
+    first, second = create_list(:event, 2)
+
+    expect(second.id).to eq(first.id + 1)
+    expect(first.public_id).not_to eq(second.public_id)
+    [ first, second ].each do |event|
+      expect(event.public_id).not_to include(event.hashid, event.id.to_s)
+    end
   end
 
   it 'changes only the title portion of the public URL after renaming' do
     event = create(:event)
-    old_hashid = event.hashid
+    old_public_id = event.public_id
     event.update!(title: 'A new title')
-    expect(event.to_param).to eq("#{old_hashid}-a-new-title")
+    expect(event.to_param).to eq("#{old_public_id}-a-new-title")
+  end
+
+  it 'answers to a guessable hashid only for events created before public ids' do
+    legacy = create(:event)
+    legacy.update_column(:legacy_hashid_link, true)
+    current = create(:event)
+
+    expect(current.legacy_hashid_link).to be(false)
+    expect(Event.find_by_link_id!(legacy.hashid)).to eq(legacy)
+    expect { Event.find_by_link_id!(current.hashid) }.to raise_error(ActiveRecord::RecordNotFound)
+    expect { Event.find_by_link_id!(current.id.to_s) }.to raise_error(ActiveRecord::RecordNotFound)
+    expect { Event.where(admin_token: current.admin_token).find_by_link_id!(legacy.public_id) }.to raise_error(ActiveRecord::RecordNotFound)
+  end
+
+  it 'gets a public id and keeps its hashid link when the previous release creates it during a deploy' do
+    Event.insert({ title: 'Created mid-deploy', date: Date.current, admin_token: SecureRandom.uuid, created_at: Time.current, updated_at: Time.current })
+    event = Event.find_by!(title: 'Created mid-deploy')
+
+    expect(event.public_id).to match(/\A\h{24}\z/)
+    expect(Event.find_by_link_id!(event.hashid)).to eq(event)
   end
 
   it 'scopes responses to their event' do
