@@ -27,11 +27,24 @@ On the Dokku host (`ssh $DOKKU_HOST`), with `SERVICE` set to the value of
 ```sh
 SERVICE=<your DOKKU_PG_SERVICE>
 dokku version                                # plugin 2.x needs Dokku 0.35+
-dokku plugin:list | grep postgres            # plugin version decides step 4
+dokku plugin:list | grep postgres            # need 1.46.1 or later, see below
 dokku postgres:info "$SERVICE" --version     # e.g. postgres:15.1
 dokku postgres:links "$SERVICE"              # expect only easy-rsvp
 dokku postgres:backup-schedule-cat "$SERVICE" # note any schedule; it is not copied
 df -h /var/lib/dokku                         # need at least twice the data size free
+```
+
+Both upgrade options need dokku-postgres **1.46.1 or later**. Older plugins
+mount the data directory at `/var/lib/postgresql/data`, but PostgreSQL 18
+images keep their data under `/var/lib/postgresql`, so a version 18 service
+does not start or does not keep its data on the host. Plugins older than 1.32.0
+also lack the `--no-restart` flag used below. If the plugin is older, update it
+first, then check that the existing service still reports as running:
+
+```sh
+sudo dokku plugin:update postgres            # 2.x, on Dokku 0.35 or later
+sudo dokku plugin:update postgres 1.48.0     # instead, on older Dokku
+dokku postgres:info "$SERVICE"               # status must be running
 ```
 
 ## 2. Back up and prove the backup restores
@@ -75,8 +88,9 @@ select (select count(*) from events) as events,
 
 ## 4. Upgrade
 
-Use option A unless you have a reason not to. It works with every plugin version
-and does not touch the old service, so a rollback is two commands.
+Use option A unless you have a reason not to. It works on any plugin from
+1.46.1 (step 1) and does not touch the old service, so a rollback is two
+commands.
 
 ### Option A (recommended): new service, then switch the link
 
