@@ -549,6 +549,13 @@ provided; Bon App's accepted risks do not transfer.
   work. Avoid purging production blobs based only on an imported local database.
 
 - [ ] **2.5 P2 — Review abuse and browser policies against the actual product.**
+  Browser policies are done: `config/initializers/content_security_policy.rb` and
+  `config/initializers/permissions_policy.rb` enforce a Content Security Policy and
+  a Permissions Policy, and `spec/system/content_security_policy_spec.rb` checks
+  that the main pages load without violations. Public RSVPs and rich-text uploads
+  are rate limited per client (#1004; see AGENTS.md). Event creation and admin
+  Basic Auth still have no app-level throttling.
+  Original finding:
   No app-level throttling exists for event creation, public RSVPs, Basic Auth,
   uploads, or organizer-link mail. CSP and permissions-policy files are commented
   templates. Define proportionate controls and test them; inspect actual reverse
