@@ -184,7 +184,7 @@ RSpec.describe 'Public events', type: :request do
 
     get event_path(event)
 
-    expect(response.body).to include('6:00 PM–9:00 PM (CEST)')
+    expect(response.body).to include('6:00 PM–9:00 PM (CEST)') # rubocop:disable IdiomaticRails/SpecDaylightSavingAbbreviation -- date pinned above
   end
 
   it 'uses the time-zone abbreviation in effect on the event date' do
@@ -192,7 +192,7 @@ RSpec.describe 'Public events', type: :request do
 
     get event_path(event)
 
-    expect(response.body).to include('6:00 PM–9:00 PM (CET)')
+    expect(response.body).to include('6:00 PM–9:00 PM (CET)') # rubocop:disable IdiomaticRails/SpecDaylightSavingAbbreviation -- date pinned above
   end
 
   it 'does not add an organizer link to the public page in development' do

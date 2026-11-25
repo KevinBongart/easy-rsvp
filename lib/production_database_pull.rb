@@ -13,6 +13,8 @@ class ProductionDatabasePull
   LOCAL_DATABASE_HOSTS = [ nil, "", "localhost", "127.0.0.1", "::1" ].freeze
   MINIMUM_ARCHIVE_SIZE = 1_024
   POSTGRES_EXECUTABLES = %w[pg_dump pg_restore dropdb createdb].freeze
+  # Basic ISO 8601 (no separators), so backup file names sort by time.
+  TIMESTAMP_FORMAT = "%Y%m%dT%H%M%SZ"
 
   Result = Data.define(:production_dump, :development_backup)
 
@@ -79,7 +81,7 @@ class ProductionDatabasePull
     confirm!
 
     prepare_backup_directory
-    timestamp = clock.now.utc.strftime("%Y%m%dT%H%M%SZ")
+    timestamp = clock.now.utc.strftime(TIMESTAMP_FORMAT)
     stem = "easy-rsvp-production-#{timestamp}-#{process_id}"
     production_dump = backup_dir.join("#{stem}.pgdump")
     development_backup = backup_dir.join("easy-rsvp-development-before-#{timestamp}-#{process_id}.pgdump")
@@ -112,7 +114,7 @@ class ProductionDatabasePull
     postgres_bin = resolve_postgres_bin(required_executables: %w[pg_restore])
 
     prepare_backup_directory
-    timestamp = clock.now.utc.strftime("%Y%m%dT%H%M%SZ")
+    timestamp = clock.now.utc.strftime(TIMESTAMP_FORMAT)
     filename = "easy-rsvp-production-#{timestamp}.pgdump"
     production_dump = backup_dir.join(filename)
     partial_dump = backup_dir.join(".#{filename}.partial")

@@ -101,6 +101,7 @@ Useful focused commands:
 
 ```sh
 bundle exec erb_lint --lint-all               # all ERB templates
+bundle exec idiomatic-rails-dead-code         # methods and constants only specs reach
 npm run lint:js                               # application JavaScript
 npm run lint:scss                             # application SCSS
 bundle exec rspec --tag '~js'                 # fast model/request/feature/unit tests
