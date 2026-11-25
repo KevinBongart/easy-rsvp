@@ -65,6 +65,7 @@ the deployment environment in production.
 | `HONEYBADGER_API_KEY` | Production exception reports and postdeploy markers. |
 | `DOKKU_HOST` | CircleCI deploys and the guarded production database tasks. |
 | `DOKKU_PG_SERVICE` | Production database backup/import tasks only. |
+| `BACKUP_GPG_RECIPIENT` | GPG key that encrypts `db:backup_production` archives; local only. |
 | `PG_BIN` | Optional PostgreSQL client directory when automatic discovery is unsuitable. |
 | `FIREFOX_BINARY` | Optional nonstandard Firefox path for browser specs. |
 | `SCOUT_APM_API_KEY` | Optional Scout APM reporting in production. |
@@ -194,21 +195,55 @@ A documentation-only commit on `main` also skips the production deploy.
 
 ## Back up the production database
 
-Create a private, timestamped PostgreSQL archive and download it to the ignored
-`db/backups/` directory:
+Create a private, timestamped, GPG-encrypted PostgreSQL archive and download it
+to the ignored `db/backups/` directory:
 
 ```sh
 bin/rails db:backup_production
 ```
 
 The task requires `DOKKU_HOST` and `DOKKU_PG_SERVICE`, using the same settings
-as the development database import below. It creates a temporary export on
-Dokku, downloads it through a reserved local partial file, checks the
-archive catalog and reads the complete archive with `pg_restore`, publishes it
-with owner-only permissions, and removes the remote temporary file. Cleanup
-failure makes the task fail and reports the exact remote path. It does not
-change either the production or development database. Treat every downloaded
-archive as production user data and keep it out of source control.
+as the development database import below, plus `BACKUP_GPG_RECIPIENT`: the
+fingerprint (preferred) or email of a public key in your GPG keyring, such as
+your own. Encrypting needs only the public key, so making a backup never asks
+for a passphrase. The task checks the key exists before contacting the server.
+Set all three in your untracked `.env`, or inline:
+
+```sh
+DOKKU_HOST=root@your-dokku-host DOKKU_PG_SERVICE=your-service-name \
+  BACKUP_GPG_RECIPIENT=YOUR_KEY_FINGERPRINT bin/rails db:backup_production
+```
+
+It creates a temporary export on Dokku and removes it after downloading it to an
+owner-only `db/backups/easy-rsvp-plaintext-*` directory. It checks the archive
+catalog and reads the complete archive with `pg_restore`, encrypts it to the
+recipient, deletes the plaintext directory (also on failure or Ctrl-C), and
+publishes `db/backups/easy-rsvp-production-<timestamp>.pgdump.gpg` with mode
+`0600` through a reserved partial file. Remote cleanup failure makes the task
+fail and reports the exact remote path. Only a hard kill (`kill -9`, power loss)
+can leave a plaintext directory behind; delete any you find. The task does not
+change either the production or development database.
+
+The laptop copy is not a backup on its own: copy the `.pgdump.gpg` files
+somewhere else too (an external drive or cloud storage). They are useless
+without your GPG secret key, so back that key up separately.
+
+To restore the newest encrypted backup into local `events_development` (GPG asks
+for your passphrase), with the same guards and automatic rollback as the import
+below:
+
+```sh
+bin/rails db:restore_production_backup
+bin/rails db:restore_production_backup BACKUP=db/backups/easy-rsvp-production-20261125T120000Z.pgdump.gpg
+```
+
+To inspect or restore an archive by hand, decrypt it on the fly:
+
+```sh
+gpg --decrypt db/backups/easy-rsvp-production-<timestamp>.pgdump.gpg | pg_restore --list
+gpg --decrypt db/backups/easy-rsvp-production-<timestamp>.pgdump.gpg \
+  | pg_restore --no-owner --no-acl --dbname=some_disposable_database
+```
 
 These checks catch truncation and archive read errors, but only a successful
 restore proves that a backup is usable. Before an irreversible migration,
