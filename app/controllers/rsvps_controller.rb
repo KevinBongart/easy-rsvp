@@ -21,8 +21,7 @@ class RsvpsController < ApplicationController
     @rsvp = @event.rsvps.new(rsvp_params.merge(response: response))
 
     if @rsvp.save
-      session[@event.hashid] ||= []
-      session[@event.hashid] << @rsvp.hashid
+      OwnedRsvps.remember(session, @rsvp)
 
       redirect_to @event, notice: "Thank you for responding!"
     elsif @rsvp.errors.of_kind?(:name, :blank)
@@ -35,15 +34,8 @@ class RsvpsController < ApplicationController
   def destroy
     @rsvp = @event.rsvps.find(params[:id])
 
-    event_session = Array(session[@event.hashid])
-
-    if @rsvp.hashid.in?(event_session) && @rsvp.destroy
-      remaining = event_session - [ @rsvp.hashid ]
-      if remaining.empty?
-        session.delete(@event.hashid)
-      else
-        session[@event.hashid] = remaining
-      end
+    if OwnedRsvps.include?(session, @rsvp) && @rsvp.destroy
+      OwnedRsvps.forget(session, @rsvp)
     end
 
     redirect_to @event

@@ -99,7 +99,8 @@ one defect group at a time in priority-ordered commits. All now pass. The fixes 
 6. P1 Trix uploads: one document listener, local XHR state, and visible recovery for
    rejected files, network errors, timeouts, and malformed JSON responses.
 7. P2 publication and session state: unpublished guest writes are blocked;
-   successful deletion removes only the relevant ownership ID and drops empty keys.
+   successful deletion removes only the relevant ownership ID and drops empty keys
+   (ownership later moved to one capped list; see 1.9).
 8. P2 statistics: yearly/monthly counts and projections use creation timestamps;
    monthly numeric counts are computed once and the UI labels creation metrics.
 
@@ -478,6 +479,18 @@ provided; Bon App's accepted risks do not transfer.
   generated `events.scss` stub was already removed during the asset migration;
   Jbuilder and Octicons were removed with the dormant email feature. Retained
   the live `Admin::EventsHelper`, framework Active Job configuration, and Trix.
+
+- [x] **1.9 P2 — Keep RSVP ownership from overflowing the session cookie.**
+  `OwnedRsvps` now keeps the 100 most recent RSVP hashids under one session key,
+  next to `ManagedEvents`; the worst case with both lists full measures about
+  2.75 KB of the 4 KB cookie at today's 7-character production hashids, and
+  3 KB at 8 characters. Old per-event keys are folded into it on first
+  read, so returning guests keep their delete links.
+  Original finding (2026-11 review): every RSVP added a top-level session key
+  named after its event and nothing pruned them, so a browser that had answered
+  about 100 events raised `ActionDispatch::Cookies::CookieOverflow` (fewer for
+  organizers, who share the cookie with `ManagedEvents`). The RSVP was already
+  saved, so the guest saw an error page and a retry created a duplicate.
 
 ## Phase 2 — Security and privacy
 

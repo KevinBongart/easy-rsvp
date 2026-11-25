@@ -37,13 +37,13 @@
           <li>
             <%= rsvp.name %>
 
-            <% if rsvp.hashid.in? @user_rsvp_hashids %>
+            <% if rsvp.hashid.in? @owned_rsvp_hashids %>
               <small>
                 [<%= link_to 'x', event_rsvp_path(@event, rsvp), aria: { label: "Delete RSVP for #{rsvp.name}" }, data: { turbo_method: :delete } %>]
               </small>
             <% end %>
           </li>
-        <% elsif rsvp.hashid.in? @user_rsvp_hashids %>
+        <% elsif rsvp.hashid.in? @owned_rsvp_hashids %>
           <li>
             <%= rsvp.name %>
 
