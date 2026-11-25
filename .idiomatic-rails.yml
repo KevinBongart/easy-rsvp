@@ -1,22 +1,10 @@
 dead_code:
   exemptions:
-    # Each entry names its caller. The scan reads symbols passed as positional
-    # arguments to callback macros, but not symbols passed as option values
-    # (if:, by:, with:), and it cannot see framework methods that call an
-    # override by name.
+    # Each entry names its caller. What is left is what the scan cannot
+    # derive: a framework method that calls an override by name. Symbols in
+    # option values — if:, by:, with: — are read now, so the six callback
+    # entries that used to live here are gone.
     exempt:
-      - name: became_spam?
-        reason: "Event's after_save callback, if: :became_spam?."
-      - name: spam_check_needed?
-        reason: "Event's before_save callback, if: :spam_check_needed?."
-      - name: cleared_text_changed?
-        reason: "Event's before_save callback, if: :cleared_text_changed?."
-      - name: rate_limit_client
-        reason: "rate_limit by: :rate_limit_client in RsvpsController and RichTextDirectUploadsController."
-      - name: refuse_upload
-        reason: "rate_limit with: :refuse_upload in RichTextDirectUploadsController."
-      - name: render_rate_limited
-        reason: "rate_limit with: :render_rate_limited in RsvpsController."
       - name: blob_scope
         reason: "Overrides Active Storage's blob_scope, which ActiveStorage::SetBlob#set_blob calls."
       - name: perform
