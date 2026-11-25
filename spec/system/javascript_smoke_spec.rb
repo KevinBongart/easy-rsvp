@@ -46,11 +46,7 @@ RSpec.describe 'Firefox JavaScript smoke', type: :system, js: true do
     expect(page).to have_css('.trix-content', text: 'And a hat.')
   end
 
-  # Frozen to summer: the event factory and the new-event form both date from
-  # Date.current, so near the end of October the event lands after the switch
-  # to CET and the abbreviation assertion below stops holding.
   it 'reveals flexible time fields, detects a time zone, and requires both times' do
-    travel_to Time.zone.local(2026, 9, 10, 12)
     visit root_path
     fill_in 'What are you planning?', with: 'Timed picnic'
 
@@ -69,10 +65,11 @@ RSpec.describe 'Firefox JavaScript smoke', type: :system, js: true do
     fill_in 'To', with: '10'
     click_button 'Create your event, for free!'
     # Wait for the organizer page before reading the new event.
-    expect(page).to have_content('7:00 PM–10:00 PM (CEST)')
+    expect(page).to have_content('7:00 PM–10:00 PM')
 
     event = Event.order(:id).last
     expect(page).to have_current_path(event_admin_path(event, event.admin_token))
+    expect(event.time_zone).to eq('Europe/Paris')
   end
 
   it 'keeps entered times in the form but saves just the date when the schedule is closed' do

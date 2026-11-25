@@ -1,0 +1,30 @@
+dead_code:
+  exemptions:
+    # Each entry names its caller. The scan reads symbols passed as positional
+    # arguments to callback macros, but not symbols passed as option values
+    # (if:, by:, with:), and it cannot see framework methods that call an
+    # override by name.
+    exempt:
+      - name: became_spam?
+        reason: "Event's after_save callback, if: :became_spam?."
+      - name: spam_check_needed?
+        reason: "Event's before_save callback, if: :spam_check_needed?."
+      - name: cleared_text_changed?
+        reason: "Event's before_save callback, if: :cleared_text_changed?."
+      - name: rate_limit_client
+        reason: "rate_limit by: :rate_limit_client in RsvpsController and RichTextDirectUploadsController."
+      - name: refuse_upload
+        reason: "rate_limit with: :refuse_upload in RichTextDirectUploadsController."
+      - name: render_rate_limited
+        reason: "rate_limit with: :render_rate_limited in RsvpsController."
+      - name: blob_scope
+        reason: "Overrides Active Storage's blob_scope, which ActiveStorage::SetBlob#set_blob calls."
+      - name: perform
+        reason: "Active Job calls EventSpamReviewJob#perform for perform_later."
+      - name: scrub_attributes
+        reason: "Overrides Rails::HTML::PermitScrubber#scrub_attributes, which its scrub method calls."
+    computed_dispatch:
+      - file: lib/organizer_token_redactor.rb
+        reason: "public_send reads and writes the Honeybadger::Notice attributes in HONEYBADGER_NOTICE_FIELDS."
+      - file: lib/production_database_pull.rb
+        reason: "public_send reads host, port, username and password from the Active Record database config."

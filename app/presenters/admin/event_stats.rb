@@ -26,7 +26,7 @@ module Admin
     end
 
     def oldest_creation_date
-      summary.last&.strftime("%B %-d, %Y")
+      summary.last&.to_fs(:month_day_and_year)
     end
 
     def current_year_count
@@ -37,25 +37,9 @@ module Admin
       number_with_delimiter(yearly_chart.last[:projected_count])
     end
 
-    # Example: {2022=>"12", 2023=>"44"}
-    def yearly_counts
-      creation_counts_by_year.sort.reverse.map { |year, count| [ year, number_with_delimiter(count) ] }.to_h
-    end
-
-    # Example: "2022: 12, 2023: 44"
-    def yearly_counts_display
-      yearly_counts.map { |year, count| "#{year}: #{count}" }.join(", ")
-    end
-
     # Example: [["April 2024", "5"], ["March 2024", "10"], ["February 2024", "12"], ["January 2024", "8"]]
     def monthly_counts_with_labels
-      monthly_counts.map { |month, count| [ month.strftime("%B %Y"), number_with_delimiter(count) ] }
-    end
-
-    # Example: "March 2024: 10, February 2024: 12, January 2024: 8"
-    def full_months_display
-      # Skip current month (first element)
-      monthly_counts_with_labels[1..months_back].map { |label, count| "#{label}: #{count}" }.join(", ")
+      monthly_counts.map { |month, count| [ month.to_fs(:month_and_year), number_with_delimiter(count) ] }
     end
 
     # Example: "April 2024"
@@ -79,7 +63,7 @@ module Admin
       counts = creation_counts_by_year
       first_year = [ counts.keys.min || now.year, now.year - 1 ].min
       actual = (first_year..now.year).map do |year|
-        label = year == now.year ? "#{year} through #{now.strftime('%B %-d')}" : year.to_s
+        label = year == now.year ? "#{year} through #{now.to_fs(:month_and_day)}" : year.to_s
         { label: label, count: counts.fetch(year, 0) }
       end
       projection = (actual.last[:count].to_f / now.yday * now.end_of_year.yday).round
@@ -88,7 +72,7 @@ module Admin
 
     def monthly_chart
       monthly_counts.reverse.map do |month, count|
-        point = { label: month.strftime("%B %Y"), count: count }
+        point = { label: month.to_fs(:month_and_year), count: count }
         point[:projected_count] = monthly_projection if month == now.beginning_of_month
         point
       end
@@ -100,7 +84,7 @@ module Admin
       daily_counts = creation_counts_by_day
       total = 0
       (1..now.end_of_month.day).map do |day|
-        point = { label: "#{now.strftime('%B')} #{day}" }
+        point = { label: now.change(day: day).to_fs(:month_and_day) }
         if day <= now.day
           total += daily_counts.fetch(day, 0)
           point[:count] = total

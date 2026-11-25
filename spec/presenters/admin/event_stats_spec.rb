@@ -10,7 +10,6 @@ RSpec.describe Admin::EventStats do
   it 'renders empty statistics without division errors' do
     stats = described_class.new([], now: now)
     expect(stats.total_events).to eq('0')
-    expect(stats.yearly_counts).to eq({})
     expect(stats.current_month_count).to eq('0')
     expect(stats.extrapolated_current_month_count).to eq('0')
     expect(stats.oldest_creation_date).to be_nil
@@ -36,13 +35,6 @@ RSpec.describe Admin::EventStats do
     expect(described_class.new(Array.new(1234), now: now).total_events).to eq('1,234')
   end
 
-  it 'groups creation years newest first' do
-    rows = [ entry(date: Date.new(2024, 1, 1)), entry(date: Date.new(2026, 1, 1)), entry(date: Date.new(2026, 2, 1)) ]
-    stats = described_class.new(rows, now: now)
-    expect(stats.yearly_counts.to_a).to eq([ [ 2026, '2' ], [ 2024, '1' ] ])
-    expect(stats.yearly_counts_display).to eq('2026: 2, 2024: 1')
-  end
-
   it 'includes the first day and excludes the next month from a monthly bucket' do
     rows = [ entry(date: Date.new(2026, 9, 1)), entry(date: Date.new(2026, 9, 30)), entry(date: Date.new(2026, 10, 1)) ]
     expect(described_class.new(rows, now: now).current_month_count).to eq('2')
@@ -51,12 +43,11 @@ RSpec.describe Admin::EventStats do
   it 'fills missing months with zero and honors the requested history length' do
     stats = described_class.new([], now: now, months_back: 2)
     expect(stats.monthly_counts_with_labels).to eq([ [ 'September 2026', '0' ], [ 'August 2026', '0' ], [ 'July 2026', '0' ] ])
-    expect(stats.full_months_display).to eq('August 2026: 0, July 2026: 0')
   end
 
   it 'labels history correctly across a year boundary' do
     stats = described_class.new([], now: Time.zone.local(2026, 1, 10), months_back: 2)
-    expect(stats.full_months_display).to eq('December 2025: 0, November 2025: 0')
+    expect(stats.monthly_counts_with_labels).to eq([ [ 'January 2026', '0' ], [ 'December 2025', '0' ], [ 'November 2025', '0' ] ])
   end
 
   it 'extrapolates a monthly count using elapsed days' do
@@ -74,7 +65,7 @@ RSpec.describe Admin::EventStats do
   it 'performs no SQL when given already loaded events' do
     rows = build_list(:event, 3, created_at: now)
     stats = described_class.new(rows, now: now)
-    expect(count_queries { stats.total_events; stats.full_months_display; stats.yearly_counts }).to eq(0)
+    expect(count_queries { stats.total_events; stats.current_month_count; stats.current_year_count }).to eq(0)
   end
 
   it 'charts a spam relation by creation month in one grouped query' do
@@ -94,7 +85,7 @@ RSpec.describe Admin::EventStats do
     it 'assigns an event to its creation year when the party is in another year' do
       rows = [ entry(date: Date.new(2027, 1, 5), created_at: Time.zone.local(2026, 12, 20)) ]
       stats = described_class.new(rows, now: Time.zone.local(2027, 1, 10))
-      expect(stats.yearly_counts).to eq(2026 => '1')
+      expect(stats.yearly_chart.first).to eq(label: '2026', count: 1)
     end
 
     it 'counts events created this month regardless of their scheduled month' do

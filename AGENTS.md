@@ -340,8 +340,11 @@ booting Rails: `bundle exec rspec spec/lib/production_database_pull_spec.rb`.
 For autoloading changes, run `RAILS_ENV=test bin/rails zeitwerk:check`.
 CircleCI installs Firefox/geckodriver, creates and loads the test database, then
 runs `bin/ci`. JUnit results and failure screenshots are retained. Bundler-audit,
-Brakeman, Rails Omakase, ERB Lint, ESLint, and Stylelint run before the application
-checks. The frontend linters use their upstream recommended rules without a
+Brakeman, Rails Omakase with the idiomatic-rails cops, the idiomatic-rails
+dead-code check, ERB Lint, ESLint, and Stylelint run before the application
+checks. Dead-code exemptions live in `.idiomatic-rails.yml`; each names the
+caller the scan cannot see, and an entry that stops being needed fails the check.
+The frontend linters use their upstream recommended rules without a
 project-specific house style or generated suppression file. `npm audit` covers
 shipped dependencies only (`--omit=dev`): development-only lint tooling never
 reaches production and must not block deploys on advisories without a fix.

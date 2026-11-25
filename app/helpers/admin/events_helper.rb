@@ -2,7 +2,7 @@
 
 module Admin::EventsHelper
   def admin_time(time)
-    time.utc.strftime("%Y-%m-%d %H:%M UTC")
+    time.utc.to_fs(:utc_minutes)
   end
 
   def admin_time_with_age(time)
